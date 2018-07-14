@@ -4,12 +4,12 @@
 
 const std::vector<QString> AnimationClipGenerator::supportedClipNames = {
     "Idle",
-    "Walk",
+    //"Walk",
     //"Run",
     //"Attack",
     //"Hurt",
 #if USE_BULLET
-    "Die",
+    //"Die",
 #endif
 };
 

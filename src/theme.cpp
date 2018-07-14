@@ -70,3 +70,26 @@ std::map<QString, QColor> Theme::sideColorNameToColorMap = createSideColorNameTo
 QString Theme::tabButtonSelectedStylesheet = "QPushButton { color: #efefef; background-color: #fc6621; border: 0px; padding-top: 2px; padding-bottom: 2px; padding-left: 25px; padding-right: 25px;}";
 QString Theme::tabButtonStylesheet = "QPushButton { color: #efefef; background-color: #353535; border: 0px; padding-top: 2px; padding-bottom: 2px; padding-left: 25px; padding-right: 25px;}";
 
+void Theme::initAwesomeButton(QPushButton *button)
+{
+    button->setFont(Theme::awesome()->font(Theme::toolIconFontSize));
+    button->setFixedSize(Theme::toolIconSize, Theme::toolIconSize);
+    button->setStyleSheet("QPushButton {color: #f7d9c8}");
+    button->setFocusPolicy(Qt::NoFocus);
+}
+
+void Theme::initAwesomeSmallButton(QPushButton *button)
+{
+    button->setFont(Theme::awesome()->font(Theme::toolIconFontSize * 0.7));
+    button->setFixedSize(Theme::toolIconSize * 0.75, Theme::toolIconSize * 0.75);
+    button->setStyleSheet("QPushButton {color: #f7d9c8}");
+    button->setFocusPolicy(Qt::NoFocus);
+}
+
+void Theme::initAwesomeLabel(QLabel *label)
+{
+    label->setFont(Theme::awesome()->font(Theme::toolIconFontSize));
+    label->setStyleSheet("QLabel {color: #f7d9c8}");
+}
+
+

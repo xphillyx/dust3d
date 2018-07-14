@@ -504,7 +504,7 @@ void SkeletonGraphicsWidget::turnaroundImageReady()
 {
     QImage *backgroundImage = m_turnaroundLoader->takeResultImage();
     if (backgroundImage && backgroundImage->width() > 0 && backgroundImage->height() > 0) {
-        qDebug() << "Fit turnaround finished with image size:" << backgroundImage->size();
+        //qDebug() << "Fit turnaround finished with image size:" << backgroundImage->size();
         setFixedSize(backgroundImage->size());
         scene()->setSceneRect(rect());
         m_backgroundItem->setPixmap(QPixmap::fromImage(*backgroundImage));
@@ -2078,20 +2078,20 @@ void SkeletonGraphicsWidget::removeAllContent()
     m_addFromNodeItem = nullptr;
     m_cursorEdgeItem->hide();
     m_cursorNodeItem->hide();
-    std::set<QGraphicsItem *> contentItems;
+    std::vector<QGraphicsItem *> contentItems;
     for (const auto &it: items()) {
         QGraphicsItem *item = it;
         if (item->data(0) == "node") {
-            contentItems.insert(item);
+            contentItems.push_back(item);
         } else if (item->data(0) == "edge") {
-            contentItems.insert(item);
+            contentItems.push_back(item);
         }
     }
-    for (const auto &it: contentItems) {
-        QGraphicsItem *item = it;
+    for (size_t i = 0; i < contentItems.size(); i++) {
+        QGraphicsItem *item = contentItems[i];
         Q_ASSERT(item != m_cursorEdgeItem);
         Q_ASSERT(item != m_cursorNodeItem);
-        scene()->removeItem(item);
+        delete item;
     }
 }
 

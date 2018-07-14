@@ -1,11 +1,14 @@
 #include <cmath>
 #include "jointnodetree.h"
 
+IMPL_JointSideToString
+IMPL_JointSideFromString
+IMPL_JointSideToDispName
+
 JointNodeTree::JointNodeTree(MeshResultContext &resultContext)
 {
     const BmeshNode *rootNode = resultContext.centerBmeshNode();
     if (!rootNode) {
-        qDebug() << "Cannot construct JointNodeTree because lack of root node";
         return;
     }
     
@@ -54,6 +57,100 @@ const std::vector<std::pair<int, int>> &JointNodeTree::leftLegs() const
 const std::vector<std::pair<int, int>> &JointNodeTree::rightLegs() const
 {
     return m_rightLegs;
+}
+
+void JointNodeTree::getMarkedNodeList(std::vector<JointMarkedNode> &markedNodes, std::vector<int> *jointIndicies) const
+{
+    if (-1 != head) {
+        JointMarkedNode mn;
+        mn.position = joints()[head].position;
+        mn.boneMark = joints()[head].boneMark;
+        markedNodes.push_back(mn);
+        if (nullptr != jointIndicies)
+            jointIndicies->push_back(head);
+    }
+    int maxLegNum = std::max(leftLegs().size(), rightLegs().size());
+    for (int i = 0; i < maxLegNum; i++) {
+        if (i < (int)leftLegs().size()) {
+            const auto &leg = leftLegs()[i];
+        
+            JointMarkedNode mn;
+
+            mn.jointSide = JointSide::Left;
+            mn.siblingOrder = i;
+            mn.jointOrder = -1;
+            mn.position = joints()[leg.first].position;
+            mn.boneMark = joints()[leg.first].boneMark;
+            markedNodes.push_back(mn);
+            if (nullptr != jointIndicies)
+                jointIndicies->push_back(leg.first);
+            
+            for (int j = 0; j < (int)leftLegJoints()[i].size(); j++) {
+                int jointIndex = leftLegJoints()[i][j];
+                mn.jointSide = JointSide::Left;
+                mn.siblingOrder = i;
+                mn.jointOrder = j;
+                mn.position = joints()[jointIndex].position;
+                mn.boneMark = joints()[jointIndex].boneMark;
+                markedNodes.push_back(mn);
+                if (nullptr != jointIndicies)
+                    jointIndicies->push_back(jointIndex);
+            }
+            
+            mn.jointSide = JointSide::Left;
+            mn.siblingOrder = i;
+            mn.jointOrder = -1;
+            mn.position = joints()[leg.second].position;
+            mn.boneMark = joints()[leg.second].boneMark;
+            markedNodes.push_back(mn);
+            if (nullptr != jointIndicies)
+                jointIndicies->push_back(leg.second);
+        }
+        
+        if (i < (int)rightLegs().size()) {
+            const auto &leg = rightLegs()[i];
+        
+            JointMarkedNode mn;
+            
+            mn.jointSide = JointSide::Right;
+            mn.siblingOrder = i;
+            mn.jointOrder = -1;
+            mn.position = joints()[leg.first].position;
+            mn.boneMark = joints()[leg.first].boneMark;
+            markedNodes.push_back(mn);
+            if (nullptr != jointIndicies)
+                jointIndicies->push_back(leg.first);
+            
+            for (int j = 0; j < (int)rightLegJoints()[i].size(); j++) {
+                int jointIndex = rightLegJoints()[i][j];
+                mn.jointSide = JointSide::Right;
+                mn.siblingOrder = i;
+                mn.jointOrder = j;
+                mn.position = joints()[jointIndex].position;
+                mn.boneMark = joints()[jointIndex].boneMark;
+                markedNodes.push_back(mn);
+                if (nullptr != jointIndicies)
+                    jointIndicies->push_back(jointIndex);
+            }
+            
+            mn.jointSide = JointSide::Right;
+            mn.siblingOrder = i;
+            mn.jointOrder = -1;
+            mn.position = joints()[leg.second].position;
+            mn.boneMark = joints()[leg.second].boneMark;
+            markedNodes.push_back(mn);
+            if (nullptr != jointIndicies)
+                jointIndicies->push_back(leg.second);
+        }
+    }
+    if (-1 != tail) {
+        JointMarkedNode mn;
+        mn.position = joints()[tail].position;
+        mn.boneMark = joints()[tail].boneMark;
+        markedNodes.push_back(mn);
+        if (nullptr != jointIndicies)
+            jointIndicies->push_back(tail);
+    }
 }
 
 void JointNodeTree::collectParts()
@@ -348,7 +445,7 @@ int JointNodeTree::findParent(int jointIndex, int parentIndex, std::vector<int> 
     return -1;
 }
 
-int JointNodeTree::findSpineFromChild(int jointIndex)
+int JointNodeTree::findSpineFromChild(int jointIndex) const
 {
     int loopJointIndex = joints()[jointIndex].parentIndex;
     while (-1 != loopJointIndex) {

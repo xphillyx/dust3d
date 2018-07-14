@@ -10,7 +10,7 @@
 #include "skeletondocument.h"
 #include "modelwidget.h"
 #include "exportpreviewwidget.h"
-#include "animationpanelwidget.h"
+#include "motioncopylayerlistwidget.h"
 
 class SkeletonGraphicsWidget;
 
@@ -37,7 +37,8 @@ public slots:
     void exportModelResult();
     void exportGltfResult();
     void showExportPreview();
-    void showAnimationPanel();
+    void showMotionsList();
+    void createMotionsList();
     void newWindow();
     void newDocument();
     void saveAs();
@@ -52,7 +53,6 @@ public slots:
     void updateYlockButtonState();
     void updateZlockButtonState();
 private:
-    void initAwesomeButton(QPushButton *button);
     void initLockButton(QPushButton *button);
     void setCurrentFilename(const QString &filename);
     void updateTitle();
@@ -61,7 +61,7 @@ private:
     bool m_firstShow;
     bool m_documentSaved;
     ExportPreviewWidget *m_exportPreviewWidget;
-    AnimationPanelWidget *m_animationPanelWidget;
+    MotionCopyLayerListWidget *m_motionsListWidget;
 private:
     QString m_currentFilename;
     
@@ -119,7 +119,7 @@ private:
     QAction *m_showPartsListAction;
     QAction *m_showDebugDialogAction;
     QAction *m_toggleWireframeAction;
-    QAction *m_showAnimationPanelAction;
+    QAction *m_showMotionsListAction;
     
     QMenu *m_helpMenu;
     QAction *m_viewSourceAction;

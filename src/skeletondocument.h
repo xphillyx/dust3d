@@ -275,11 +275,11 @@ public:
     bool isNodeEditable(QUuid nodeId) const;
     bool isEdgeEditable(QUuid edgeId) const;
     bool originSettled() const;
-    MeshResultContext &currentPostProcessedResultContext();
-    JointNodeTree &currentJointNodeTree();
+    const MeshResultContext &currentPostProcessedResultContext() const;
+    const JointNodeTree &currentJointNodeTree() const;
     bool isExportReady() const;
     bool allAnimationClipsReady() const;
-    bool postProcessResultIsObsolete() const;
+    bool isPostProcessResultObsolete() const;
     const std::map<QString, AnimationClipContext> &animationClipContexts();
     void findAllNeighbors(QUuid nodeId, std::set<QUuid> &neighbors) const;
 public slots:
@@ -346,17 +346,17 @@ private:
     void checkExportReadyState();
     void reviseOrigin();
 private: // need initialize
-    bool m_resultMeshIsObsolete;
+    bool m_isResultMeshObsolete;
     MeshGenerator *m_meshGenerator;
     MeshLoader *m_resultMesh;
     int m_batchChangeRefCount;
     MeshResultContext *m_currentMeshResultContext;
-    bool m_resultSkeletonIsObsolete;
+    bool m_isResultSkeletonObsolete;
     SkeletonGenerator *m_skeletonGenerator;
     MeshLoader *m_resultSkeletonMesh;
-    bool m_textureIsObsolete;
+    bool m_isTextureObsolete;
     TextureGenerator *m_textureGenerator;
-    bool m_postProcessResultIsObsolete;
+    bool m_isPostProcessResultObsolete;
     MeshResultPostProcessor *m_postProcessor;
     MeshResultContext *m_postProcessedResultContext;
     JointNodeTree *m_jointNodeTree;

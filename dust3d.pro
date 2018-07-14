@@ -1,4 +1,4 @@
-QT += core widgets opengl
+QT += core widgets opengl multimedia
 CONFIG += release
 RESOURCES += resources.qrc
 
@@ -168,6 +168,45 @@ SOURCES += src/jointconstraint.cpp
 HEADERS += src/jointconstraint.h
 
 HEADERS += src/qtlightmapper.h
+
+SOURCES += src/motioncopydocumentwidget.cpp
+HEADERS += src/motioncopydocumentwidget.h
+
+SOURCES += src/motioncopydocument.cpp
+HEADERS += src/motioncopydocument.h
+
+SOURCES += src/motioncopyframegraphicsview.cpp
+HEADERS += src/motioncopyframegraphicsview.h
+
+SOURCES += src/motioncopytracknodelistwidget.cpp
+HEADERS += src/motioncopytracknodelistwidget.h
+
+SOURCES += src/motioncopylayerlistwidget.cpp
+HEADERS += src/motioncopylayerlistwidget.h
+
+SOURCES += src/motioncopysnapshot.cpp
+HEADERS += src/motioncopysnapshot.h
+
+SOURCES += src/motioncopytojoint.cpp
+HEADERS += src/motioncopytojoint.h
+
+SOURCES += src/motioncopyxml.cpp
+HEADERS += src/motioncopyxml.h
+
+SOURCES += src/tracknodegraphicsitem.cpp
+HEADERS += src/tracknodegraphicsitem.h
+
+SOURCES += src/videoframeextractor.cpp
+HEADERS += src/videoframeextractor.h
+
+SOURCES += src/spinnableawesomebutton.cpp
+HEADERS += src/spinnableawesomebutton.h
+
+SOURCES += src/infolabel.cpp
+HEADERS += src/infolabel.h
+
+SOURCES += src/graphicscontainerwidget.cpp
+HEADERS += src/graphicscontainerwidget.h
 
 SOURCES += src/main.cpp
 
@@ -412,6 +451,13 @@ macx {
 	#
 	#	DEFINES += "USE_BULLET=1"
 	#}
+
+	exists(/usr/local/opt/opencv) {
+		INCLUDEPATH += /usr/local/opt/opencv/include
+		LIBS += -L/usr/local/opt/opencv/lib -lopencv_core -lopencv_videoio -lopencv_imgproc
+	
+		DEFINES += "USE_OPENCV=1"
+	}
 }
 
 unix:!macx {

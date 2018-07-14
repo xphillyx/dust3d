@@ -27,17 +27,17 @@ SkeletonDocument::SkeletonDocument() :
     textureAmbientOcclusionImage(nullptr),
     textureColorImage(nullptr),
     // private
-    m_resultMeshIsObsolete(false),
+    m_isResultMeshObsolete(false),
     m_meshGenerator(nullptr),
     m_resultMesh(nullptr),
     m_batchChangeRefCount(0),
     m_currentMeshResultContext(nullptr),
-    m_resultSkeletonIsObsolete(false),
+    m_isResultSkeletonObsolete(false),
     m_skeletonGenerator(nullptr),
     m_resultSkeletonMesh(nullptr),
-    m_textureIsObsolete(false),
+    m_isTextureObsolete(false),
     m_textureGenerator(nullptr),
-    m_postProcessResultIsObsolete(false),
+    m_isPostProcessResultObsolete(false),
     m_postProcessor(nullptr),
     m_postProcessedResultContext(new MeshResultContext),
     m_jointNodeTree(new JointNodeTree(*m_postProcessedResultContext)),
@@ -921,18 +921,18 @@ void SkeletonDocument::meshReady()
     
     qDebug() << "MeshLoader generation done";
     
-    m_postProcessResultIsObsolete = true;
+    m_isPostProcessResultObsolete = true;
     
     emit resultMeshChanged();
     
-    if (m_resultMeshIsObsolete) {
+    if (m_isResultMeshObsolete) {
         generateMesh();
     }
 }
 
-bool SkeletonDocument::postProcessResultIsObsolete() const
+bool SkeletonDocument::isPostProcessResultObsolete() const
 {
-    return m_postProcessResultIsObsolete;
+    return m_isPostProcessResultObsolete;
 }
 
 void SkeletonDocument::batchChangeBegin()
@@ -944,7 +944,7 @@ void SkeletonDocument::batchChangeEnd()
 {
     m_batchChangeRefCount--;
     if (0 == m_batchChangeRefCount) {
-        if (m_resultMeshIsObsolete) {
+        if (m_isResultMeshObsolete) {
             generateMesh();
         }
     }
@@ -953,13 +953,13 @@ void SkeletonDocument::batchChangeEnd()
 void SkeletonDocument::generateMesh()
 {
     if (nullptr != m_meshGenerator || m_batchChangeRefCount > 0) {
-        m_resultMeshIsObsolete = true;
+        m_isResultMeshObsolete = true;
         return;
     }
     
     qDebug() << "MeshLoader generating..";
     
-    m_resultMeshIsObsolete = false;
+    m_isResultMeshObsolete = false;
     
     QThread *thread = new QThread;
     
@@ -980,13 +980,13 @@ void SkeletonDocument::generateMesh()
 void SkeletonDocument::generateTexture()
 {
     if (nullptr != m_textureGenerator) {
-        m_textureIsObsolete = true;
+        m_isTextureObsolete = true;
         return;
     }
     
     qDebug() << "Texture guide generating..";
     
-    m_textureIsObsolete = false;
+    m_isTextureObsolete = false;
     
     QThread *thread = new QThread;
     m_textureGenerator = new TextureGenerator(*m_postProcessedResultContext, thread);
@@ -1027,7 +1027,7 @@ void SkeletonDocument::textureReady()
     
     emit resultTextureChanged();
     
-    if (m_textureIsObsolete) {
+    if (m_isTextureObsolete) {
         generateTexture();
     } else {
         checkExportReadyState();
@@ -1040,7 +1040,7 @@ void SkeletonDocument::bakeAmbientOcclusionTexture()
         return;
     }
 
-    if (nullptr == textureColorImage || m_textureIsObsolete)
+    if (nullptr == textureColorImage || m_isTextureObsolete)
         return;
 
     qDebug() << "Ambient occlusion texture baking..";
@@ -1105,13 +1105,13 @@ void SkeletonDocument::ambientOcclusionTextureReady()
 void SkeletonDocument::generateSkeleton()
 {
     if (nullptr != m_skeletonGenerator) {
-        m_resultSkeletonIsObsolete = true;
+        m_isResultSkeletonObsolete = true;
         return;
     }
     
     qDebug() << "Skeleton generating..";
     
-    m_resultSkeletonIsObsolete = false;
+    m_isResultSkeletonObsolete = false;
     
     QThread *thread = new QThread;
     m_skeletonGenerator = new SkeletonGenerator(*m_postProcessedResultContext);
@@ -1137,7 +1137,7 @@ void SkeletonDocument::skeletonReady()
     
     emit resultSkeletonChanged();
     
-    if (m_resultSkeletonIsObsolete) {
+    if (m_isResultSkeletonObsolete) {
         generateSkeleton();
     } else {
         checkExportReadyState();
@@ -1147,13 +1147,13 @@ void SkeletonDocument::skeletonReady()
 void SkeletonDocument::postProcess()
 {
     if (nullptr != m_postProcessor) {
-        m_postProcessResultIsObsolete = true;
+        m_isPostProcessResultObsolete = true;
         return;
     }
 
     qDebug() << "Post processing..";
 
-    m_postProcessResultIsObsolete = false;
+    m_isPostProcessResultObsolete = false;
 
     if (!m_currentMeshResultContext) {
         qDebug() << "MeshLoader is null";
@@ -1185,17 +1185,17 @@ void SkeletonDocument::postProcessedMeshResultReady()
 
     emit postProcessedResultChanged();
 
-    if (m_postProcessResultIsObsolete) {
+    if (m_isPostProcessResultObsolete) {
         postProcess();
     }
 }
 
-MeshResultContext &SkeletonDocument::currentPostProcessedResultContext()
+const MeshResultContext &SkeletonDocument::currentPostProcessedResultContext() const
 {
     return *m_postProcessedResultContext;
 }
 
-JointNodeTree &SkeletonDocument::currentJointNodeTree()
+const JointNodeTree &SkeletonDocument::currentJointNodeTree() const
 {
     return *m_jointNodeTree;
 }
@@ -1566,15 +1566,15 @@ void SkeletonDocument::setZlockState(bool locked)
 
 bool SkeletonDocument::isExportReady() const
 {
-    if (m_resultMeshIsObsolete ||
-            m_resultSkeletonIsObsolete ||
-            m_textureIsObsolete ||
-            m_postProcessResultIsObsolete ||
+    if (m_isResultMeshObsolete ||
+            m_isResultSkeletonObsolete ||
+            m_isTextureObsolete ||
+            m_isPostProcessResultObsolete ||
             m_meshGenerator ||
             m_skeletonGenerator ||
             m_textureGenerator ||
-            m_postProcessor ||
-            !allAnimationClipsReady())
+            m_postProcessor/* ||
+            !allAnimationClipsReady()*/)
         return false;
     return true;
 }
@@ -1646,8 +1646,8 @@ void SkeletonDocument::animationClipReady(QString clipName)
 
 void SkeletonDocument::generateAllAnimationClips()
 {
-    for (const auto &clipName: AnimationClipGenerator::supportedClipNames)
-        generateAnimationClip(clipName);
+    //for (const auto &clipName: AnimationClipGenerator::supportedClipNames)
+    //    generateAnimationClip(clipName);
 }
 
 const std::map<QString, AnimationClipContext> &SkeletonDocument::animationClipContexts()
@@ -1680,3 +1680,4 @@ void SkeletonDocument::findAllNeighbors(QUuid nodeId, std::set<QUuid> &neighbors
         findAllNeighbors(neighborNodeId, neighbors);
     }
 }
+
