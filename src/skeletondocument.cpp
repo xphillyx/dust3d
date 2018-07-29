@@ -1579,80 +1579,10 @@ bool SkeletonDocument::isExportReady() const
     return true;
 }
 
-bool SkeletonDocument::allAnimationClipsReady() const
-{
-    for (const auto &clipName: AnimationClipGenerator::supportedClipNames) {
-        const auto &findClip = m_animationClipContexts.find(clipName);
-        if (findClip == m_animationClipContexts.end())
-            return false;
-        const auto &clipContext = findClip->second;
-        if (nullptr != clipContext.clipGenerator)
-            return false;
-        if (clipContext.isObsolete)
-            return false;
-    }
-    return true;
-}
-
 void SkeletonDocument::checkExportReadyState()
 {
     if (isExportReady())
         emit exportReady();
-}
-
-void SkeletonDocument::generateAnimationClip(QString clipName)
-{
-    auto &clipContext = m_animationClipContexts[clipName];
-    if (nullptr != clipContext.clipGenerator) {
-        clipContext.isObsolete = true;
-        return;
-    }
-    
-    qDebug() << "Animation clip [" << clipName << "] generating for document..";
-    
-    clipContext.isObsolete = false;
-    
-    QThread *thread = new QThread;
-    clipContext.clipGenerator = new AnimationClipGenerator(currentPostProcessedResultContext(),
-        currentJointNodeTree(),
-        clipName, animationParameters[clipName], false);
-    clipContext.clipGenerator->moveToThread(thread);
-    connect(thread, &QThread::started, clipContext.clipGenerator, &AnimationClipGenerator::process);
-    connect(clipContext.clipGenerator, &AnimationClipGenerator::finished, [=] {
-        animationClipReady(clipName);
-    });
-    connect(clipContext.clipGenerator, &AnimationClipGenerator::finished, thread, &QThread::quit);
-    connect(thread, &QThread::finished, thread, &QThread::deleteLater);
-    thread->start();
-}
-
-void SkeletonDocument::animationClipReady(QString clipName)
-{
-    auto &clipContext = m_animationClipContexts[clipName];
-    
-    clipContext.times = clipContext.clipGenerator->times();
-    clipContext.frames = clipContext.clipGenerator->frames();
-    
-    delete clipContext.clipGenerator;
-    clipContext.clipGenerator = nullptr;
-    
-    qDebug() << "Animation clip [" << clipName << "] generation done";
-    
-    if (clipContext.isObsolete)
-        generateAnimationClip(clipName);
-    else
-        checkExportReadyState();
-}
-
-void SkeletonDocument::generateAllAnimationClips()
-{
-    //for (const auto &clipName: AnimationClipGenerator::supportedClipNames)
-    //    generateAnimationClip(clipName);
-}
-
-const std::map<QString, AnimationClipContext> &SkeletonDocument::animationClipContexts()
-{
-    return m_animationClipContexts;
 }
 
 void SkeletonDocument::findAllNeighbors(QUuid nodeId, std::set<QUuid> &neighbors) const

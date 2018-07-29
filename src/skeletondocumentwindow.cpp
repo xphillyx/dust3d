@@ -623,7 +623,6 @@ SkeletonDocumentWindow::SkeletonDocumentWindow() :
     connect(m_document, &SkeletonDocument::postProcessedResultChanged, m_document, &SkeletonDocument::generateSkeleton);
     connect(m_document, &SkeletonDocument::postProcessedResultChanged, m_document, &SkeletonDocument::generateTexture);
     connect(m_document, &SkeletonDocument::resultTextureChanged, m_document, &SkeletonDocument::bakeAmbientOcclusionTexture);
-    connect(m_document, &SkeletonDocument::postProcessedResultChanged, m_document, &SkeletonDocument::generateAllAnimationClips);
 
     connect(m_document, &SkeletonDocument::resultMeshChanged, [=]() {
         m_modelRenderWidget->updateMesh(m_document->takeResultMesh());
@@ -984,6 +983,15 @@ void SkeletonDocumentWindow::createMotionsList()
         m_motionsListWidget->hide();
         m_motionsListWidget->setWindowFlags(Qt::Tool);
         connect(m_motionsListWidget, &MotionCopyLayerListWidget::someDocumentChanged, this, &SkeletonDocumentWindow::documentChanged);
+        connect(m_motionsListWidget, &MotionCopyLayerListWidget::currentFrameConvertedMeshChanged, [=] {
+            auto motionCopyDocument = m_motionsListWidget->currentMotionCopyDocument();
+            if (nullptr == motionCopyDocument)
+                return;
+            auto mesh = motionCopyDocument->takeCurrentFrameMesh();
+            if (nullptr == mesh)
+                mesh = m_document->takeResultMesh();
+            m_modelRenderWidget->updateMesh(mesh);
+        });
     }
 }
 
@@ -1015,7 +1023,7 @@ void SkeletonDocumentWindow::exportGltfResult()
     }
     QApplication::setOverrideCursor(Qt::WaitCursor);
     MeshResultContext skeletonResult = m_document->currentPostProcessedResultContext();
-    GLTFFileWriter gltfFileWriter(skeletonResult, m_document->animationClipContexts(),filename);
+    GLTFFileWriter gltfFileWriter(skeletonResult,filename);
     gltfFileWriter.save();
     if (m_document->textureImage)
         m_document->textureImage->save(gltfFileWriter.textureFilenameInGltf());

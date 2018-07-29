@@ -41,6 +41,14 @@ void MotionCopyToJoint::prepareJointIndexToPositionMap(std::map<int, QVector3D> 
     }
 }
 
+void MotionCopyToJoint::process()
+{
+    apply();
+    
+    this->moveToThread(QGuiApplication::instance()->thread());
+    emit finished();
+}
+
 void MotionCopyToJoint::apply()
 {
     if (m_jointNodeTree.joints().empty())
@@ -50,43 +58,33 @@ void MotionCopyToJoint::apply()
     
     m_resultJointNodeTree = new JointNodeTree(m_jointNodeTree);
     prepareJointIndexToPositionMap(m_jointIndexToPositionMap);
-    applyFromJoint(0);
-}
-
-void MotionCopyToJoint::process()
-{
-    apply();
     
-    this->moveToThread(QGuiApplication::instance()->thread());
-    emit finished();
-}
-
-int MotionCopyToJoint::findPositionMarkedParent(int jointIndex, std::vector<int> *trace)
-{
-    int loopJointIndex = jointIndex;
-    while (true) {
-        const auto &joint = m_jointNodeTree.joints()[loopJointIndex];
-        if (-1 == joint.parentIndex)
-            break;
-        if (nullptr != trace)
-            trace->push_back(joint.parentIndex);
-        if (m_jointIndexToPositionMap.find(joint.parentIndex) == m_jointIndexToPositionMap.end()) {
-            return jointIndex;
+    for (const auto &leg: m_resultJointNodeTree->legs()) {
+        std::vector<std::pair<int, QVector3D>> jointIndiciesAndPositions;
+        for (size_t i = 0; i < leg.size(); i++) {
+            int jointIndex = leg[i];
+            const auto &findPositionResult = m_jointIndexToPositionMap.find(jointIndex);
+            if (findPositionResult != m_jointIndexToPositionMap.end()) {
+                jointIndiciesAndPositions.push_back(std::make_pair(jointIndex, findPositionResult->second));
+            }
+        }
+        for (size_t i = 1; i < jointIndiciesAndPositions.size(); i++) {
+            const auto &prev = jointIndiciesAndPositions[i - 1];
+            const auto &current = jointIndiciesAndPositions[i];
+            QVector3D direction = (current.second - prev.second).normalized();
+            auto &prevJoint = m_resultJointNodeTree->joints()[prev.first];
+            auto &currentJoint = m_resultJointNodeTree->joints()[current.first];
+            QVector3D oldDirection = (currentJoint.position - prevJoint.position).normalized();
+            QQuaternion rotation = QQuaternion::rotationTo(oldDirection, direction);
+            std::vector<int> children;
+            m_resultJointNodeTree->collectChildren(currentJoint.jointIndex, children);
+            QVector3D rotateOrigin = prevJoint.position;
+            currentJoint.position = rotateOrigin + rotation.rotatedVector(currentJoint.position - rotateOrigin);
+            for (const auto &childIndex: children) {
+                auto &childJoint = m_resultJointNodeTree->joints()[childIndex];
+                childJoint.position = rotateOrigin + rotation.rotatedVector(childJoint.position - rotateOrigin);
+            }
         }
     }
-    return -1;
-}
-
-void MotionCopyToJoint::applyFromJoint(int jointIndex)
-{
-    if (m_jointIndexToPositionMap.find(jointIndex) != m_jointIndexToPositionMap.end()) {
-        std::vector<int> trace;
-        int positionMarkedParent = findPositionMarkedParent(jointIndex, &trace);
-        if (-1 != positionMarkedParent) {
-            
-        }
-    }
-    for (const auto &child: m_jointNodeTree.joints()[jointIndex].children) {
-        applyFromJoint(child);
-    }
+    m_resultJointNodeTree->recalculateMatricesAfterPositionUpdated();
 }

@@ -6,6 +6,8 @@
 #include "skeletondocument.h"
 #include "jointnodetree.h"
 #include "motioncopysnapshot.h"
+#include "motioncopytojoint.h"
+#include "trackframeconvertor.h"
 
 #define MOTION_COPY_CHANNEL_NUM 2
 
@@ -24,6 +26,26 @@ public:
     bool visible = true;
 };
 
+class MotionCopyFrameCache
+{
+public:
+    MotionCopyFrameCache()
+    {
+    }
+    ~MotionCopyFrameCache()
+    {
+        delete jointNodeTree;
+        delete meshResultContext;
+        delete mesh;
+    }
+public:
+    JointNodeTree *jointNodeTree = nullptr;
+    MeshResultContext *meshResultContext = nullptr;
+    MeshLoader *mesh = nullptr;
+private:
+    Q_DISABLE_COPY(MotionCopyFrameCache);
+};
+
 class MotionCopyDocument : public QObject
 {
     Q_OBJECT
@@ -35,6 +57,8 @@ signals:
     void trackNodesAttributesChanged();
     void trackNodeHovered(QString id);
     void trackNodePositionChanged(QString id, QVector3D position);
+    void currentFrameCacheReady();
+    void markedNodesChanged();
 public:
     MotionCopyDocument(const SkeletonDocument *skeletonDocument);
     ~MotionCopyDocument();
@@ -49,6 +73,8 @@ public:
     const QString &videoFileName(int channel) const;
     const QString &videoRealPath(int channel) const;
     void markAsDeleted();
+    MeshLoader *takeCurrentFrameMesh();
+    const std::vector<JointMarkedNode> &markedNodes() const;
 public slots:
     void loadSourceVideo(int channel, int thumbnailHeight, QString fileName, QString realPath, QTemporaryFile *fileHandle);
     void loadSourceVideoData(int channel, int thumbnailHeight, QString fileName, QByteArray fileContent);
@@ -59,8 +85,12 @@ public slots:
     void setTrackNodeVisibleStateToAllFrames(JointMarkedNode markedNode, bool visible);
     void moveTrackNodeBy(int frame, QString id, float x, float y, float z);
     void reset();
+    void frameConvertDone();
+    void frameChanged(int frame);
+    void reloadSourceMarkedNodes();
 private:
     void checkDelete();
+    void checkFrameCaches();
 private:
     QString m_loadedVideoFileNames[MOTION_COPY_CHANNEL_NUM];
     QString m_loadedVideoRealPaths[MOTION_COPY_CHANNEL_NUM];
@@ -73,9 +103,14 @@ private:
     std::vector<VideoFrame> *m_videoFrames[MOTION_COPY_CHANNEL_NUM] = {nullptr};
     std::vector<std::map<QString, TrackNodeInstance>> m_trackNodeInstances;
     std::map<QString, TrackNode> m_trackNodes;
+    std::map<int, MotionCopyFrameCache> m_frameCaches;
+    std::set<int> m_dirtyFrames;
     int m_currentFrame = -1;
     const SkeletonDocument *m_skeletonDocument = nullptr;
     bool m_markedAsDeleted = false;
+    TrackFrameConvertor *m_trackFrameConvertor = nullptr;
+    std::vector<JointMarkedNode> m_markedNodes;
+    std::set<QString> m_markedNodeIds;
 };
 
 #endif

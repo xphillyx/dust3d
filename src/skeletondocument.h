@@ -17,7 +17,6 @@
 #include "meshresultpostprocessor.h"
 #include "ambientocclusionbaker.h"
 #include "skeletonbonemark.h"
-#include "animationclipgenerator.h"
 #include "jointnodetree.h"
 
 class SkeletonNode
@@ -176,15 +175,6 @@ enum class SkeletonDocumentEditMode
     ZoomOut
 };
 
-class AnimationClipContext
-{
-public:
-    bool isObsolete = true;
-    AnimationClipGenerator *clipGenerator = nullptr;
-    std::vector<float> times;
-    std::vector<RigFrame> frames;
-};
-
 class SkeletonDocument : public QObject
 {
     Q_OBJECT
@@ -278,9 +268,7 @@ public:
     const MeshResultContext &currentPostProcessedResultContext() const;
     const JointNodeTree &currentJointNodeTree() const;
     bool isExportReady() const;
-    bool allAnimationClipsReady() const;
     bool isPostProcessResultObsolete() const;
-    const std::map<QString, AnimationClipContext> &animationClipContexts();
     void findAllNeighbors(QUuid nodeId, std::set<QUuid> &neighbors) const;
 public slots:
     void removeNode(QUuid nodeId);
@@ -304,12 +292,9 @@ public slots:
     void generateTexture();
     void textureReady();
     void postProcess();
-    void generateAnimationClip(QString clipName);
-    void generateAllAnimationClips();
     void postProcessedMeshResultReady();
     void bakeAmbientOcclusionTexture();
     void ambientOcclusionTextureReady();
-    void animationClipReady(QString clipName);
     void setPartLockState(QUuid partId, bool locked);
     void setPartVisibleState(QUuid partId, bool visible);
     void setPartSubdivState(QUuid partId, bool subdived);
@@ -364,7 +349,6 @@ private: // need initialize
     unsigned long long m_textureImageUpdateVersion;
     AmbientOcclusionBaker *m_ambientOcclusionBaker;
     unsigned long long m_ambientOcclusionBakedImageUpdateVersion;
-    std::map<QString, AnimationClipContext> m_animationClipContexts;
 private:
     static unsigned long m_maxSnapshot;
     std::deque<SkeletonHistoryItem> m_undoItems;

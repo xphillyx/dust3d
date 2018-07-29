@@ -7,14 +7,11 @@
 #include "version.h"
 #include "infolabel.h"
 
-MotionCopyTrackNodeListWidget::MotionCopyTrackNodeListWidget(const SkeletonDocument *skeletonDocument, const MotionCopyDocument *motionCopyDocument, QWidget *parent) :
+MotionCopyTrackNodeListWidget::MotionCopyTrackNodeListWidget(const MotionCopyDocument *motionCopyDocument, QWidget *parent) :
     QWidget(parent),
-    m_skeletonDocument(skeletonDocument),
     m_motionCopyDocument(motionCopyDocument)
 {
-    const JointNodeTree &jointNodeTree = m_skeletonDocument->currentJointNodeTree();
-    std::vector<JointMarkedNode> markedNodes;
-    jointNodeTree.getMarkedNodeList(markedNodes);
+    const auto &markedNodes = m_motionCopyDocument->markedNodes();
     
     QVBoxLayout *mainLayout = new QVBoxLayout;
     

@@ -18,8 +18,6 @@ public:
     void apply();
 private:
     void prepareJointIndexToPositionMap(std::map<int, QVector3D> &jointIndexToPositionMap);
-    void applyFromJoint(int jointIndex);
-    int findPositionMarkedParent(int jointIndex, std::vector<int> *trace=nullptr);
 private:
     JointNodeTree m_jointNodeTree;
     JointNodeTree *m_resultJointNodeTree = nullptr;

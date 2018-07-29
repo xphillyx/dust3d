@@ -2,47 +2,14 @@
 
 SkinnedMesh::SkinnedMesh(const MeshResultContext &resultContext, const JointNodeTree &jointNodeTree) :
     m_resultContext(resultContext),
-    m_rigController(nullptr),
     m_jointNodeTree(new JointNodeTree(jointNodeTree))
 {
+    fromMeshResultContext(m_resultContext);
 }
 
 SkinnedMesh::~SkinnedMesh()
 {
-    delete m_rigController;
     delete m_jointNodeTree;
-}
-
-RigController *SkinnedMesh::rigController()
-{
-    return m_rigController;
-}
-
-JointNodeTree *SkinnedMesh::jointNodeTree()
-{
-    return m_jointNodeTree;
-}
-
-void SkinnedMesh::startRig()
-{
-    Q_ASSERT(nullptr == m_rigController);
-    m_rigController = new RigController(*m_jointNodeTree);
-    fromMeshResultContext(m_resultContext);
-    m_rigController->prepare();
-}
-
-void SkinnedMesh::applyRigFrameToMesh(const RigFrame &frame)
-{
-    std::vector<QMatrix4x4> matrices;
-    m_rigController->frameToMatrices(frame, matrices);
-    for (auto &vert: m_vertices) {
-        QMatrix4x4 matrix;
-        for (int i = 0; i < MAX_WEIGHT_NUM; i++) {
-            matrix += matrices[vert.weights[i].jointIndex] * vert.weights[i].amount;
-        }
-        vert.position = matrix * vert.posPosition;
-        vert.normal = (matrix * vert.posNormal).normalized();
-    }
 }
 
 void SkinnedMesh::fromMeshResultContext(MeshResultContext &resultContext)
@@ -78,6 +45,60 @@ void SkinnedMesh::fromMeshResultContext(MeshResultContext &resultContext)
             triangle.color = part.second.color;
             m_triangles.push_back(triangle);
         }
+    }
+}
+
+void SkinnedMesh::frameToMatrices(const RigFrame &frame, std::vector<QMatrix4x4> &matrices)
+{
+    if (m_jointNodeTree->joints().empty())
+        return;
+    matrices.clear();
+    matrices.resize(m_jointNodeTree->joints().size());
+
+    frameToMatricesAtJoint(frame, matrices, 0, QMatrix4x4());
+}
+
+void SkinnedMesh::frameToMatricesAtJoint(const RigFrame &frame, std::vector<QMatrix4x4> &matrices, int jointIndex, const QMatrix4x4 &parentWorldMatrix)
+{
+    const auto &joint = m_jointNodeTree->joints()[jointIndex];
+    
+    QMatrix4x4 translateMatrix;
+    if (frame.translatedIndicies.find(jointIndex) != frame.translatedIndicies.end())
+        translateMatrix.translate(frame.translations[jointIndex]);
+    else
+        translateMatrix.translate(joint.translation);
+    
+    QMatrix4x4 rotateMatrix;
+    if (frame.rotatedIndicies.find(jointIndex) != frame.rotatedIndicies.end())
+        rotateMatrix.rotate(frame.rotations[jointIndex]);
+    else
+        rotateMatrix.rotate(joint.rotation);
+    
+    QMatrix4x4 scaleMatrix;
+    if (frame.scaledIndicies.find(jointIndex) != frame.scaledIndicies.end())
+        scaleMatrix.scale(frame.scales[jointIndex]);
+    else
+        scaleMatrix.scale(joint.scale);
+    
+    QMatrix4x4 worldMatrix = parentWorldMatrix * translateMatrix * rotateMatrix * scaleMatrix;
+    matrices[jointIndex] = worldMatrix * joint.inverseBindMatrix;
+    
+    for (const auto &child: joint.children) {
+        frameToMatricesAtJoint(frame, matrices, child, worldMatrix);
+    }
+}
+
+void SkinnedMesh::applyRigFrameToMesh(const RigFrame &frame)
+{
+    std::vector<QMatrix4x4> matrices;
+    frameToMatrices(frame, matrices);
+    for (auto &vert: m_vertices) {
+        QMatrix4x4 matrix;
+        for (int i = 0; i < MAX_WEIGHT_NUM; i++) {
+            matrix += matrices[vert.weights[i].jointIndex] * vert.weights[i].amount;
+        }
+        vert.position = matrix * vert.posPosition;
+        vert.normal = (matrix * vert.posNormal).normalized();
     }
 }
 

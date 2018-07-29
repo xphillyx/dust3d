@@ -9,6 +9,7 @@ MotionCopyDocument::MotionCopyDocument(const SkeletonDocument *skeletonDocument)
     for (int i = 0; i < MOTION_COPY_CHANNEL_NUM; i++) {
         m_videoFrames[i] = new std::vector<VideoFrame>;
     }
+    reloadSourceMarkedNodes();
 }
 
 MotionCopyDocument::~MotionCopyDocument()
@@ -181,6 +182,7 @@ void MotionCopyDocument::moveTrackNodeBy(int frame, QString id, float x, float y
     if (frame == m_currentFrame) {
         emit trackNodePositionChanged(id, position);
     }
+    frameChanged(frame);
     emit documentChanged();
 }
 
@@ -203,6 +205,7 @@ void MotionCopyDocument::addTrackNodeToAllFrames(JointMarkedNode markedNode)
             trackNodeInstance.id = id;
             trackNodeInstanceMap[id] = trackNodeInstance;
         }
+        frameChanged(frame);
     }
     
     emit currentFrameChanged();
@@ -216,16 +219,9 @@ void MotionCopyDocument::removeTrackNodeFromAllFrames(JointMarkedNode markedNode
     if (findAttributeResult != m_trackNodes.end()) {
         findAttributeResult->second.visible = false;
     }
-    
-    /*
     for (size_t frame = 0; frame < m_trackNodeInstances.size(); frame++) {
-        auto &trackNodeInstanceMap = m_trackNodeInstances[frame];
-        const auto &findInstance = trackNodeInstanceMap.find(id);
-        if (findInstance != trackNodeInstanceMap.end()) {
-            trackNodeInstanceMap.erase(findInstance);
-        }
-    }*/
-    
+        frameChanged(frame);
+    }
     emit currentFrameChanged();
     emit documentChanged();
 }
@@ -249,6 +245,8 @@ const TrackNode *MotionCopyDocument::findTrackNode(const QString &id) const
 {
     const auto &findResult = m_trackNodes.find(id);
     if (findResult == m_trackNodes.end())
+        return nullptr;
+    if (m_markedNodeIds.find(id) == m_markedNodeIds.end())
         return nullptr;
     return &findResult->second;
 }
@@ -321,6 +319,8 @@ void MotionCopyDocument::fromSnapshot(const MotionCopySnapshot &snapshot)
         m_trackNodeInstances.push_back(trackNodeInstances);
     }
     
+    frameChanged(m_currentFrame);
+    
     emit currentFrameChanged();
     emit trackNodesAttributesChanged();
 }
@@ -353,4 +353,102 @@ const QString &MotionCopyDocument::videoRealPath(int channel) const
     return m_loadedVideoRealPaths[channel];
 }
 
+void MotionCopyDocument::checkFrameCaches()
+{
+    if (nullptr != m_trackFrameConvertor)
+        return;
+    
+    if (m_dirtyFrames.empty())
+        return;
+    
+    auto it = m_dirtyFrames.begin();
+    int dirtyFrame = *it;
+    m_dirtyFrames.erase(it);
+    
+    if (dirtyFrame >= (int)m_trackNodeInstances.size())
+        return;
+    
+    qDebug() << "Frame" << dirtyFrame << "converting..";
+    
+    std::vector<std::pair<JointMarkedNode, QVector3D>> markedNodesPositions;
+    for (const auto &it: m_trackNodeInstances[dirtyFrame]) {
+        const auto &findTraceNodeResult = m_trackNodes.find(it.second.id);
+        if (findTraceNodeResult == m_trackNodes.end()) {
+            qDebug() << "Find trace node id failed:" << it.second.id;
+            continue;
+        }
+        if (!findTraceNodeResult->second.visible)
+            continue;
+        markedNodesPositions.push_back(std::make_pair(findTraceNodeResult->second.markedNode, it.second.position));
+    }
+    
+    m_trackFrameConvertor = new TrackFrameConvertor(m_skeletonDocument->currentPostProcessedResultContext(),
+        m_skeletonDocument->currentJointNodeTree(), markedNodesPositions, dirtyFrame);
+    
+    QThread *thread = new QThread;
+    
+    m_trackFrameConvertor->moveToThread(thread);
+    connect(thread, &QThread::started, m_trackFrameConvertor, &TrackFrameConvertor::process);
+    connect(m_trackFrameConvertor, &TrackFrameConvertor::finished, this, &MotionCopyDocument::frameConvertDone);
+    connect(m_trackFrameConvertor, &TrackFrameConvertor::finished, thread, &QThread::quit);
+    connect(thread, &QThread::finished, thread, &QThread::deleteLater);
+    thread->start();
+}
 
+void MotionCopyDocument::frameConvertDone()
+{
+    qDebug() << "Frame" << m_trackFrameConvertor->frame() << "conversion done";
+    
+    auto &cache = m_frameCaches[m_trackFrameConvertor->frame()];
+    
+    cache.jointNodeTree = m_trackFrameConvertor->takeResultJointNodeTree();
+    cache.mesh = m_trackFrameConvertor->takeResultMesh();
+    
+    if (m_trackFrameConvertor->frame() == m_currentFrame)
+        emit currentFrameCacheReady();
+    
+    delete m_trackFrameConvertor;
+    m_trackFrameConvertor = nullptr;
+    
+    checkFrameCaches();
+}
+
+void MotionCopyDocument::frameChanged(int frame)
+{
+    if (-1 == frame)
+        return;
+    
+    m_dirtyFrames.insert(frame);
+    
+    checkFrameCaches();
+}
+
+MeshLoader *MotionCopyDocument::takeCurrentFrameMesh()
+{
+    const auto &cache = m_frameCaches.find(m_currentFrame);
+    if (cache == m_frameCaches.end())
+        return nullptr;
+    if (nullptr == cache->second.mesh)
+        return nullptr;
+    return new MeshLoader(*cache->second.mesh);
+}
+
+void MotionCopyDocument::reloadSourceMarkedNodes()
+{
+    const JointNodeTree &jointNodeTree = m_skeletonDocument->currentJointNodeTree();
+    
+    m_markedNodes.clear();
+    jointNodeTree.getMarkedNodeList(m_markedNodes);
+    
+    m_markedNodeIds.clear();
+    for (const auto &it: m_markedNodes) {
+        m_markedNodeIds.insert(it.toKey());
+    }
+    
+    emit markedNodesChanged();
+}
+
+const std::vector<JointMarkedNode> &MotionCopyDocument::markedNodes() const
+{
+    return m_markedNodes;
+}

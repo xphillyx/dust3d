@@ -3,8 +3,8 @@
 #include <QVector3D>
 #include <vector>
 #include "meshresultcontext.h"
-#include "rigcontroller.h"
 #include "meshloader.h"
+#include "jointnodetree.h"
 
 struct SkinnedMeshWeight
 {
@@ -32,16 +32,14 @@ class SkinnedMesh
 public:
     SkinnedMesh(const MeshResultContext &resultContext, const JointNodeTree &jointNodeTree);
     ~SkinnedMesh();
-    void startRig();
-    RigController *rigController();
-    JointNodeTree *jointNodeTree();
     void applyRigFrameToMesh(const RigFrame &frame);
     MeshLoader *toMeshLoader();
 private:
     void fromMeshResultContext(MeshResultContext &resultContext);
+    void frameToMatrices(const RigFrame &frame, std::vector<QMatrix4x4> &matrices);
+    void frameToMatricesAtJoint(const RigFrame &frame, std::vector<QMatrix4x4> &matrices, int jointIndex, const QMatrix4x4 &parentWorldMatrix);
 private:
     MeshResultContext m_resultContext;
-    RigController *m_rigController;
     JointNodeTree *m_jointNodeTree;
 private:
     Q_DISABLE_COPY(SkinnedMesh);

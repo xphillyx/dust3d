@@ -115,16 +115,19 @@ MotionCopyDocumentWidget::MotionCopyDocumentWidget(const SkeletonDocument *docum
     setLayout(mainLayout);
     setWindowTitle(APP_NAME);
     
+    connect(m_skeletonDocument, &SkeletonDocument::postProcessedResultChanged, m_motionCopyDocument, &MotionCopyDocument::reloadSourceMarkedNodes);
+    
     connect(m_motionCopyDocument, &MotionCopyDocument::videoFramesChanged, this, &MotionCopyDocumentWidget::updateVideoFrames);
     connect(m_motionCopyDocument, &MotionCopyDocument::sourceVideoLoadStateChanged, this, &MotionCopyDocumentWidget::sourceVideoLoadStateChanged);
     connect(this, &MotionCopyDocumentWidget::loadSourceVideo, m_motionCopyDocument, &MotionCopyDocument::loadSourceVideo);
     connect(this, &MotionCopyDocumentWidget::setCurrentFrame, m_motionCopyDocument, &MotionCopyDocument::setCurrentFrame);
     
     auto createTrackNodeListWidget = [=] {
-        m_trackNodeListWidget = new MotionCopyTrackNodeListWidget(m_skeletonDocument, m_motionCopyDocument);
+        m_trackNodeListWidget = new MotionCopyTrackNodeListWidget(m_motionCopyDocument);
         connect(m_trackNodeListWidget, &MotionCopyTrackNodeListWidget::checkMarkedNode, m_motionCopyDocument, &MotionCopyDocument::addTrackNodeToAllFrames);
         connect(m_trackNodeListWidget, &MotionCopyTrackNodeListWidget::uncheckMarkedNode, m_motionCopyDocument, &MotionCopyDocument::removeTrackNodeFromAllFrames);
         connect(m_motionCopyDocument, &MotionCopyDocument::trackNodesAttributesChanged, m_trackNodeListWidget, &MotionCopyTrackNodeListWidget::reload);
+        connect(m_motionCopyDocument, &MotionCopyDocument::markedNodesChanged, m_trackNodeListWidget, &MotionCopyTrackNodeListWidget::reload);
         connect(m_motionCopyDocument, &MotionCopyDocument::trackNodeHovered, m_trackNodeListWidget, &MotionCopyTrackNodeListWidget::markedNodeHovered);
         trackNodeListFrame->setWidget(m_trackNodeListWidget);
     };

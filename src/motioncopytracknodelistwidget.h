@@ -14,7 +14,7 @@ signals:
     void checkMarkedNode(JointMarkedNode markedNode);
     void uncheckMarkedNode(JointMarkedNode markedNode);
 public:
-    MotionCopyTrackNodeListWidget(const SkeletonDocument *skeletonDocument, const MotionCopyDocument *motionCopyDocument, QWidget *parent=nullptr);
+    MotionCopyTrackNodeListWidget(const MotionCopyDocument *motionCopyDocument, QWidget *parent=nullptr);
 public slots:
     void reload();
     void markedNodeHovered(QString key);

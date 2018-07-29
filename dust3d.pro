@@ -131,9 +131,6 @@ HEADERS += src/skeletonbonemark.h
 SOURCES += src/intermediateboneremover.cpp
 HEADERS += src/intermediateboneremover.h
 
-SOURCES += src/animationpanelwidget.cpp
-HEADERS += src/animationpanelwidget.h
-
 SOURCES += src/rigcontroller.cpp
 HEADERS += src/rigcontroller.h
 
@@ -142,9 +139,6 @@ HEADERS += src/rigframe.h
 
 SOURCES += src/jointnodetree.cpp
 HEADERS += src/jointnodetree.h
-
-SOURCES += src/animationclipgenerator.cpp
-HEADERS += src/animationclipgenerator.h
 
 SOURCES += src/animationclipplayer.cpp
 HEADERS += src/animationclipplayer.h
@@ -160,9 +154,6 @@ HEADERS += src/pogostick.h
 
 SOURCES += src/ikjoint.cpp
 HEADERS += src/ikjoint.h
-
-SOURCES += src/locomotioncontroller.cpp
-HEADERS += src/locomotioncontroller.h
 
 SOURCES += src/jointconstraint.cpp
 HEADERS += src/jointconstraint.h
@@ -195,6 +186,9 @@ HEADERS += src/motioncopyxml.h
 
 SOURCES += src/tracknodegraphicsitem.cpp
 HEADERS += src/tracknodegraphicsitem.h
+
+SOURCES += src/trackframeconvertor.cpp
+HEADERS += src/trackframeconvertor.h
 
 SOURCES += src/videoframeextractor.cpp
 HEADERS += src/videoframeextractor.h

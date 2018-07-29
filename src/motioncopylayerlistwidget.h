@@ -15,15 +15,17 @@ struct MotionCopyLayer
 class MotionCopyLayerListWidget : public QWidget
 {
     Q_OBJECT
+signals:
+    void currentLayerChanged();
+    void someDocumentChanged();
+    void currentFrameConvertedMeshChanged();
 public:
     MotionCopyLayerListWidget(const SkeletonDocument *document, QWidget *parent=nullptr);
     const std::vector<MotionCopyLayer> &layers();
     MotionCopyLayer *addLayer(const QString &name);
     int findLayer(const QString &name);
     void removeLayerByName(const QString &name);
-signals:
-    void currentLayerChanged();
-    void someDocumentChanged();
+    MotionCopyDocument *currentMotionCopyDocument();
 public slots:
     void addNewLayer();
     void deleteCurrentLayer();

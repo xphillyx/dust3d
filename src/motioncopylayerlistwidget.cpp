@@ -98,6 +98,15 @@ void MotionCopyLayerListWidget::layerNameItemChanged(QListWidgetItem *item)
         m_layers[row].name = newName;
         item->setText(newName);
     }
+    
+    emit someDocumentChanged();
+}
+
+MotionCopyDocument *MotionCopyLayerListWidget::currentMotionCopyDocument()
+{
+    if (-1 == m_currentLayer || m_currentLayer >= (int)m_layers.size())
+        return nullptr;
+    return m_layers[m_currentLayer].widget->motionCopyDocument();
 }
 
 MotionCopyLayer *MotionCopyLayerListWidget::addLayer(const QString &name)
@@ -107,6 +116,13 @@ MotionCopyLayer *MotionCopyLayerListWidget::addLayer(const QString &name)
     layer.widget = new MotionCopyDocumentWidget(m_skeletonDocument);
     
     connect(layer.widget->motionCopyDocument(), &MotionCopyDocument::documentChanged, this, &MotionCopyLayerListWidget::someDocumentChanged);
+    
+    MotionCopyDocument *motionCopyDocument = layer.widget->motionCopyDocument();
+    const auto &that = this;
+    connect(motionCopyDocument, &MotionCopyDocument::currentFrameCacheReady, [=] {
+        if (that->currentMotionCopyDocument() == motionCopyDocument)
+            emit currentFrameConvertedMeshChanged();
+    });
     
     m_stackedWidget->addWidget(layer.widget);
     m_layerListWidget->addItem(layer.name);
