@@ -89,9 +89,6 @@ HEADERS += src/meshutil.h
 SOURCES += src/texturegenerator.cpp
 HEADERS += src/texturegenerator.h
 
-SOURCES += src/skeletongenerator.cpp
-HEADERS += src/skeletongenerator.h
-
 SOURCES += src/meshresultcontext.cpp
 HEADERS += src/meshresultcontext.h
 
@@ -122,76 +119,7 @@ HEADERS += src/ccdikresolver.h
 SOURCES += src/skeletonikmover.cpp
 HEADERS += src/skeletonikmover.h
 
-SOURCES += src/markiconcreator.cpp
-HEADERS += src/markiconcreator.h
-
-SOURCES += src/skeletonbonemark.cpp
-HEADERS += src/skeletonbonemark.h
-
-SOURCES += src/intermediateboneremover.cpp
-HEADERS += src/intermediateboneremover.h
-
-SOURCES += src/rigcontroller.cpp
-HEADERS += src/rigcontroller.h
-
-SOURCES += src/rigframe.cpp
-HEADERS += src/rigframe.h
-
-SOURCES += src/jointnodetree.cpp
-HEADERS += src/jointnodetree.h
-
-SOURCES += src/animationclipplayer.cpp
-HEADERS += src/animationclipplayer.h
-
-SOURCES += src/skinnedmesh.cpp
-HEADERS += src/skinnedmesh.h
-
-SOURCES += src/ragdoll.cpp
-HEADERS += src/ragdoll.h
-
-SOURCES += src/pogostick.cpp
-HEADERS += src/pogostick.h
-
-SOURCES += src/ikjoint.cpp
-HEADERS += src/ikjoint.h
-
-SOURCES += src/jointconstraint.cpp
-HEADERS += src/jointconstraint.h
-
 HEADERS += src/qtlightmapper.h
-
-SOURCES += src/motioncopydocumentwidget.cpp
-HEADERS += src/motioncopydocumentwidget.h
-
-SOURCES += src/motioncopydocument.cpp
-HEADERS += src/motioncopydocument.h
-
-SOURCES += src/motioncopyframegraphicsview.cpp
-HEADERS += src/motioncopyframegraphicsview.h
-
-SOURCES += src/motioncopytracknodelistwidget.cpp
-HEADERS += src/motioncopytracknodelistwidget.h
-
-SOURCES += src/motioncopylayerlistwidget.cpp
-HEADERS += src/motioncopylayerlistwidget.h
-
-SOURCES += src/motioncopysnapshot.cpp
-HEADERS += src/motioncopysnapshot.h
-
-SOURCES += src/motioncopytojoint.cpp
-HEADERS += src/motioncopytojoint.h
-
-SOURCES += src/motioncopyxml.cpp
-HEADERS += src/motioncopyxml.h
-
-SOURCES += src/tracknodegraphicsitem.cpp
-HEADERS += src/tracknodegraphicsitem.h
-
-SOURCES += src/trackframeconvertor.cpp
-HEADERS += src/trackframeconvertor.h
-
-SOURCES += src/videoframeextractor.cpp
-HEADERS += src/videoframeextractor.h
 
 SOURCES += src/spinnableawesomebutton.cpp
 HEADERS += src/spinnableawesomebutton.h
@@ -438,13 +366,6 @@ macx {
 	GMP_LIBDIR = /usr/local/opt/gmp/lib
 	MPFR_INCLUDEDIR = /usr/local/opt/mpfr/include
 	MPFR_LIBDIR = /usr/local/opt/mpfr/lib
-
-	#exists(/usr/local/opt/bullet) {
-	#	INCLUDEPATH += /usr/local/opt/bullet/include/Bullet
-	#	LIBS += -L/usr/local/opt/bullet/lib -lBulletDynamics -lBulletCollision -lLinearMath
-	#
-	#	DEFINES += "USE_BULLET=1"
-	#}
 
 	exists(/usr/local/opt/opencv) {
 		INCLUDEPATH += /usr/local/opt/opencv/include

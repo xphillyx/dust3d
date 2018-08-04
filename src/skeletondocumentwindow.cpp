@@ -27,10 +27,7 @@
 #include "aboutwidget.h"
 #include "version.h"
 #include "gltffile.h"
-#include "markiconcreator.h"
-#include "motioncopydocumentwidget.h"
 #include "graphicscontainerwidget.h"
-#include "motioncopyxml.h"
 
 int SkeletonDocumentWindow::m_modelRenderWidgetInitialX = 16;
 int SkeletonDocumentWindow::m_modelRenderWidgetInitialY = 16;
@@ -80,8 +77,7 @@ SkeletonDocumentWindow::SkeletonDocumentWindow() :
     m_document(nullptr),
     m_firstShow(true),
     m_documentSaved(true),
-    m_exportPreviewWidget(nullptr),
-    m_motionsListWidget(nullptr)
+    m_exportPreviewWidget(nullptr)
 {
     if (!g_logBrowser) {
         g_logBrowser = new LogBrowser;
@@ -359,27 +355,6 @@ SkeletonDocumentWindow::SkeletonDocumentWindow() :
 
     m_editMenu->addMenu(m_alignToMenu);
 
-    m_markAsMenu = new QMenu(tr("Mark As"));
-
-    m_markAsNoneAction = new QAction(tr("None"), this);
-    connect(m_markAsNoneAction, &QAction::triggered, [=]() {
-        m_graphicsWidget->setSelectedNodesBoneMark(SkeletonBoneMark::None);
-    });
-    m_markAsMenu->addAction(m_markAsNoneAction);
-
-    m_markAsMenu->addSeparator();
-
-    for (int i = 0; i < SKELETON_BONE_MARK_TYPE_NUM; i++) {
-        SkeletonBoneMark boneMark = (SkeletonBoneMark)(i + 1);
-        m_markAsActions[i] = new QAction(MarkIconCreator::createIcon(boneMark), SkeletonBoneMarkToDispName(boneMark), this);
-        connect(m_markAsActions[i], &QAction::triggered, [=]() {
-            m_graphicsWidget->setSelectedNodesBoneMark(boneMark);
-        });
-        m_markAsMenu->addAction(m_markAsActions[i]);
-    }
-
-    m_editMenu->addMenu(m_markAsMenu);
-
     m_selectAllAction = new QAction(tr("Select All"), this);
     connect(m_selectAllAction, &QAction::triggered, m_graphicsWidget, &SkeletonGraphicsWidget::selectAll);
     m_editMenu->addAction(m_selectAllAction);
@@ -413,7 +388,6 @@ SkeletonDocumentWindow::SkeletonDocumentWindow() :
         m_alignToLocalVerticalCenterAction->setEnabled(m_graphicsWidget->hasMultipleSelection());
         m_alignToLocalHorizontalCenterAction->setEnabled(m_graphicsWidget->hasMultipleSelection());
         m_alignToMenu->setEnabled((m_graphicsWidget->hasSelection() && m_document->originSettled()) || m_graphicsWidget->hasMultipleSelection());
-        m_markAsMenu->setEnabled(m_graphicsWidget->hasNodeSelection());
         m_selectAllAction->setEnabled(m_graphicsWidget->hasItems());
         m_selectPartAllAction->setEnabled(m_graphicsWidget->hasItems());
         m_unselectAllAction->setEnabled(m_graphicsWidget->hasSelection());
@@ -450,19 +424,12 @@ SkeletonDocumentWindow::SkeletonDocumentWindow() :
 
     m_viewMenu->addSeparator();
 
-    m_showMotionsListAction = new QAction(tr("Show Motions List"), this);
-    connect(m_showMotionsListAction, &QAction::triggered, this, &SkeletonDocumentWindow::showMotionsList);
-    m_viewMenu->addAction(m_showMotionsListAction);
-
-    m_viewMenu->addSeparator();
-
     m_showDebugDialogAction = new QAction(tr("Show Debug Dialog"), this);
     connect(m_showDebugDialogAction, &QAction::triggered, g_logBrowser, &LogBrowser::showDialog);
     m_viewMenu->addAction(m_showDebugDialogAction);
 
     connect(m_viewMenu, &QMenu::aboutToShow, [=]() {
         m_showPartsListAction->setEnabled(partListDocker->isHidden());
-        m_showMotionsListAction->setEnabled(nullptr == m_motionsListWidget || m_motionsListWidget->isHidden());
         m_resetModelWidgetPosAction->setEnabled(!isModelSitInVisibleArea(m_modelRenderWidget));
     });
 
@@ -548,7 +515,6 @@ SkeletonDocumentWindow::SkeletonDocumentWindow() :
     connect(graphicsWidget, &SkeletonGraphicsWidget::scaleNodeByAddRadius, m_document, &SkeletonDocument::scaleNodeByAddRadius);
     connect(graphicsWidget, &SkeletonGraphicsWidget::moveNodeBy, m_document, &SkeletonDocument::moveNodeBy);
     connect(graphicsWidget, &SkeletonGraphicsWidget::setNodeOrigin, m_document, &SkeletonDocument::setNodeOrigin);
-    connect(graphicsWidget, &SkeletonGraphicsWidget::setNodeBoneMark, m_document, &SkeletonDocument::setNodeBoneMark);
     connect(graphicsWidget, &SkeletonGraphicsWidget::removeNode, m_document, &SkeletonDocument::removeNode);
     connect(graphicsWidget, &SkeletonGraphicsWidget::setEditMode, m_document, &SkeletonDocument::setEditMode);
     connect(graphicsWidget, &SkeletonGraphicsWidget::removeEdge, m_document, &SkeletonDocument::removeEdge);
@@ -585,7 +551,6 @@ SkeletonDocumentWindow::SkeletonDocumentWindow() :
     connect(m_document, &SkeletonDocument::edgeAdded, graphicsWidget, &SkeletonGraphicsWidget::edgeAdded);
     connect(m_document, &SkeletonDocument::edgeRemoved, graphicsWidget, &SkeletonGraphicsWidget::edgeRemoved);
     connect(m_document, &SkeletonDocument::nodeRadiusChanged, graphicsWidget, &SkeletonGraphicsWidget::nodeRadiusChanged);
-    connect(m_document, &SkeletonDocument::nodeBoneMarkChanged, graphicsWidget, &SkeletonGraphicsWidget::nodeBoneMarkChanged);
     connect(m_document, &SkeletonDocument::nodeOriginChanged, graphicsWidget, &SkeletonGraphicsWidget::nodeOriginChanged);
     connect(m_document, &SkeletonDocument::partVisibleStateChanged, graphicsWidget, &SkeletonGraphicsWidget::partVisibleStateChanged);
     connect(m_document, &SkeletonDocument::partDisableStateChanged, graphicsWidget, &SkeletonGraphicsWidget::partVisibleStateChanged);
@@ -615,12 +580,10 @@ SkeletonDocumentWindow::SkeletonDocumentWindow() :
 
     connect(m_document, &SkeletonDocument::skeletonChanged, m_document, &SkeletonDocument::generateMesh);
     connect(m_document, &SkeletonDocument::resultMeshChanged, [=]() {
-        if ((m_exportPreviewWidget && m_exportPreviewWidget->isVisible()) ||
-                (m_motionsListWidget && m_motionsListWidget->isVisible())) {
+        if ((m_exportPreviewWidget && m_exportPreviewWidget->isVisible())) {
             m_document->postProcess();
         }
     });
-    connect(m_document, &SkeletonDocument::postProcessedResultChanged, m_document, &SkeletonDocument::generateSkeleton);
     connect(m_document, &SkeletonDocument::postProcessedResultChanged, m_document, &SkeletonDocument::generateTexture);
     connect(m_document, &SkeletonDocument::resultTextureChanged, m_document, &SkeletonDocument::bakeAmbientOcclusionTexture);
 
@@ -847,37 +810,6 @@ void SkeletonDocumentWindow::saveTo(const QString &saveAsFilename)
         if (imageByteArray.size() > 0)
             ds3Writer.add("canvas.png", "asset", &imageByteArray);
     }
-    
-    if (nullptr != m_motionsListWidget) {
-        std::set<QString> videoAssetNames;
-        for (const auto &layer: m_motionsListWidget->layers()) {
-            QByteArray motionCopyXml;
-            QXmlStreamWriter motionCopyStream(&motionCopyXml);
-            MotionCopySnapshot motionCopySnapshot;
-            layer.widget->motionCopyDocument()->toSnapshot(&motionCopySnapshot);
-            saveMotionCopyToXmlStream(&motionCopySnapshot, &motionCopyStream);
-            if (motionCopyXml.size() > 0)
-                ds3Writer.add(layer.name + ".xml", "motion", &motionCopyXml);
-            QString frontSourceFile = motionCopySnapshot.motion["frontSourceFile"];
-            if (!frontSourceFile.isEmpty() && videoAssetNames.find(frontSourceFile) == videoAssetNames.end()) {
-                videoAssetNames.insert(frontSourceFile);
-                QFile file(layer.widget->motionCopyDocument()->videoRealPath(0));
-                if (file.open(QIODevice::ReadOnly)) {
-                    QByteArray videoByteArray = file.readAll();
-                    ds3Writer.add(frontSourceFile, "asset", &videoByteArray);
-                }
-            }
-            QString sideSourceFile = motionCopySnapshot.motion["sideSourceFile"];
-            if (!sideSourceFile.isEmpty() && videoAssetNames.find(sideSourceFile) == videoAssetNames.end()) {
-                videoAssetNames.insert(sideSourceFile);
-                QFile file(layer.widget->motionCopyDocument()->videoRealPath(1));
-                if (file.open(QIODevice::ReadOnly)) {
-                    QByteArray videoByteArray = file.readAll();
-                    ds3Writer.add(sideSourceFile, "asset", &videoByteArray);
-                }
-            }
-        }
-    }
 
     if (ds3Writer.save(filename)) {
         setCurrentFilename(filename);
@@ -921,31 +853,6 @@ void SkeletonDocumentWindow::open()
                 QImage image = QImage::fromData(data, "PNG");
                 m_document->updateTurnaround(image);
             }
-        } else if (item.type == "motion") {
-            createMotionsList();
-            QByteArray data;
-            ds3Reader.loadItem(item.name, &data);
-            QXmlStreamReader stream(data);
-            MotionCopySnapshot snapshot;
-            loadMotionCopyFromXmlStream(&snapshot, stream);
-            QString motionName = QFileInfo(item.name).baseName();
-            m_motionsListWidget->removeLayerByName(motionName);
-            MotionCopyLayer *layer = m_motionsListWidget->addLayer(motionName);
-            QString frontSourceFile = snapshot.motion["frontSourceFile"];
-            if (!frontSourceFile.isEmpty()) {
-                QByteArray data;
-                ds3Reader.loadItem(frontSourceFile, &data);
-                if (data.size() > 0)
-                    layer->widget->motionCopyDocument()->loadSourceVideoData(0, layer->widget->thumbnailHeight(0), frontSourceFile, data);
-            }
-            QString sideSourceFile = snapshot.motion["sideSourceFile"];
-            if (!sideSourceFile.isEmpty()) {
-                QByteArray data;
-                ds3Reader.loadItem(sideSourceFile, &data);
-                if (data.size() > 0)
-                    layer->widget->motionCopyDocument()->loadSourceVideoData(1, layer->widget->thumbnailHeight(1), sideSourceFile, data);
-            }
-            layer->widget->motionCopyDocument()->fromSnapshot(snapshot);
         }
     }
     QApplication::restoreOverrideCursor();
@@ -967,34 +874,6 @@ void SkeletonDocumentWindow::exportModelResult()
     QApplication::restoreOverrideCursor();
 }
 
-void SkeletonDocumentWindow::showMotionsList()
-{
-    createMotionsList();
-    if (m_document->isPostProcessResultObsolete()) {
-        m_document->postProcess();
-    }
-    m_motionsListWidget->show();
-}
-
-void SkeletonDocumentWindow::createMotionsList()
-{
-    if (nullptr == m_motionsListWidget) {
-        m_motionsListWidget = new MotionCopyLayerListWidget(m_document, this);
-        m_motionsListWidget->hide();
-        m_motionsListWidget->setWindowFlags(Qt::Tool);
-        connect(m_motionsListWidget, &MotionCopyLayerListWidget::someDocumentChanged, this, &SkeletonDocumentWindow::documentChanged);
-        connect(m_motionsListWidget, &MotionCopyLayerListWidget::currentFrameConvertedMeshChanged, [=] {
-            auto motionCopyDocument = m_motionsListWidget->currentMotionCopyDocument();
-            if (nullptr == motionCopyDocument)
-                return;
-            auto mesh = motionCopyDocument->takeCurrentFrameMesh();
-            if (nullptr == mesh)
-                mesh = m_document->takeResultMesh();
-            m_modelRenderWidget->updateMesh(mesh);
-        });
-    }
-}
-
 void SkeletonDocumentWindow::showExportPreview()
 {
     if (nullptr == m_exportPreviewWidget) {
@@ -1006,7 +885,6 @@ void SkeletonDocumentWindow::showExportPreview()
         connect(m_document, &SkeletonDocument::exportReady, m_exportPreviewWidget, &ExportPreviewWidget::checkSpinner);
         connect(m_document, &SkeletonDocument::resultTextureChanged, m_exportPreviewWidget, &ExportPreviewWidget::updateTexturePreview);
         connect(m_document, &SkeletonDocument::resultBakedTextureChanged, m_exportPreviewWidget, &ExportPreviewWidget::updateTexturePreview);
-        connect(m_document, &SkeletonDocument::resultSkeletonChanged, m_exportPreviewWidget, &ExportPreviewWidget::updateSkeleton);
     }
     if (m_document->isPostProcessResultObsolete()) {
         m_document->postProcess();

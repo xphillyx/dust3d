@@ -32,15 +32,11 @@ SkeletonDocument::SkeletonDocument() :
     m_resultMesh(nullptr),
     m_batchChangeRefCount(0),
     m_currentMeshResultContext(nullptr),
-    m_isResultSkeletonObsolete(false),
-    m_skeletonGenerator(nullptr),
-    m_resultSkeletonMesh(nullptr),
     m_isTextureObsolete(false),
     m_textureGenerator(nullptr),
     m_isPostProcessResultObsolete(false),
     m_postProcessor(nullptr),
     m_postProcessedResultContext(new MeshResultContext),
-    m_jointNodeTree(new JointNodeTree(*m_postProcessedResultContext)),
     m_resultTextureMesh(nullptr),
     m_textureImageUpdateVersion(0),
     m_ambientOcclusionBaker(nullptr),
@@ -51,9 +47,7 @@ SkeletonDocument::SkeletonDocument() :
 SkeletonDocument::~SkeletonDocument()
 {
     delete m_resultMesh;
-    delete m_resultSkeletonMesh;
     delete m_postProcessedResultContext;
-    delete m_jointNodeTree;
     delete textureGuideImage;
     delete textureImage;
     delete textureBorderImage;
@@ -544,22 +538,6 @@ void SkeletonDocument::switchNodeXZ(QUuid nodeId)
     emit skeletonChanged();
 }
 
-void SkeletonDocument::setNodeBoneMark(QUuid nodeId, SkeletonBoneMark mark)
-{
-    auto it = nodeMap.find(nodeId);
-    if (it == nodeMap.end()) {
-        qDebug() << "Find node failed:" << nodeId;
-        return;
-    }
-    if (isPartReadonly(it->second.partId))
-        return;
-    if (it->second.boneMark == mark)
-        return;
-    it->second.boneMark = mark;
-    emit nodeBoneMarkChanged(nodeId);
-    emit skeletonChanged();
-}
-
 void SkeletonDocument::updateTurnaround(const QImage &image)
 {
     turnaround = image;
@@ -675,8 +653,6 @@ void SkeletonDocument::toSnapshot(SkeletonSnapshot *snapshot, const std::set<QUu
         node["y"] = QString::number(nodeIt.second.y);
         node["z"] = QString::number(nodeIt.second.z);
         node["partId"] = nodeIt.second.partId.toString();
-        if (nodeIt.second.boneMark != SkeletonBoneMark::None)
-            node["boneMark"] = SkeletonBoneMarkToString(nodeIt.second.boneMark);
         if (!nodeIt.second.name.isEmpty())
             node["name"] = nodeIt.second.name;
         snapshot->nodes[node["id"]] = node;
@@ -777,7 +753,6 @@ void SkeletonDocument::addFromSnapshot(const SkeletonSnapshot &snapshot)
         node.y = valueOfKeyInMapOrEmpty(nodeKv.second, "y").toFloat();
         node.z = valueOfKeyInMapOrEmpty(nodeKv.second, "z").toFloat();
         node.partId = oldNewIdMap[QUuid(valueOfKeyInMapOrEmpty(nodeKv.second, "partId"))];
-        node.boneMark = SkeletonBoneMarkFromString(valueOfKeyInMapOrEmpty(nodeKv.second, "boneMark").toUtf8().constData());
         nodeMap[node.id] = node;
         newAddedNodeIds.insert(node.id);
     }
@@ -870,13 +845,6 @@ MeshLoader *SkeletonDocument::takeResultMesh()
         return nullptr;
     MeshLoader *resultMesh = new MeshLoader(*m_resultMesh);
     return resultMesh;
-}
-
-MeshLoader *SkeletonDocument::takeResultSkeletonMesh()
-{
-    MeshLoader *resultSkeletonMesh = m_resultSkeletonMesh;
-    m_resultSkeletonMesh = nullptr;
-    return resultSkeletonMesh;
 }
 
 MeshLoader *SkeletonDocument::takeResultTextureMesh()
@@ -1102,48 +1070,6 @@ void SkeletonDocument::ambientOcclusionTextureReady()
     }
 }
 
-void SkeletonDocument::generateSkeleton()
-{
-    if (nullptr != m_skeletonGenerator) {
-        m_isResultSkeletonObsolete = true;
-        return;
-    }
-    
-    qDebug() << "Skeleton generating..";
-    
-    m_isResultSkeletonObsolete = false;
-    
-    QThread *thread = new QThread;
-    m_skeletonGenerator = new SkeletonGenerator(*m_postProcessedResultContext);
-    m_skeletonGenerator->moveToThread(thread);
-    connect(thread, &QThread::started, m_skeletonGenerator, &SkeletonGenerator::process);
-    connect(m_skeletonGenerator, &SkeletonGenerator::finished, this, &SkeletonDocument::skeletonReady);
-    connect(m_skeletonGenerator, &SkeletonGenerator::finished, thread, &QThread::quit);
-    connect(thread, &QThread::finished, thread, &QThread::deleteLater);
-    thread->start();
-}
-
-void SkeletonDocument::skeletonReady()
-{
-    MeshLoader *resultSkeletonMesh = m_skeletonGenerator->takeResultSkeletonMesh();
-    
-    delete m_resultSkeletonMesh;
-    m_resultSkeletonMesh = resultSkeletonMesh;
-    
-    delete m_skeletonGenerator;
-    m_skeletonGenerator = nullptr;
-    
-    qDebug() << "Skeleton generation done";
-    
-    emit resultSkeletonChanged();
-    
-    if (m_isResultSkeletonObsolete) {
-        generateSkeleton();
-    } else {
-        checkExportReadyState();
-    }
-}
-
 void SkeletonDocument::postProcess()
 {
     if (nullptr != m_postProcessor) {
@@ -1174,9 +1100,6 @@ void SkeletonDocument::postProcessedMeshResultReady()
 {
     delete m_postProcessedResultContext;
     m_postProcessedResultContext = m_postProcessor->takePostProcessedResultContext();
-    
-    delete m_jointNodeTree;
-    m_jointNodeTree = m_postProcessor->takeJointNodeTree();
 
     delete m_postProcessor;
     m_postProcessor = nullptr;
@@ -1193,11 +1116,6 @@ void SkeletonDocument::postProcessedMeshResultReady()
 const MeshResultContext &SkeletonDocument::currentPostProcessedResultContext() const
 {
     return *m_postProcessedResultContext;
-}
-
-const JointNodeTree &SkeletonDocument::currentJointNodeTree() const
-{
-    return *m_jointNodeTree;
 }
 
 void SkeletonDocument::setPartLockState(QUuid partId, bool locked)
@@ -1567,14 +1485,11 @@ void SkeletonDocument::setZlockState(bool locked)
 bool SkeletonDocument::isExportReady() const
 {
     if (m_isResultMeshObsolete ||
-            m_isResultSkeletonObsolete ||
             m_isTextureObsolete ||
             m_isPostProcessResultObsolete ||
             m_meshGenerator ||
-            m_skeletonGenerator ||
             m_textureGenerator ||
-            m_postProcessor/* ||
-            !allAnimationClipsReady()*/)
+            m_postProcessor)
         return false;
     return true;
 }

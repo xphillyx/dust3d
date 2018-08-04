@@ -7,7 +7,6 @@
 #include "gltffile.h"
 #include "version.h"
 #include "dust3dutil.h"
-#include "jointnodetree.h"
 
 // Play with glTF online:
 // https://gltf-viewer.donmccurdy.com/
@@ -27,54 +26,15 @@ GLTFFileWriter::GLTFFileWriter(MeshResultContext &resultContext, const QString &
     m_outputUv(true),
     m_testOutputAsWhole(false)
 {
-    const BmeshNode *rootNode = resultContext.centerBmeshNode();
-    if (!rootNode) {
-        qDebug() << "Cannot export gltf because lack of root node";
-        return;
-    }
-    
     QFileInfo nameInfo(filename);
     QString textureFilenameWithoutPath = nameInfo.completeBaseName() + ".png";
     m_textureFilename = nameInfo.path() + QDir::separator() + textureFilenameWithoutPath;
-    
-    JointNodeTree jointNodeTree(resultContext);
-    const std::vector<JointInfo> &tracedJoints = jointNodeTree.joints();
     
     m_json["asset"]["version"] = "2.0";
     m_json["asset"]["generator"] = APP_NAME " " APP_HUMAN_VER;
     m_json["scenes"][0]["nodes"] = {0};
     
-    m_json["nodes"][0]["children"] = {1, 2};
-    
-    m_json["nodes"][1]["mesh"] = 0;
-    m_json["nodes"][1]["skin"] = 0;
-    
-    int skeletonNodeStartIndex = 2;
-
-    for (auto i = 0u; i < tracedJoints.size(); i++) {
-        m_json["nodes"][skeletonNodeStartIndex + i]["translation"] = {tracedJoints[i].translation.x(),
-            tracedJoints[i].translation.y(),
-            tracedJoints[i].translation.z()
-        };
-        m_json["nodes"][skeletonNodeStartIndex + i]["rotation"] = {tracedJoints[i].rotation.x(),
-            tracedJoints[i].rotation.y(),
-            tracedJoints[i].rotation.z(),
-            tracedJoints[i].rotation.scalar()
-        };
-        if (tracedJoints[i].children.empty())
-            continue;
-        m_json["nodes"][skeletonNodeStartIndex + i]["children"] = {};
-        for (const auto &it: tracedJoints[i].children) {
-            m_json["nodes"][skeletonNodeStartIndex + i]["children"] += skeletonNodeStartIndex + it;
-        }
-    }
-    
-    m_json["skins"][0]["inverseBindMatrices"] = 0;
-    m_json["skins"][0]["skeleton"] = skeletonNodeStartIndex;
-    m_json["skins"][0]["joints"] = {};
-    for (auto i = 0u; i < tracedJoints.size(); i++) {
-        m_json["skins"][0]["joints"] += skeletonNodeStartIndex + i;
-    }
+    m_json["nodes"][0]["mesh"] = 0;
     
     QByteArray binaries;
     QDataStream stream(&binaries, QIODevice::WriteOnly);
@@ -89,27 +49,6 @@ GLTFFileWriter::GLTFFileWriter(MeshResultContext &resultContext, const QString &
     
     int bufferViewIndex = 0;
     int bufferViewFromOffset;
-    
-    bufferViewFromOffset = (int)binaries.size();
-    m_json["bufferViews"][bufferViewIndex]["buffer"] = 0;
-    m_json["bufferViews"][bufferViewIndex]["byteOffset"] = bufferViewFromOffset;
-    for (auto i = 0u; i < tracedJoints.size(); i++) {
-        const float *floatArray = tracedJoints[i].inverseBindMatrix.constData();
-        for (auto j = 0u; j < 16; j++) {
-            stream << (float)floatArray[j];
-        }
-    }
-    m_json["bufferViews"][bufferViewIndex]["byteLength"] = binaries.size() - bufferViewFromOffset;
-    Q_ASSERT((int)tracedJoints.size() * 16 * sizeof(float) == binaries.size() - bufferViewFromOffset);
-    alignBinaries();
-    if (m_enableComment)
-        m_json["accessors"][bufferViewIndex]["__comment"] = QString("/accessors/%1: mat").arg(QString::number(bufferViewIndex)).toUtf8().constData();
-    m_json["accessors"][bufferViewIndex]["bufferView"] = bufferViewIndex;
-    m_json["accessors"][bufferViewIndex]["byteOffset"] = 0;
-    m_json["accessors"][bufferViewIndex]["componentType"] = 5126;
-    m_json["accessors"][bufferViewIndex]["count"] = tracedJoints.size();
-    m_json["accessors"][bufferViewIndex]["type"] = "MAT4";
-    bufferViewIndex++;
     
     m_json["textures"][0]["sampler"] = 0;
     m_json["textures"][0]["source"] = 0;
@@ -127,7 +66,6 @@ GLTFFileWriter::GLTFFileWriter(MeshResultContext &resultContext, const QString &
     if (m_testOutputAsWhole) {
         testParts[0].vertices = resultContext.vertices;
         testParts[0].triangles = resultContext.triangles;
-        testParts[0].weights = resultContext.vertexWeights();
         
         m_outputNormal = false;
         m_outputUv = false;
@@ -144,17 +82,8 @@ GLTFFileWriter::GLTFFileWriter(MeshResultContext &resultContext, const QString &
         m_json["meshes"][0]["primitives"][primitiveIndex]["attributes"]["POSITION"] = bufferViewIndex + (++attributeIndex);
         if (m_outputNormal)
             m_json["meshes"][0]["primitives"][primitiveIndex]["attributes"]["NORMAL"] = bufferViewIndex + (++attributeIndex);
-        m_json["meshes"][0]["primitives"][primitiveIndex]["attributes"]["JOINTS_0"] = bufferViewIndex + (++attributeIndex);
-        m_json["meshes"][0]["primitives"][primitiveIndex]["attributes"]["WEIGHTS_0"] = bufferViewIndex + (++attributeIndex);
         if (m_outputUv)
             m_json["meshes"][0]["primitives"][primitiveIndex]["attributes"]["TEXCOORD_0"] = bufferViewIndex + (++attributeIndex);
-        /*
-        m_json["materials"][primitiveIndex]["pbrMetallicRoughness"]["baseColorFactor"] = {
-            part.second.color.redF(),
-            part.second.color.greenF(),
-            part.second.color.blueF(),
-            1.0
-        };*/
         m_json["materials"][primitiveIndex]["pbrMetallicRoughness"]["baseColorTexture"]["index"] = 0;
         m_json["materials"][primitiveIndex]["pbrMetallicRoughness"]["metallicFactor"] = 0.0;
         m_json["materials"][primitiveIndex]["pbrMetallicRoughness"]["roughnessFactor"] = 1.0;
@@ -243,75 +172,6 @@ GLTFFileWriter::GLTFFileWriter(MeshResultContext &resultContext, const QString &
             bufferViewIndex++;
         }
         
-        bufferViewFromOffset = (int)binaries.size();
-        m_json["bufferViews"][bufferViewIndex]["buffer"] = 0;
-        m_json["bufferViews"][bufferViewIndex]["byteOffset"] = bufferViewFromOffset;
-        QStringList boneList;
-        int weightItIndex = 0;
-        for (const auto &it: part.second.weights) {
-            auto i = 0u;
-            if (m_enableComment)
-                boneList.append(QString("%1:<").arg(QString::number(weightItIndex)));
-            for (; i < it.size() && i < MAX_WEIGHT_NUM; i++) {
-                quint16 nodeIndex = (quint16)(jointNodeTree.nodeToJointIndex(it[i].sourceNode.first, it[i].sourceNode.second));
-                stream << nodeIndex;
-                if (m_enableComment)
-                    boneList.append(QString("%1").arg(nodeIndex));
-            }
-            for (; i < MAX_WEIGHT_NUM; i++) {
-                stream << (quint16)0;
-                if (m_enableComment)
-                    boneList.append(QString("%1").arg(0));
-            }
-            if (m_enableComment)
-                boneList.append(QString(">"));
-            weightItIndex++;
-        }
-        m_json["bufferViews"][bufferViewIndex]["byteLength"] = binaries.size() - bufferViewFromOffset;
-        alignBinaries();
-        if (m_enableComment)
-            m_json["accessors"][bufferViewIndex]["__comment"] = QString("/accessors/%1: bone indicies %2").arg(QString::number(bufferViewIndex)).arg(boneList.join(" ")).toUtf8().constData();
-        m_json["accessors"][bufferViewIndex]["bufferView"] = bufferViewIndex;
-        m_json["accessors"][bufferViewIndex]["byteOffset"] = 0;
-        m_json["accessors"][bufferViewIndex]["componentType"] = 5123;
-        m_json["accessors"][bufferViewIndex]["count"] =  part.second.weights.size();
-        m_json["accessors"][bufferViewIndex]["type"] = "VEC4";
-        bufferViewIndex++;
-        
-        bufferViewFromOffset = (int)binaries.size();
-        m_json["bufferViews"][bufferViewIndex]["buffer"] = 0;
-        m_json["bufferViews"][bufferViewIndex]["byteOffset"] = bufferViewFromOffset;
-        QStringList weightList;
-        weightItIndex = 0;
-        for (const auto &it: part.second.weights) {
-            auto i = 0u;
-            if (m_enableComment)
-                weightList.append(QString("%1:<").arg(QString::number(weightItIndex)));
-            for (; i < it.size() && i < MAX_WEIGHT_NUM; i++) {
-                stream << (float)it[i].weight;
-                if (m_enableComment)
-                    weightList.append(QString("%1").arg(QString::number((float)it[i].weight)));
-            }
-            for (; i < MAX_WEIGHT_NUM; i++) {
-                stream << (float)0.0;
-                if (m_enableComment)
-                    weightList.append(QString("%1").arg(QString::number(0.0)));
-            }
-            if (m_enableComment)
-                weightList.append(QString(">"));
-            weightItIndex++;
-        }
-        m_json["bufferViews"][bufferViewIndex]["byteLength"] = binaries.size() - bufferViewFromOffset;
-        alignBinaries();
-        if (m_enableComment)
-            m_json["accessors"][bufferViewIndex]["__comment"] = QString("/accessors/%1: bone weights %2").arg(QString::number(bufferViewIndex)).arg(weightList.join(" ")).toUtf8().constData();
-        m_json["accessors"][bufferViewIndex]["bufferView"] = bufferViewIndex;
-        m_json["accessors"][bufferViewIndex]["byteOffset"] = 0;
-        m_json["accessors"][bufferViewIndex]["componentType"] = 5126;
-        m_json["accessors"][bufferViewIndex]["count"] =  part.second.weights.size();
-        m_json["accessors"][bufferViewIndex]["type"] = "VEC4";
-        bufferViewIndex++;
-        
         if (m_outputUv) {
             bufferViewFromOffset = (int)binaries.size();
             m_json["bufferViews"][bufferViewIndex]["buffer"] = 0;
@@ -330,10 +190,6 @@ GLTFFileWriter::GLTFFileWriter(MeshResultContext &resultContext, const QString &
             m_json["accessors"][bufferViewIndex]["type"] = "VEC2";
             bufferViewIndex++;
         }
-    }
-    
-    if (m_outputAnimation) {
-        // TODO:
     }
     
     m_json["buffers"][0]["uri"] = QString("data:application/octet-stream;base64," + binaries.toBase64()).toUtf8().constData();

@@ -10,7 +10,6 @@
 #include "skeletondocument.h"
 #include "modelwidget.h"
 #include "exportpreviewwidget.h"
-#include "motioncopylayerlistwidget.h"
 
 class SkeletonGraphicsWidget;
 
@@ -37,8 +36,6 @@ public slots:
     void exportModelResult();
     void exportGltfResult();
     void showExportPreview();
-    void showMotionsList();
-    void createMotionsList();
     void newWindow();
     void newDocument();
     void saveAs();
@@ -61,7 +58,6 @@ private:
     bool m_firstShow;
     bool m_documentSaved;
     ExportPreviewWidget *m_exportPreviewWidget;
-    MotionCopyLayerListWidget *m_motionsListWidget;
 private:
     QString m_currentFilename;
     
@@ -109,10 +105,6 @@ private:
     QAction *m_selectAllAction;
     QAction *m_selectPartAllAction;
     QAction *m_unselectAllAction;
-    
-    QMenu *m_markAsMenu;
-    QAction *m_markAsNoneAction;
-    QAction *m_markAsActions[SKELETON_BONE_MARK_TYPE_NUM];
     
     QMenu *m_viewMenu;
     QAction *m_resetModelWidgetPosAction;

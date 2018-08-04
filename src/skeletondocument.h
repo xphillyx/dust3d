@@ -16,8 +16,6 @@
 #include "texturegenerator.h"
 #include "meshresultpostprocessor.h"
 #include "ambientocclusionbaker.h"
-#include "skeletonbonemark.h"
-#include "jointnodetree.h"
 
 class SkeletonNode
 {
@@ -26,8 +24,7 @@ public:
         x(0),
         y(0),
         z(0),
-        radius(0),
-        boneMark(SkeletonBoneMark::None)
+        radius(0)
     {
         id = withId.isNull() ? QUuid::createUuid() : withId;
     }
@@ -46,7 +43,6 @@ public:
     float y;
     float z;
     float radius;
-    SkeletonBoneMark boneMark;
     std::vector<QUuid> edgeIds;
 };
 
@@ -187,7 +183,6 @@ signals:
     void nodeRemoved(QUuid nodeId);
     void edgeRemoved(QUuid edgeId);
     void nodeRadiusChanged(QUuid nodeId);
-    void nodeBoneMarkChanged(QUuid nodeId);
     void nodeOriginChanged(QUuid nodeId);
     void edgeChanged(QUuid edgeId);
     void partChanged(QUuid partId);
@@ -256,7 +251,6 @@ public:
     const SkeletonPart *findPart(QUuid partId) const;
     const SkeletonEdge *findEdgeByNodes(QUuid firstNodeId, QUuid secondNodeId) const;
     MeshLoader *takeResultMesh();
-    MeshLoader *takeResultSkeletonMesh();
     MeshLoader *takeResultTextureMesh();
     void updateTurnaround(const QImage &image);
     bool hasPastableContentInClipboard() const;
@@ -266,7 +260,6 @@ public:
     bool isEdgeEditable(QUuid edgeId) const;
     bool originSettled() const;
     const MeshResultContext &currentPostProcessedResultContext() const;
-    const JointNodeTree &currentJointNodeTree() const;
     bool isExportReady() const;
     bool isPostProcessResultObsolete() const;
     void findAllNeighbors(QUuid nodeId, std::set<QUuid> &neighbors) const;
@@ -279,7 +272,6 @@ public slots:
     void moveNodeBy(QUuid nodeId, float x, float y, float z);
     void setNodeOrigin(QUuid nodeId, float x, float y, float z);
     void setNodeRadius(QUuid nodeId, float radius);
-    void setNodeBoneMark(QUuid nodeId, SkeletonBoneMark mark);
     void switchNodeXZ(QUuid nodeId);
     void moveOriginBy(float x, float y, float z);
     void addEdge(QUuid fromNodeId, QUuid toNodeId);
@@ -287,8 +279,6 @@ public slots:
     void uiReady();
     void generateMesh();
     void meshReady();
-    void generateSkeleton();
-    void skeletonReady();
     void generateTexture();
     void textureReady();
     void postProcess();
@@ -336,15 +326,11 @@ private: // need initialize
     MeshLoader *m_resultMesh;
     int m_batchChangeRefCount;
     MeshResultContext *m_currentMeshResultContext;
-    bool m_isResultSkeletonObsolete;
-    SkeletonGenerator *m_skeletonGenerator;
-    MeshLoader *m_resultSkeletonMesh;
     bool m_isTextureObsolete;
     TextureGenerator *m_textureGenerator;
     bool m_isPostProcessResultObsolete;
     MeshResultPostProcessor *m_postProcessor;
     MeshResultContext *m_postProcessedResultContext;
-    JointNodeTree *m_jointNodeTree;
     MeshLoader *m_resultTextureMesh;
     unsigned long long m_textureImageUpdateVersion;
     AmbientOcclusionBaker *m_ambientOcclusionBaker;
