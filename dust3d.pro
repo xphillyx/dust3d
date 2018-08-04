@@ -1,4 +1,4 @@
-QT += core widgets opengl multimedia
+QT += core widgets opengl
 CONFIG += release
 RESOURCES += resources.qrc
 
