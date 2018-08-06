@@ -40,7 +40,8 @@ SkeletonDocument::SkeletonDocument() :
     m_resultTextureMesh(nullptr),
     m_textureImageUpdateVersion(0),
     m_ambientOcclusionBaker(nullptr),
-    m_ambientOcclusionBakedImageUpdateVersion(0)
+    m_ambientOcclusionBakedImageUpdateVersion(0),
+    m_sharedContextWidget(nullptr)
 {
 }
 
@@ -934,6 +935,8 @@ void SkeletonDocument::generateMesh()
     SkeletonSnapshot *snapshot = new SkeletonSnapshot;
     toSnapshot(snapshot);
     m_meshGenerator = new MeshGenerator(snapshot, thread);
+    if (nullptr != m_sharedContextWidget)
+        m_meshGenerator->setSharedContextWidget(m_sharedContextWidget);
     m_meshGenerator->moveToThread(thread);
     for (auto &part: partMap) {
         m_meshGenerator->addPartPreviewRequirement(part.first.toString());
@@ -1526,3 +1529,7 @@ void SkeletonDocument::findAllNeighbors(QUuid nodeId, std::set<QUuid> &neighbors
     }
 }
 
+void SkeletonDocument::setSharedContextWidget(QOpenGLWidget *sharedContextWidget)
+{
+    m_sharedContextWidget = sharedContextWidget;
+}

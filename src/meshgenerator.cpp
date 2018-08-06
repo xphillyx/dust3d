@@ -19,7 +19,8 @@ MeshGenerator::MeshGenerator(SkeletonSnapshot *snapshot, QThread *thread) :
     m_requirePreview(false),
     m_previewRender(nullptr),
     m_thread(thread),
-    m_meshResultContext(nullptr)
+    m_meshResultContext(nullptr),
+    m_sharedContextWidget(nullptr)
 {
 }
 
@@ -42,7 +43,7 @@ void MeshGenerator::addPreviewRequirement()
 {
     m_requirePreview = true;
     if (nullptr == m_previewRender) {
-        m_previewRender = new ModelOfflineRender;
+        m_previewRender = new ModelOfflineRender(m_sharedContextWidget);
         m_previewRender->setRenderThread(m_thread);
     }
 }
@@ -52,10 +53,15 @@ void MeshGenerator::addPartPreviewRequirement(const QString &partId)
     //qDebug() << "addPartPreviewRequirement:" << partId;
     m_requirePartPreviewMap.insert(partId);
     if (m_partPreviewRenderMap.find(partId) == m_partPreviewRenderMap.end()) {
-        ModelOfflineRender *render = new ModelOfflineRender;
+        ModelOfflineRender *render = new ModelOfflineRender(m_sharedContextWidget);
         render->setRenderThread(m_thread);
         m_partPreviewRenderMap[partId] = render;
     }
+}
+
+void MeshGenerator::setSharedContextWidget(QOpenGLWidget *widget)
+{
+    m_sharedContextWidget = widget;
 }
 
 MeshLoader *MeshGenerator::takeResultMesh()
@@ -366,6 +372,12 @@ void MeshGenerator::process()
             int trimedMeshId = meshlite_trim(meshliteContext, meshId, 1);
             render->updateMesh(new MeshLoader(meshliteContext, trimedMeshId, -1, modelColor));
             QImage *image = new QImage(render->toImage(QSize(Theme::previewImageRenderSize, Theme::previewImageRenderSize)));
+            if (Theme::previewImageSize != Theme::previewImageRenderSize) {
+                int cropOffset = (Theme::previewImageRenderSize - Theme::previewImageSize) / 2;
+                QImage *crop = new QImage(image->copy(cropOffset, cropOffset, Theme::previewImageSize, Theme::previewImageSize));
+                delete image;
+                image = crop;
+            }
             m_partPreviewMap[partIdIt] = image;
         }
         meshIds.push_back(meshId);

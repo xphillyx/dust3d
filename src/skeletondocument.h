@@ -8,6 +8,7 @@
 #include <deque>
 #include <QImage>
 #include <cmath>
+#include <QOpenGLWidget>
 #include "skeletonsnapshot.h"
 #include "meshloader.h"
 #include "meshgenerator.h"
@@ -253,6 +254,7 @@ public:
     MeshLoader *takeResultMesh();
     MeshLoader *takeResultTextureMesh();
     void updateTurnaround(const QImage &image);
+    void setSharedContextWidget(QOpenGLWidget *sharedContextWidget);
     bool hasPastableContentInClipboard() const;
     bool undoable() const;
     bool redoable() const;
@@ -335,6 +337,7 @@ private: // need initialize
     unsigned long long m_textureImageUpdateVersion;
     AmbientOcclusionBaker *m_ambientOcclusionBaker;
     unsigned long long m_ambientOcclusionBakedImageUpdateVersion;
+    QOpenGLWidget *m_sharedContextWidget;
 private:
     static unsigned long m_maxSnapshot;
     std::deque<SkeletonHistoryItem> m_undoItems;

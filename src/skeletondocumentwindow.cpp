@@ -28,6 +28,7 @@
 #include "version.h"
 #include "gltffile.h"
 #include "graphicscontainerwidget.h"
+#include "skeletonparttreewidget.h"
 
 int SkeletonDocumentWindow::m_modelRenderWidgetInitialX = 16;
 int SkeletonDocumentWindow::m_modelRenderWidgetInitialY = 16;
@@ -168,31 +169,18 @@ SkeletonDocumentWindow::SkeletonDocumentWindow() :
     m_modelRenderWidget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
     m_modelRenderWidget->move(SkeletonDocumentWindow::m_modelRenderWidgetInitialX, SkeletonDocumentWindow::m_modelRenderWidgetInitialY);
     m_modelRenderWidget->setGraphicsFunctions(graphicsWidget);
-
-    //m_skeletonRenderWidget = new ModelWidget(containerWidget);
-    //m_skeletonRenderWidget->setMinimumSize(SkeletonDocumentWindow::m_skeletonRenderWidgetInitialSize, SkeletonDocumentWindow::m_skeletonRenderWidgetInitialSize);
-    //m_skeletonRenderWidget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
-    //m_skeletonRenderWidget->move(SkeletonDocumentWindow::m_skeletonRenderWidgetInitialX, SkeletonDocumentWindow::m_skeletonRenderWidgetInitialY);
-    //m_skeletonRenderWidget->setGraphicsFunctions(graphicsWidget);
-    //m_skeletonRenderWidget->hide();
+    
+    m_document->setSharedContextWidget(m_modelRenderWidget);
 
     QDockWidget *partListDocker = new QDockWidget(QString(), this);
     partListDocker->setAllowedAreas(Qt::RightDockWidgetArea);
 
-    SkeletonPartListWidget *partListWidget = new SkeletonPartListWidget(m_document, partListDocker);
-    //partListWidget->setWindowFlags(Qt::Tool);
-    //partListWidget->move(100, 200);
-    //partListWidget->show();
+    SkeletonPartTreeWidget *partListWidget = new SkeletonPartTreeWidget(m_document, partListDocker);
 
     partListDocker->setWidget(partListWidget);
     addDockWidget(Qt::RightDockWidgetArea, partListDocker);
 
     partListDocker->hide();
-
-    //QVBoxLayout *mainRightLayout = new QVBoxLayout;
-    //mainRightLayout->setSpacing(0);
-    //mainRightLayout->setContentsMargins(0, 0, 0, 0);
-    //mainRightLayout->addWidget(partListWidget);
 
     QHBoxLayout *mainLayout = new QHBoxLayout;
     mainLayout->setSpacing(0);
@@ -200,13 +188,12 @@ SkeletonDocumentWindow::SkeletonDocumentWindow() :
     mainLayout->addLayout(mainLeftLayout);
     mainLayout->addWidget(containerWidget);
     mainLayout->addSpacing(3);
-    //mainLayout->addLayout(mainRightLayout);
 
     QWidget *centralWidget = new QWidget;
     centralWidget->setLayout(mainLayout);
 
     setCentralWidget(centralWidget);
-    setWindowTitle(tr("Dust3D"));
+    setWindowTitle(APP_NAME);
 
     m_fileMenu = menuBar()->addMenu(tr("File"));
 
@@ -563,20 +550,20 @@ SkeletonDocumentWindow::SkeletonDocumentWindow() :
     connect(m_document, &SkeletonDocument::checkNode, graphicsWidget, &SkeletonGraphicsWidget::addSelectNode);
     connect(m_document, &SkeletonDocument::checkEdge, graphicsWidget, &SkeletonGraphicsWidget::addSelectEdge);
 
-    connect(m_document, &SkeletonDocument::partListChanged, partListWidget, &SkeletonPartListWidget::partListChanged);
-    connect(m_document, &SkeletonDocument::partPreviewChanged, partListWidget, &SkeletonPartListWidget::partPreviewChanged);
-    connect(m_document, &SkeletonDocument::partLockStateChanged, partListWidget, &SkeletonPartListWidget::partLockStateChanged);
-    connect(m_document, &SkeletonDocument::partVisibleStateChanged, partListWidget, &SkeletonPartListWidget::partVisibleStateChanged);
-    connect(m_document, &SkeletonDocument::partSubdivStateChanged, partListWidget, &SkeletonPartListWidget::partSubdivStateChanged);
-    connect(m_document, &SkeletonDocument::partDisableStateChanged, partListWidget, &SkeletonPartListWidget::partDisableStateChanged);
-    connect(m_document, &SkeletonDocument::partXmirrorStateChanged, partListWidget, &SkeletonPartListWidget::partXmirrorStateChanged);
-    connect(m_document, &SkeletonDocument::partDeformThicknessChanged, partListWidget, &SkeletonPartListWidget::partDeformChanged);
-    connect(m_document, &SkeletonDocument::partDeformWidthChanged, partListWidget, &SkeletonPartListWidget::partDeformChanged);
-    connect(m_document, &SkeletonDocument::partRoundStateChanged, partListWidget, &SkeletonPartListWidget::partRoundStateChanged);
-    connect(m_document, &SkeletonDocument::partColorStateChanged, partListWidget, &SkeletonPartListWidget::partColorStateChanged);
-    connect(m_document, &SkeletonDocument::cleanup, partListWidget, &SkeletonPartListWidget::partListChanged);
-    connect(m_document, &SkeletonDocument::partChecked, partListWidget, &SkeletonPartListWidget::partChecked);
-    connect(m_document, &SkeletonDocument::partUnchecked, partListWidget, &SkeletonPartListWidget::partUnchecked);
+    connect(m_document, &SkeletonDocument::partListChanged, partListWidget, &SkeletonPartTreeWidget::partTreeChanged);
+    connect(m_document, &SkeletonDocument::partPreviewChanged, partListWidget, &SkeletonPartTreeWidget::partPreviewChanged);
+    connect(m_document, &SkeletonDocument::partLockStateChanged, partListWidget, &SkeletonPartTreeWidget::partLockStateChanged);
+    connect(m_document, &SkeletonDocument::partVisibleStateChanged, partListWidget, &SkeletonPartTreeWidget::partVisibleStateChanged);
+    connect(m_document, &SkeletonDocument::partSubdivStateChanged, partListWidget, &SkeletonPartTreeWidget::partSubdivStateChanged);
+    connect(m_document, &SkeletonDocument::partDisableStateChanged, partListWidget, &SkeletonPartTreeWidget::partDisableStateChanged);
+    connect(m_document, &SkeletonDocument::partXmirrorStateChanged, partListWidget, &SkeletonPartTreeWidget::partXmirrorStateChanged);
+    connect(m_document, &SkeletonDocument::partDeformThicknessChanged, partListWidget, &SkeletonPartTreeWidget::partDeformChanged);
+    connect(m_document, &SkeletonDocument::partDeformWidthChanged, partListWidget, &SkeletonPartTreeWidget::partDeformChanged);
+    connect(m_document, &SkeletonDocument::partRoundStateChanged, partListWidget, &SkeletonPartTreeWidget::partRoundStateChanged);
+    connect(m_document, &SkeletonDocument::partColorStateChanged, partListWidget, &SkeletonPartTreeWidget::partColorStateChanged);
+    connect(m_document, &SkeletonDocument::cleanup, partListWidget, &SkeletonPartTreeWidget::partTreeChanged);
+    connect(m_document, &SkeletonDocument::partChecked, partListWidget, &SkeletonPartTreeWidget::partChecked);
+    connect(m_document, &SkeletonDocument::partUnchecked, partListWidget, &SkeletonPartTreeWidget::partUnchecked);
 
     connect(m_document, &SkeletonDocument::skeletonChanged, m_document, &SkeletonDocument::generateMesh);
     connect(m_document, &SkeletonDocument::resultMeshChanged, [=]() {

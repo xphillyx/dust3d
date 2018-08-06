@@ -455,8 +455,6 @@ void SkeletonGraphicsWidget::updateTurnaround()
     if (m_turnaroundLoader)
         return;
     
-    qDebug() << "Fit turnaround to view size:" << parentWidget()->rect().size();
-    
     m_turnaroundChanged = false;
 
     QThread *thread = new QThread;

@@ -6,6 +6,7 @@
 #include <map>
 #include <set>
 #include <QThread>
+#include <QOpenGLWidget>
 #include "skeletonsnapshot.h"
 #include "meshloader.h"
 #include "modelofflinerender.h"
@@ -17,6 +18,7 @@ class MeshGenerator : public QObject
 public:
     MeshGenerator(SkeletonSnapshot *snapshot, QThread *thread);
     ~MeshGenerator();
+    void setSharedContextWidget(QOpenGLWidget *widget);
     void addPreviewRequirement();
     void addPartPreviewRequirement(const QString &partId);
     MeshLoader *takeResultMesh();
@@ -38,6 +40,7 @@ private:
     std::map<QString, ModelOfflineRender *> m_partPreviewRenderMap;
     QThread *m_thread;
     MeshResultContext *m_meshResultContext;
+    QOpenGLWidget *m_sharedContextWidget;
 private:
     void resolveBoundingBox(QRectF *mainProfile, QRectF *sideProfile, const QString &partId=QString());
     void loadVertexSourcesToMeshResultContext(void *meshliteContext, int meshId, int bmeshId);

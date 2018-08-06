@@ -50,8 +50,11 @@ HEADERS += src/skeletondocumentwindow.h
 SOURCES += src/skeletongraphicswidget.cpp
 HEADERS += src/skeletongraphicswidget.h
 
-SOURCES += src/skeletonpartlistwidget.cpp
-HEADERS += src/skeletonpartlistwidget.h
+SOURCES += src/skeletonparttreewidget.cpp
+HEADERS += src/skeletonparttreewidget.h
+
+SOURCES += src/skeletonpartwidget.cpp
+HEADERS += src/skeletonpartwidget.h
 
 SOURCES += src/aboutwidget.cpp
 HEADERS += src/aboutwidget.h
