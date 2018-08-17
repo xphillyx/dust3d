@@ -1,4 +1,5 @@
 #include <QMenu>
+#include <vector>
 #include "skeletonparttreewidget.h"
 #include "skeletonpartwidget.h"
 
@@ -8,7 +9,6 @@ SkeletonPartTreeWidget::SkeletonPartTreeWidget(const SkeletonDocument *document,
 {
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
-    setContentsMargins(0, 0, 0, 0);
     
     setSelectionMode(QAbstractItemView::NoSelection);
     setFocusPolicy(Qt::NoFocus);
@@ -25,10 +25,12 @@ SkeletonPartTreeWidget::SkeletonPartTreeWidget(const SkeletonDocument *document,
     
     setContextMenuPolicy(Qt::CustomContextMenu);
     
-    setStyleSheet(QString("QTreeView {qproperty-indentation: 10;}"));
+    setStyleSheet(QString("QTreeView {qproperty-indentation: 10; margin-left: 5px;}"));
     
     connect(this, &QTreeWidget::customContextMenuRequested, this, &SkeletonPartTreeWidget::showContextMenu);
-    connect(this, &QTreeWidget::itemChanged, this, &SkeletonPartTreeWidget::groupNameChanged);
+    connect(this, &QTreeWidget::itemChanged, this, &SkeletonPartTreeWidget::groupChanged);
+    connect(this, &QTreeWidget::itemExpanded, this, &SkeletonPartTreeWidget::groupExpanded);
+    connect(this, &QTreeWidget::itemCollapsed, this, &SkeletonPartTreeWidget::groupCollapsed);
 }
 
 void SkeletonPartTreeWidget::showContextMenu(const QPoint &pos)
@@ -45,6 +47,9 @@ void SkeletonPartTreeWidget::showContextMenu(const QPoint &pos)
     }
     
     QMenu contextMenu(this);
+    
+    if (!component->name.isEmpty())
+        contextMenu.addSection(component->name);
     
     if (component->linkToPartId.isNull()) {
         
@@ -84,7 +89,47 @@ void SkeletonPartTreeWidget::showContextMenu(const QPoint &pos)
         emit createNewComponentAndMoveThisIn(componentId);
     });
     
+    moveToMenu->addSeparator();
+
+    QAction moveToRootGroupAction(tr("Root"), this);
+    moveToMenu->addAction(&moveToRootGroupAction);
+    connect(&moveToRootGroupAction, &QAction::triggered, [=]() {
+        emit moveComponent(componentId, QUuid());
+    });
+    
+    std::vector<QAction *> groupsActions;
+    std::function<void(QUuid, int)> addChildGroupsFunc;
+    addChildGroupsFunc = [this, &groupsActions, &addChildGroupsFunc, &moveToMenu, &componentId](QUuid currentId, int tabs) -> void {
+        const SkeletonComponent *current = m_document->findComponent(currentId);
+        if (nullptr == current)
+            return;
+        if (!current->id.isNull() && current->linkDataType().isEmpty()) {
+            QAction *action = new QAction(QString(" ").repeated(tabs * 4) + current->name, this);
+            connect(action, &QAction::triggered, [=]() {
+                emit moveComponent(componentId, current->id);
+            });
+            groupsActions.push_back(action);
+            moveToMenu->addAction(action);
+        }
+        for (const auto &childId: current->childrenIds) {
+            addChildGroupsFunc(childId, tabs + 1);
+        }
+    };
+    addChildGroupsFunc(QUuid(), 0);
+    
+    contextMenu.addSeparator();
+    
+    QAction deleteAction(tr("Delete"), this);
+    connect(&deleteAction, &QAction::triggered, [=]() {
+        emit removeComponent(componentId);
+    });
+    contextMenu.addAction(&deleteAction);
+    
     contextMenu.exec(mapToGlobal(pos));
+    
+    for (const auto &action: groupsActions) {
+        delete action;
+    }
 }
 
 QTreeWidgetItem *SkeletonPartTreeWidget::findComponentItem(QUuid componentId)
@@ -113,6 +158,23 @@ void SkeletonPartTreeWidget::componentNameChanged(QUuid componentId)
     componentItem->second->setText(0, component->name);
 }
 
+void SkeletonPartTreeWidget::componentExpandStateChanged(QUuid componentId)
+{
+    auto componentItem = m_componentItemMap.find(componentId);
+    if (componentItem == m_componentItemMap.end()) {
+        qDebug() << "Find component item failed:" << componentId;
+        return;
+    }
+    
+    const SkeletonComponent *component = m_document->findComponent(componentId);
+    if (nullptr == component) {
+        qDebug() << "Find component failed:" << componentId;
+        return;
+    }
+    
+    componentItem->second->setExpanded(component->expanded);
+}
+
 void SkeletonPartTreeWidget::addComponentChildrenToItem(QUuid componentId, QTreeWidgetItem *parentItem)
 {
     const SkeletonComponent *parentComponent = m_document->findComponent(componentId);
@@ -124,21 +186,22 @@ void SkeletonPartTreeWidget::addComponentChildrenToItem(QUuid componentId, QTree
         if (nullptr == component)
             continue;
         if (!component->linkToPartId.isNull()) {
-            QTreeWidgetItem *item = new QTreeWidgetItem(parentItem);
+            QTreeWidgetItem *item = new QTreeWidgetItem();
+            parentItem->addChild(item);
             item->setData(0, Qt::UserRole, QVariant(component->id.toString()));
             QUuid partId = component->linkToPartId;
-            item->addChild(item);
             SkeletonPartWidget *widget = new SkeletonPartWidget(m_document, partId);
-            item->setSizeHint(0, widget->size());
+            item->setSizeHint(0, SkeletonPartWidget::preferredSize());
             setItemWidget(item, 0, widget);
             widget->reload();
             m_partItemMap[partId] = item;
             addComponentChildrenToItem(childId, item);
         } else {
-            QTreeWidgetItem *item = new QTreeWidgetItem(parentItem, QStringList(component->name));
+            QTreeWidgetItem *item = new QTreeWidgetItem(QStringList(component->name));
+            parentItem->addChild(item);
             item->setData(0, Qt::UserRole, QVariant(component->id.toString()));
             item->setChildIndicatorPolicy(QTreeWidgetItem::ShowIndicator);
-            item->setExpanded(true);
+            item->setExpanded(component->expanded);
             item->setFlags(item->flags() | Qt::ItemIsEditable | Qt::ItemIsEnabled | Qt::ItemIsSelectable);
             m_componentItemMap[childId] = item;
             addComponentChildrenToItem(childId, item);
@@ -155,6 +218,11 @@ void SkeletonPartTreeWidget::componentChildrenChanged(QUuid componentId)
     }
     qDeleteAll(parentItem->takeChildren());
     addComponentChildrenToItem(componentId, parentItem);
+    
+    // Fix part widget show improperly even the parent item is collapsed.
+    bool isExpanded = parentItem->isExpanded();
+    parentItem->setExpanded(!isExpanded);
+    parentItem->setExpanded(isExpanded);
 }
 
 void SkeletonPartTreeWidget::removeAllContent()
@@ -188,7 +256,7 @@ void SkeletonPartTreeWidget::partRemoved(QUuid partId)
     m_partItemMap.erase(partItem);
 }
 
-void SkeletonPartTreeWidget::groupNameChanged(QTreeWidgetItem *item, int column)
+void SkeletonPartTreeWidget::groupChanged(QTreeWidgetItem *item, int column)
 {
     if (0 != column)
         return;
@@ -201,10 +269,20 @@ void SkeletonPartTreeWidget::groupNameChanged(QTreeWidgetItem *item, int column)
         return;
     }
     
-    if (item->text(0) == component->name)
-        return;
-    
-    emit renameComponent(componentId, item->text(0));
+    if (item->text(0) != component->name)
+        emit renameComponent(componentId, item->text(0));
+}
+
+void SkeletonPartTreeWidget::groupExpanded(QTreeWidgetItem *item)
+{
+    QUuid componentId = QUuid(item->data(0, Qt::UserRole).toString());
+    emit setComponentExpandState(componentId, true);
+}
+
+void SkeletonPartTreeWidget::groupCollapsed(QTreeWidgetItem *item)
+{
+    QUuid componentId = QUuid(item->data(0, Qt::UserRole).toString());
+    emit setComponentExpandState(componentId, false);
 }
 
 void SkeletonPartTreeWidget::partPreviewChanged(QUuid partId)

@@ -558,11 +558,15 @@ SkeletonDocumentWindow::SkeletonDocumentWindow() :
     connect(partTreeWidget, &SkeletonPartTreeWidget::checkPart, m_document, &SkeletonDocument::checkPart);
     connect(partTreeWidget, &SkeletonPartTreeWidget::createNewComponentAndMoveThisIn, m_document, &SkeletonDocument::createNewComponentAndMoveThisIn);
     connect(partTreeWidget, &SkeletonPartTreeWidget::renameComponent, m_document, &SkeletonDocument::renameComponent);
+    connect(partTreeWidget, &SkeletonPartTreeWidget::setComponentExpandState, m_document, &SkeletonDocument::setComponentExpandState);
+    connect(partTreeWidget, &SkeletonPartTreeWidget::moveComponent, m_document, &SkeletonDocument::moveComponent);
+    connect(partTreeWidget, &SkeletonPartTreeWidget::removeComponent, m_document, &SkeletonDocument::removeComponent);
     
     connect(m_document, &SkeletonDocument::componentNameChanged, partTreeWidget, &SkeletonPartTreeWidget::componentNameChanged);
     connect(m_document, &SkeletonDocument::componentChildrenChanged, partTreeWidget, &SkeletonPartTreeWidget::componentChildrenChanged);
     connect(m_document, &SkeletonDocument::componentRemoved, partTreeWidget, &SkeletonPartTreeWidget::componentRemoved);
     connect(m_document, &SkeletonDocument::componentAdded, partTreeWidget, &SkeletonPartTreeWidget::componentAdded);
+    connect(m_document, &SkeletonDocument::componentExpandStateChanged, partTreeWidget, &SkeletonPartTreeWidget::componentExpandStateChanged);
     connect(m_document, &SkeletonDocument::partPreviewChanged, partTreeWidget, &SkeletonPartTreeWidget::partPreviewChanged);
     connect(m_document, &SkeletonDocument::partLockStateChanged, partTreeWidget, &SkeletonPartTreeWidget::partLockStateChanged);
     connect(m_document, &SkeletonDocument::partVisibleStateChanged, partTreeWidget, &SkeletonPartTreeWidget::partVisibleStateChanged);
@@ -573,6 +577,7 @@ SkeletonDocumentWindow::SkeletonDocumentWindow() :
     connect(m_document, &SkeletonDocument::partDeformWidthChanged, partTreeWidget, &SkeletonPartTreeWidget::partDeformChanged);
     connect(m_document, &SkeletonDocument::partRoundStateChanged, partTreeWidget, &SkeletonPartTreeWidget::partRoundStateChanged);
     connect(m_document, &SkeletonDocument::partColorStateChanged, partTreeWidget, &SkeletonPartTreeWidget::partColorStateChanged);
+    connect(m_document, &SkeletonDocument::partRemoved, partTreeWidget, &SkeletonPartTreeWidget::partRemoved);
     connect(m_document, &SkeletonDocument::cleanup, partTreeWidget, &SkeletonPartTreeWidget::removeAllContent);
     connect(m_document, &SkeletonDocument::partChecked, partTreeWidget, &SkeletonPartTreeWidget::partChecked);
     connect(m_document, &SkeletonDocument::partUnchecked, partTreeWidget, &SkeletonPartTreeWidget::partUnchecked);
@@ -600,6 +605,7 @@ SkeletonDocumentWindow::SkeletonDocumentWindow() :
 
     connect(m_document, &SkeletonDocument::skeletonChanged, this, &SkeletonDocumentWindow::documentChanged);
     connect(m_document, &SkeletonDocument::turnaroundChanged, this, &SkeletonDocumentWindow::documentChanged);
+    connect(m_document, &SkeletonDocument::optionsChanged, this, &SkeletonDocumentWindow::documentChanged);
 
     connect(m_modelRenderWidget, &ModelWidget::customContextMenuRequested, [=](const QPoint &pos) {
         graphicsWidget->showContextMenu(graphicsWidget->mapFromGlobal(m_modelRenderWidget->mapToGlobal(pos)));

@@ -16,6 +16,9 @@ signals:
     void checkPart(QUuid partId);
     void createNewComponentAndMoveThisIn(QUuid componentId);
     void renameComponent(QUuid componentId, QString name);
+    void setComponentExpandState(QUuid componentId, bool expanded);
+    void moveComponent(QUuid componentId, QUuid toParentId);
+    void removeComponent(QUuid componentId);
 public:
     SkeletonPartTreeWidget(const SkeletonDocument *document, QWidget *parent);
     QTreeWidgetItem *findComponentItem(QUuid componentId);
@@ -24,6 +27,7 @@ public slots:
     void componentChildrenChanged(QUuid componentId);
     void componentRemoved(QUuid componentId);
     void componentAdded(QUuid componentId);
+    void componentExpandStateChanged(QUuid componentId);
     void partRemoved(QUuid partId);
     void partPreviewChanged(QUuid partid);
     void partLockStateChanged(QUuid partId);
@@ -36,7 +40,9 @@ public slots:
     void partColorStateChanged(QUuid partId);
     void partChecked(QUuid partId);
     void partUnchecked(QUuid partId);
-    void groupNameChanged(QTreeWidgetItem *item, int column);
+    void groupChanged(QTreeWidgetItem *item, int column);
+    void groupExpanded(QTreeWidgetItem *item);
+    void groupCollapsed(QTreeWidgetItem *item);
     void removeAllContent();
     void showContextMenu(const QPoint &pos);
 protected:

@@ -194,6 +194,7 @@ public:
     QString name;
     QUuid linkToPartId;
     QUuid parentId;
+    bool expanded = true;
     std::vector<QUuid> childrenIds;
     QString linkData() const
     {
@@ -301,6 +302,7 @@ signals:
     void componentChildrenChanged(QUuid componentId);
     void componentRemoved(QUuid componentId);
     void componentAdded(QUuid componentId);
+    void componentExpandStateChanged(QUuid componentId);
     void nodeRemoved(QUuid nodeId);
     void edgeRemoved(QUuid edgeId);
     void nodeRadiusChanged(QUuid nodeId);
@@ -340,6 +342,7 @@ signals:
     void uncheckAll();
     void checkNode(QUuid nodeId);
     void checkEdge(QUuid edgeId);
+    void optionsChanged();
 public: // need initialize
     float originX;
     float originY;
@@ -430,6 +433,7 @@ public slots:
     void moveComponent(QUuid componentId, QUuid toParentId);
     void setCurrentCanvasComponentId(QUuid componentId);
     void createNewComponentAndMoveThisIn(QUuid componentId);
+    void setComponentExpandState(QUuid componentId, bool expanded);
     void saveSnapshot();
     void undo();
     void redo();
@@ -452,6 +456,7 @@ private:
     void reviseOrigin();
     void removePartDontCareComponent(QUuid partId);
     void addPartToComponent(QUuid partId, QUuid componentId);
+    bool isDescendantComponent(QUuid componentId, QUuid suspiciousId);
 private: // need initialize
     bool m_isResultMeshObsolete;
     MeshGenerator *m_meshGenerator;
