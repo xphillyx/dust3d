@@ -175,9 +175,9 @@ SkeletonDocumentWindow::SkeletonDocumentWindow() :
     QDockWidget *partListDocker = new QDockWidget(QString(), this);
     partListDocker->setAllowedAreas(Qt::RightDockWidgetArea);
 
-    SkeletonPartTreeWidget *partListWidget = new SkeletonPartTreeWidget(m_document, partListDocker);
+    SkeletonPartTreeWidget *partTreeWidget = new SkeletonPartTreeWidget(m_document, partListDocker);
 
-    partListDocker->setWidget(partListWidget);
+    partListDocker->setWidget(partTreeWidget);
     addDockWidget(Qt::RightDockWidgetArea, partListDocker);
 
     partListDocker->hide();
@@ -549,21 +549,33 @@ SkeletonDocumentWindow::SkeletonDocumentWindow() :
     connect(m_document, &SkeletonDocument::uncheckAll, graphicsWidget, &SkeletonGraphicsWidget::unselectAll);
     connect(m_document, &SkeletonDocument::checkNode, graphicsWidget, &SkeletonGraphicsWidget::addSelectNode);
     connect(m_document, &SkeletonDocument::checkEdge, graphicsWidget, &SkeletonGraphicsWidget::addSelectEdge);
-
-    connect(m_document, &SkeletonDocument::partListChanged, partListWidget, &SkeletonPartTreeWidget::partTreeChanged);
-    connect(m_document, &SkeletonDocument::partPreviewChanged, partListWidget, &SkeletonPartTreeWidget::partPreviewChanged);
-    connect(m_document, &SkeletonDocument::partLockStateChanged, partListWidget, &SkeletonPartTreeWidget::partLockStateChanged);
-    connect(m_document, &SkeletonDocument::partVisibleStateChanged, partListWidget, &SkeletonPartTreeWidget::partVisibleStateChanged);
-    connect(m_document, &SkeletonDocument::partSubdivStateChanged, partListWidget, &SkeletonPartTreeWidget::partSubdivStateChanged);
-    connect(m_document, &SkeletonDocument::partDisableStateChanged, partListWidget, &SkeletonPartTreeWidget::partDisableStateChanged);
-    connect(m_document, &SkeletonDocument::partXmirrorStateChanged, partListWidget, &SkeletonPartTreeWidget::partXmirrorStateChanged);
-    connect(m_document, &SkeletonDocument::partDeformThicknessChanged, partListWidget, &SkeletonPartTreeWidget::partDeformChanged);
-    connect(m_document, &SkeletonDocument::partDeformWidthChanged, partListWidget, &SkeletonPartTreeWidget::partDeformChanged);
-    connect(m_document, &SkeletonDocument::partRoundStateChanged, partListWidget, &SkeletonPartTreeWidget::partRoundStateChanged);
-    connect(m_document, &SkeletonDocument::partColorStateChanged, partListWidget, &SkeletonPartTreeWidget::partColorStateChanged);
-    connect(m_document, &SkeletonDocument::cleanup, partListWidget, &SkeletonPartTreeWidget::partTreeChanged);
-    connect(m_document, &SkeletonDocument::partChecked, partListWidget, &SkeletonPartTreeWidget::partChecked);
-    connect(m_document, &SkeletonDocument::partUnchecked, partListWidget, &SkeletonPartTreeWidget::partUnchecked);
+    
+    connect(partTreeWidget, &SkeletonPartTreeWidget::currentComponentChanged, m_document, &SkeletonDocument::setCurrentCanvasComponentId);
+    connect(partTreeWidget, &SkeletonPartTreeWidget::moveComponentUp, m_document, &SkeletonDocument::moveComponentUp);
+    connect(partTreeWidget, &SkeletonPartTreeWidget::moveComponentDown, m_document, &SkeletonDocument::moveComponentDown);
+    connect(partTreeWidget, &SkeletonPartTreeWidget::moveComponentToTop, m_document, &SkeletonDocument::moveComponentToTop);
+    connect(partTreeWidget, &SkeletonPartTreeWidget::moveComponentToBottom, m_document, &SkeletonDocument::moveComponentToBottom);
+    connect(partTreeWidget, &SkeletonPartTreeWidget::checkPart, m_document, &SkeletonDocument::checkPart);
+    connect(partTreeWidget, &SkeletonPartTreeWidget::createNewComponentAndMoveThisIn, m_document, &SkeletonDocument::createNewComponentAndMoveThisIn);
+    connect(partTreeWidget, &SkeletonPartTreeWidget::renameComponent, m_document, &SkeletonDocument::renameComponent);
+    
+    connect(m_document, &SkeletonDocument::componentNameChanged, partTreeWidget, &SkeletonPartTreeWidget::componentNameChanged);
+    connect(m_document, &SkeletonDocument::componentChildrenChanged, partTreeWidget, &SkeletonPartTreeWidget::componentChildrenChanged);
+    connect(m_document, &SkeletonDocument::componentRemoved, partTreeWidget, &SkeletonPartTreeWidget::componentRemoved);
+    connect(m_document, &SkeletonDocument::componentAdded, partTreeWidget, &SkeletonPartTreeWidget::componentAdded);
+    connect(m_document, &SkeletonDocument::partPreviewChanged, partTreeWidget, &SkeletonPartTreeWidget::partPreviewChanged);
+    connect(m_document, &SkeletonDocument::partLockStateChanged, partTreeWidget, &SkeletonPartTreeWidget::partLockStateChanged);
+    connect(m_document, &SkeletonDocument::partVisibleStateChanged, partTreeWidget, &SkeletonPartTreeWidget::partVisibleStateChanged);
+    connect(m_document, &SkeletonDocument::partSubdivStateChanged, partTreeWidget, &SkeletonPartTreeWidget::partSubdivStateChanged);
+    connect(m_document, &SkeletonDocument::partDisableStateChanged, partTreeWidget, &SkeletonPartTreeWidget::partDisableStateChanged);
+    connect(m_document, &SkeletonDocument::partXmirrorStateChanged, partTreeWidget, &SkeletonPartTreeWidget::partXmirrorStateChanged);
+    connect(m_document, &SkeletonDocument::partDeformThicknessChanged, partTreeWidget, &SkeletonPartTreeWidget::partDeformChanged);
+    connect(m_document, &SkeletonDocument::partDeformWidthChanged, partTreeWidget, &SkeletonPartTreeWidget::partDeformChanged);
+    connect(m_document, &SkeletonDocument::partRoundStateChanged, partTreeWidget, &SkeletonPartTreeWidget::partRoundStateChanged);
+    connect(m_document, &SkeletonDocument::partColorStateChanged, partTreeWidget, &SkeletonPartTreeWidget::partColorStateChanged);
+    connect(m_document, &SkeletonDocument::cleanup, partTreeWidget, &SkeletonPartTreeWidget::removeAllContent);
+    connect(m_document, &SkeletonDocument::partChecked, partTreeWidget, &SkeletonPartTreeWidget::partChecked);
+    connect(m_document, &SkeletonDocument::partUnchecked, partTreeWidget, &SkeletonPartTreeWidget::partUnchecked);
 
     connect(m_document, &SkeletonDocument::skeletonChanged, m_document, &SkeletonDocument::generateMesh);
     connect(m_document, &SkeletonDocument::resultMeshChanged, [=]() {

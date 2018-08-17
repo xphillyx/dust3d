@@ -8,6 +8,7 @@
 #include <deque>
 #include <QImage>
 #include <cmath>
+#include <algorithm>
 #include <QOpenGLWidget>
 #include "skeletonsnapshot.h"
 #include "meshloader.h"
@@ -84,6 +85,7 @@ public:
     bool hasColor;
     bool inverse;
     QImage preview;
+    QUuid componentId;
     std::vector<QUuid> nodeIds;
     SkeletonPart(const QUuid &withId=QUuid()) :
         visible(true),
@@ -147,6 +149,7 @@ public:
         color = other.color;
         hasColor = other.hasColor;
         inverse = other.inverse;
+        componentId = other.componentId;
     }
 };
 
@@ -172,6 +175,120 @@ enum class SkeletonDocumentEditMode
     ZoomOut
 };
 
+class SkeletonComponent
+{
+public:
+    SkeletonComponent()
+    {
+    }
+    SkeletonComponent(const QUuid &withId, const QString &linkData=QString(), const QString &linkDataType=QString())
+    {
+        id = withId.isNull() ? QUuid::createUuid() : withId;
+        if (!linkData.isEmpty()) {
+            if ("partId" == linkDataType) {
+                linkToPartId = QUuid(linkData);
+            }
+        }
+    }
+    QUuid id;
+    QString name;
+    QUuid linkToPartId;
+    QUuid parentId;
+    std::vector<QUuid> childrenIds;
+    QString linkData() const
+    {
+        return linkToPartId.isNull() ? QString() : linkToPartId.toString();
+    }
+    QString linkDataType() const
+    {
+        return linkToPartId.isNull() ? QString() : QString("partId");
+    }
+    void addChild(QUuid childId)
+    {
+        if (m_childrenIdSet.find(childId) != m_childrenIdSet.end())
+            return;
+        m_childrenIdSet.insert(childId);
+        childrenIds.push_back(childId);
+    }
+    void removeChild(QUuid childId)
+    {
+        if (m_childrenIdSet.find(childId) == m_childrenIdSet.end())
+            return;
+        m_childrenIdSet.erase(childId);
+        auto findResult = std::find(childrenIds.begin(), childrenIds.end(), childId);
+        if (findResult != childrenIds.end())
+            childrenIds.erase(findResult);
+    }
+    void replaceChild(QUuid childId, QUuid newId)
+    {
+        if (m_childrenIdSet.find(childId) == m_childrenIdSet.end())
+            return;
+        if (m_childrenIdSet.find(newId) != m_childrenIdSet.end())
+            return;
+        m_childrenIdSet.erase(childId);
+        m_childrenIdSet.insert(newId);
+        auto findResult = std::find(childrenIds.begin(), childrenIds.end(), childId);
+        if (findResult != childrenIds.end())
+            *findResult = newId;
+    }
+    void moveChildUp(QUuid childId)
+    {
+        auto it = std::find(childrenIds.begin(), childrenIds.end(), childId);
+        if (it == childrenIds.end()) {
+            qDebug() << "Child not found in list:" << childId;
+            return;
+        }
+        
+        auto index = std::distance(childrenIds.begin(), it);
+        if (index == 0)
+            return;
+        std::swap(childrenIds[index - 1], childrenIds[index]);
+    }
+    void moveChildDown(QUuid childId)
+    {
+        auto it = std::find(childrenIds.begin(), childrenIds.end(), childId);
+        if (it == childrenIds.end()) {
+            qDebug() << "Child not found in list:" << childId;
+            return;
+        }
+        
+        auto index = std::distance(childrenIds.begin(), it);
+        if (index == (int)childrenIds.size() - 1)
+            return;
+        std::swap(childrenIds[index], childrenIds[index + 1]);
+    }
+    void moveChildToTop(QUuid childId)
+    {
+        auto it = std::find(childrenIds.begin(), childrenIds.end(), childId);
+        if (it == childrenIds.end()) {
+            qDebug() << "Child not found in list:" << childId;
+            return;
+        }
+        
+        auto index = std::distance(childrenIds.begin(), it);
+        if (index == 0)
+            return;
+        for (int i = index; i >= 1; i--)
+            std::swap(childrenIds[i - 1], childrenIds[i]);
+    }
+    void moveChildToBottom(QUuid childId)
+    {
+        auto it = std::find(childrenIds.begin(), childrenIds.end(), childId);
+        if (it == childrenIds.end()) {
+            qDebug() << "Child not found in list:" << childId;
+            return;
+        }
+        
+        auto index = std::distance(childrenIds.begin(), it);
+        if (index == (int)childrenIds.size() - 1)
+            return;
+        for (int i = index; i <= (int)childrenIds.size() - 2; i++)
+            std::swap(childrenIds[i], childrenIds[i + 1]);
+    }
+private:
+    std::set<QUuid> m_childrenIdSet;
+};
+
 class SkeletonDocument : public QObject
 {
     Q_OBJECT
@@ -180,13 +297,15 @@ signals:
     void nodeAdded(QUuid nodeId);
     void edgeAdded(QUuid edgeId);
     void partRemoved(QUuid partId);
-    void partListChanged();
+    void componentNameChanged(QUuid componentId);
+    void componentChildrenChanged(QUuid componentId);
+    void componentRemoved(QUuid componentId);
+    void componentAdded(QUuid componentId);
     void nodeRemoved(QUuid nodeId);
     void edgeRemoved(QUuid edgeId);
     void nodeRadiusChanged(QUuid nodeId);
     void nodeOriginChanged(QUuid nodeId);
     void edgeChanged(QUuid edgeId);
-    void partChanged(QUuid partId);
     void partPreviewChanged(QUuid partId);
     void resultMeshChanged();
     void turnaroundChanged();
@@ -240,8 +359,8 @@ public:
     std::map<QUuid, SkeletonPart> partMap;
     std::map<QUuid, SkeletonNode> nodeMap;
     std::map<QUuid, SkeletonEdge> edgeMap;
-    std::vector<QUuid> partIds;
-    std::map<QString, std::map<QString, QString>> animationParameters;
+    std::map<QUuid, SkeletonComponent> componentMap;
+    SkeletonComponent rootComponent;
     QImage turnaround;
     QImage preview;
     void toSnapshot(SkeletonSnapshot *snapshot, const std::set<QUuid> &limitNodeIds=std::set<QUuid>()) const;
@@ -251,6 +370,9 @@ public:
     const SkeletonEdge *findEdge(QUuid edgeId) const;
     const SkeletonPart *findPart(QUuid partId) const;
     const SkeletonEdge *findEdgeByNodes(QUuid firstNodeId, QUuid secondNodeId) const;
+    const SkeletonComponent *findComponent(QUuid componentId) const;
+    const SkeletonComponent *findComponentParent(QUuid componentId) const;
+    QUuid findComponentParentId(QUuid componentId) const;
     MeshLoader *takeResultMesh();
     MeshLoader *takeResultTextureMesh();
     void updateTurnaround(const QImage &image);
@@ -298,10 +420,16 @@ public slots:
     void setPartRoundState(QUuid partId, bool rounded);
     void setPartColorState(QUuid partId, bool hasColor, QColor color);
     void setPartInverseState(QUuid partId, bool inverse);
-    void movePartUp(QUuid partId);
-    void movePartDown(QUuid partId);
-    void movePartToTop(QUuid partId);
-    void movePartToBottom(QUuid partId);
+    void moveComponentUp(QUuid componentId);
+    void moveComponentDown(QUuid componentId);
+    void moveComponentToTop(QUuid componentId);
+    void moveComponentToBottom(QUuid componentId);
+    void renameComponent(QUuid componentId, QString name);
+    void removeComponent(QUuid componentId);
+    void addComponent(QUuid parentId);
+    void moveComponent(QUuid componentId, QUuid toParentId);
+    void setCurrentCanvasComponentId(QUuid componentId);
+    void createNewComponentAndMoveThisIn(QUuid componentId);
     void saveSnapshot();
     void undo();
     void redo();
@@ -322,6 +450,8 @@ private:
     void settleOrigin();
     void checkExportReadyState();
     void reviseOrigin();
+    void removePartDontCareComponent(QUuid partId);
+    void addPartToComponent(QUuid partId, QUuid componentId);
 private: // need initialize
     bool m_isResultMeshObsolete;
     MeshGenerator *m_meshGenerator;
@@ -338,6 +468,7 @@ private: // need initialize
     AmbientOcclusionBaker *m_ambientOcclusionBaker;
     unsigned long long m_ambientOcclusionBakedImageUpdateVersion;
     QOpenGLWidget *m_sharedContextWidget;
+    QUuid m_currentCanvasComponentId;
 private:
     static unsigned long m_maxSnapshot;
     std::deque<SkeletonHistoryItem> m_undoItems;

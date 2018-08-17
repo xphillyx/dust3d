@@ -7,11 +7,24 @@
 class SkeletonPartTreeWidget : public QTreeWidget
 {
     Q_OBJECT
+signals:
+    void currentComponentChanged(QUuid componentId);
+    void moveComponentUp(QUuid componentId);
+    void moveComponentDown(QUuid componentId);
+    void moveComponentToTop(QUuid componentId);
+    void moveComponentToBottom(QUuid componentId);
+    void checkPart(QUuid partId);
+    void createNewComponentAndMoveThisIn(QUuid componentId);
+    void renameComponent(QUuid componentId, QString name);
 public:
     SkeletonPartTreeWidget(const SkeletonDocument *document, QWidget *parent);
+    QTreeWidgetItem *findComponentItem(QUuid componentId);
 public slots:
-    void partChanged(QUuid partId);
-    void partTreeChanged();
+    void componentNameChanged(QUuid componentId);
+    void componentChildrenChanged(QUuid componentId);
+    void componentRemoved(QUuid componentId);
+    void componentAdded(QUuid componentId);
+    void partRemoved(QUuid partId);
     void partPreviewChanged(QUuid partid);
     void partLockStateChanged(QUuid partId);
     void partVisibleStateChanged(QUuid partId);
@@ -24,11 +37,16 @@ public slots:
     void partChecked(QUuid partId);
     void partUnchecked(QUuid partId);
     void groupNameChanged(QTreeWidgetItem *item, int column);
+    void removeAllContent();
+    void showContextMenu(const QPoint &pos);
 protected:
     virtual QSize sizeHint() const;
 private:
+    void addComponentChildrenToItem(QUuid componentId, QTreeWidgetItem *parentItem);
+private:
     const SkeletonDocument *m_document = nullptr;
-    std::map<QUuid, QTreeWidgetItem *> m_itemMap;
+    std::map<QUuid, QTreeWidgetItem *> m_partItemMap;
+    std::map<QUuid, QTreeWidgetItem *> m_componentItemMap;
 };
 
 #endif

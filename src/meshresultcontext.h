@@ -101,7 +101,6 @@ private:
     bool m_triangleColorResolved;
     bool m_triangleEdgeSourceMapResolved;
     bool m_bmeshNodeMapResolved;
-    bool m_vertexWeightsResolved;
     bool m_resultPartsResolved;
     bool m_resultTriangleUvsResolved;
     bool m_resultRearrangedVerticesResolved;

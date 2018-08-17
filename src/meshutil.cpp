@@ -164,6 +164,7 @@ ExactMesh *diffCgalMeshs(ExactMesh *first, ExactMesh *second)
 
 #endif
 
+// http://cgal-discuss.949826.n4.nabble.com/Polygon-mesh-processing-corefine-and-compute-difference-td4663104.html
 int unionMeshs(void *meshliteContext, const std::vector<int> &meshIds, const std::set<int> &inverseIds, int *errorCount)
 {
 #if USE_CGAL == 1
@@ -171,18 +172,9 @@ int unionMeshs(void *meshliteContext, const std::vector<int> &meshIds, const std
     std::vector<ExactMesh *> externalMeshs;
     for (size_t i = 0; i < meshIds.size(); i++) {
         int triangledMeshId = meshlite_triangulate(meshliteContext, meshIds[i]);
-        //if (!meshlite_is_triangulated_manifold(meshliteContext, triangledMeshId))
-        //    qDebug() << "MeshLoader is not manifold after triangulated:" << triangledMeshId;
         ExactMesh *mesh = makeCgalMeshFromMeshlite<ExactKernel>(meshliteContext, triangledMeshId);
         if (CGAL::Polygon_mesh_processing::does_self_intersect(*mesh)) {
             qDebug() << "CGAL::Polygon_mesh_processing::does_self_intersect:" << i;
-            if (errorCount)
-                (*errorCount)++;
-            delete mesh;
-            continue;
-        }
-        if (!CGAL::Polygon_mesh_processing::does_bound_a_volume(*mesh)) {
-            qDebug() << "CGAL::Polygon_mesh_processing::!does_bound_a_volume" << i;
             if (errorCount)
                 (*errorCount)++;
             delete mesh;

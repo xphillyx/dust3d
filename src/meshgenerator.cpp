@@ -9,8 +9,7 @@
 #include "theme.h"
 #include "positionmap.h"
 
-bool MeshGenerator::enableDebug = false;
-bool MeshGenerator::disableUnion = false;
+bool MeshGenerator::m_enableDebug = false;
 
 MeshGenerator::MeshGenerator(SkeletonSnapshot *snapshot, QThread *thread) :
     m_snapshot(snapshot),
@@ -151,6 +150,93 @@ void MeshGenerator::loadGeneratedPositionsToMeshResultContext(void *meshliteCont
     delete[] normalBuffer;
 }
 
+int MeshGenerator::generateComponent(QUuid componentId)
+{
+    const std::map<QString, QString> *component = &m_snapshot->rootComponent;
+    if (!componentId.isNull()) {
+        auto findComponent = m_snapshot->components.find(componentId.toString());
+        if (findComponent == m_snapshot->components.end()) {
+            qDebug() << "Component not found:" << componentId;
+            return 0;
+        }
+        component = &findComponent->second;
+    }
+    
+    bool broken = false;
+    
+    std::vector<int> meshIds;
+    std::set<int> inverseIds;
+    for (const auto &childId: valueOfKeyInMapOrEmpty(*component, "children").split(",")) {
+        const auto &childComponent = m_snapshot->components.find(childId);
+        if (childComponent == m_snapshot->components.end())
+            continue;
+        QString linkDataType = valueOfKeyInMapOrEmpty(childComponent->second, "linkDataType");
+        if ("partId" == linkDataType) {
+            QString partId = valueOfKeyInMapOrEmpty(childComponent->second, "linkData");
+            const auto &part = m_snapshot->parts.find(partId);
+            if (part == m_snapshot->parts.end())
+                continue;
+            QString disabledString = valueOfKeyInMapOrEmpty(part->second, "disabled");
+            bool isDisabled = isTrueValueString(disabledString);
+            if (isDisabled)
+                continue;
+            int bmeshId = m_partBmeshMap[partId];
+            int meshId = meshlite_bmesh_generate_mesh(m_meshliteContext, bmeshId);
+            if (meshlite_bmesh_error_count(m_meshliteContext, bmeshId) != 0)
+                broken = true;
+            bool xMirrored = isTrueValueString(valueOfKeyInMapOrEmpty(part->second, "xMirrored"));
+            loadVertexSourcesToMeshResultContext(m_meshliteContext, meshId, bmeshId);
+            QColor modelColor = m_partColorMap[partId];
+            int xMirroredMeshId = 0;
+            if (xMirrored) {
+                if (xMirrored) {
+                    xMirroredMeshId = meshlite_mirror_in_x(m_meshliteContext, meshId, 0);
+                    loadVertexSourcesToMeshResultContext(m_meshliteContext, xMirroredMeshId, -bmeshId);
+                }
+            }
+            if (m_requirePartPreviewMap.find(partId) != m_requirePartPreviewMap.end()) {
+                ModelOfflineRender *render = m_partPreviewRenderMap[partId];
+                int trimedMeshId = meshlite_trim(m_meshliteContext, meshId, 1);
+                render->updateMesh(new MeshLoader(m_meshliteContext, trimedMeshId, -1, modelColor));
+                QImage *image = new QImage(render->toImage(QSize(Theme::previewImageRenderSize, Theme::previewImageRenderSize)));
+                if (Theme::previewImageSize != Theme::previewImageRenderSize) {
+                    int cropOffset = (Theme::previewImageRenderSize - Theme::previewImageSize) / 2;
+                    QImage *crop = new QImage(image->copy(cropOffset, cropOffset, Theme::previewImageSize, Theme::previewImageSize));
+                    delete image;
+                    image = crop;
+                }
+                m_partPreviewMap[partId] = image;
+            }
+            meshIds.push_back(meshId);
+            bool inverse = isTrueValueString(valueOfKeyInMapOrEmpty(part->second, "inverse"));
+            if (inverse)
+                inverseIds.insert(meshId);
+            if (xMirroredMeshId) {
+                meshIds.push_back(xMirroredMeshId);
+                if (inverse)
+                    inverseIds.insert(xMirroredMeshId);
+            }
+        } else if (linkDataType.isEmpty()) {
+            int meshId = generateComponent(QUuid(childId));
+            if (0 == meshId) {
+                broken = true;
+                continue;
+            }
+            meshIds.push_back(meshId);
+        }
+    }
+    
+    int mergedMeshId = 0;
+    if (meshIds.size() > 0) {
+        int errorCount = 0;
+        mergedMeshId = unionMeshs(m_meshliteContext, meshIds, inverseIds, &errorCount);
+        if (errorCount)
+            broken = true;
+    }
+    
+    return mergedMeshId;
+}
+
 void MeshGenerator::process()
 {
     if (nullptr == m_snapshot)
@@ -158,10 +244,8 @@ void MeshGenerator::process()
     
     m_meshResultContext = new MeshResultContext;
     
-    void *meshliteContext = meshlite_create_context();
-    std::map<QString, int> partBmeshMap;
-    std::map<QString, int> bmeshNodeMap;
-    
+    m_meshliteContext = meshlite_create_context();
+
     QRectF mainProfile, sideProfile;
     resolveBoundingBox(&mainProfile, &sideProfile);
     float longHeight = mainProfile.height();
@@ -177,45 +261,41 @@ void MeshGenerator::process()
     float originZ = valueOfKeyInMapOrEmpty(m_snapshot->canvas, "originZ").toFloat();
     bool originSettled = false;
     if (originX > 0 && originY > 0 && originZ > 0) {
-        //qDebug() << "Use settled origin: " << originX << originY << originZ << " calculated:" << mainProfileMiddleX << mainProfileMiddleY << sideProfileMiddleX;
         mainProfileMiddleX = originX;
         mainProfileMiddleY = originY;
         sideProfileMiddleX = originZ;
         originSettled = true;
-    } else {
-        //qDebug() << "No settled origin, calculated:" << mainProfileMiddleX << mainProfileMiddleY << sideProfileMiddleX;
     }
     
-    std::map<QString, QColor> partColorMap;
+    std::map<QString, int> bmeshNodeMap;
     std::map<QString, bool> partMirrorFlagMap;
     
-    for (const auto &partIdIt: m_snapshot->partIdList) {
-        const auto &part = m_snapshot->parts.find(partIdIt);
-        if (part == m_snapshot->parts.end())
-            continue;
-        QString disabledString = valueOfKeyInMapOrEmpty(part->second, "disabled");
+    for (const auto &partIt: m_snapshot->parts) {
+        const auto &partId = partIt.first;
+        const auto &part = partIt.second;
+        QString disabledString = valueOfKeyInMapOrEmpty(part, "disabled");
         bool isDisabled = isTrueValueString(disabledString);
         if (isDisabled)
             continue;
-        bool subdived = isTrueValueString(valueOfKeyInMapOrEmpty(part->second, "subdived"));
-        int bmeshId = meshlite_bmesh_create(meshliteContext);
+        bool subdived = isTrueValueString(valueOfKeyInMapOrEmpty(part, "subdived"));
+        int bmeshId = meshlite_bmesh_create(m_meshliteContext);
         if (subdived)
-            meshlite_bmesh_set_cut_subdiv_count(meshliteContext, bmeshId, 1);
-        if (isTrueValueString(valueOfKeyInMapOrEmpty(part->second, "rounded")))
-            meshlite_bmesh_set_round_way(meshliteContext, bmeshId, 1);
-        partMirrorFlagMap[partIdIt] = isTrueValueString(valueOfKeyInMapOrEmpty(part->second, "xMirrored"));
-        QString colorString = valueOfKeyInMapOrEmpty(part->second, "color");
+            meshlite_bmesh_set_cut_subdiv_count(m_meshliteContext, bmeshId, 1);
+        if (isTrueValueString(valueOfKeyInMapOrEmpty(part, "rounded")))
+            meshlite_bmesh_set_round_way(m_meshliteContext, bmeshId, 1);
+        partMirrorFlagMap[partId] = isTrueValueString(valueOfKeyInMapOrEmpty(part, "xMirrored"));
+        QString colorString = valueOfKeyInMapOrEmpty(part, "color");
         QColor partColor = colorString.isEmpty() ? Theme::white : QColor(colorString);
-        partColorMap[partIdIt] = partColor;
-        QString thicknessString = valueOfKeyInMapOrEmpty(part->second, "deformThickness");
+        m_partColorMap[partId] = partColor;
+        QString thicknessString = valueOfKeyInMapOrEmpty(part, "deformThickness");
         if (!thicknessString.isEmpty())
-            meshlite_bmesh_set_deform_thickness(meshliteContext, bmeshId, thicknessString.toFloat());
-        QString widthString = valueOfKeyInMapOrEmpty(part->second, "deformWidth");
+            meshlite_bmesh_set_deform_thickness(m_meshliteContext, bmeshId, thicknessString.toFloat());
+        QString widthString = valueOfKeyInMapOrEmpty(part, "deformWidth");
         if (!widthString.isEmpty())
-            meshlite_bmesh_set_deform_width(meshliteContext, bmeshId, widthString.toFloat());
-        if (MeshGenerator::enableDebug)
-            meshlite_bmesh_enable_debug(meshliteContext, bmeshId, 1);
-        partBmeshMap[partIdIt] = bmeshId;
+            meshlite_bmesh_set_deform_width(m_meshliteContext, bmeshId, widthString.toFloat());
+        if (MeshGenerator::m_enableDebug)
+            meshlite_bmesh_enable_debug(m_meshliteContext, bmeshId, 1);
+        m_partBmeshMap[partId] = bmeshId;
     }
     
     for (const auto &edgeIt: m_snapshot->edges) {
@@ -227,8 +307,8 @@ void MeshGenerator::process()
         const auto toIt = m_snapshot->nodes.find(toNodeId);
         if (fromIt == m_snapshot->nodes.end() || toIt == m_snapshot->nodes.end())
             continue;
-        const auto partBmeshIt = partBmeshMap.find(partId);
-        if (partBmeshIt == partBmeshMap.end())
+        const auto partBmeshIt = m_partBmeshMap.find(partId);
+        if (partBmeshIt == m_partBmeshMap.end())
             continue;
         int bmeshId = partBmeshIt->second;
         
@@ -239,7 +319,7 @@ void MeshGenerator::process()
             float x = (valueOfKeyInMapOrEmpty(fromIt->second, "x").toFloat() - mainProfileMiddleX) / longHeight;
             float y = (mainProfileMiddleY - valueOfKeyInMapOrEmpty(fromIt->second, "y").toFloat()) / longHeight;
             float z = (sideProfileMiddleX - valueOfKeyInMapOrEmpty(fromIt->second, "z").toFloat()) / longHeight;
-            bmeshFromNodeId = meshlite_bmesh_add_node(meshliteContext, bmeshId, x, y, z, radius);
+            bmeshFromNodeId = meshlite_bmesh_add_node(m_meshliteContext, bmeshId, x, y, z, radius);
             //qDebug() << "bmeshId[" << bmeshId << "] add node[" << bmeshFromNodeId << "]" << radius << x << y << z;
             bmeshNodeMap[fromNodeId] = bmeshFromNodeId;
             
@@ -248,7 +328,7 @@ void MeshGenerator::process()
             bmeshNode.origin = QVector3D(x, y, z);
             bmeshNode.radius = radius;
             bmeshNode.nodeId = bmeshFromNodeId;
-            bmeshNode.color = partColorMap[partId];
+            bmeshNode.color = m_partColorMap[partId];
             m_meshResultContext->bmeshNodes.push_back(bmeshNode);
             
             if (partMirrorFlagMap[partId]) {
@@ -258,7 +338,6 @@ void MeshGenerator::process()
             }
         } else {
             bmeshFromNodeId = bmeshFromIt->second;
-            //qDebug() << "bmeshId[" << bmeshId << "] use existed node[" << bmeshFromNodeId << "]";
         }
         
         int bmeshToNodeId = 0;
@@ -268,7 +347,7 @@ void MeshGenerator::process()
             float x = (valueOfKeyInMapOrEmpty(toIt->second, "x").toFloat() - mainProfileMiddleX) / longHeight;
             float y = (mainProfileMiddleY - valueOfKeyInMapOrEmpty(toIt->second, "y").toFloat()) / longHeight;
             float z = (sideProfileMiddleX - valueOfKeyInMapOrEmpty(toIt->second, "z").toFloat()) / longHeight;
-            bmeshToNodeId = meshlite_bmesh_add_node(meshliteContext, bmeshId, x, y, z, radius);
+            bmeshToNodeId = meshlite_bmesh_add_node(m_meshliteContext, bmeshId, x, y, z, radius);
             //qDebug() << "bmeshId[" << bmeshId << "] add node[" << bmeshToNodeId << "]" << radius << x << y << z;
             bmeshNodeMap[toNodeId] = bmeshToNodeId;
             
@@ -277,7 +356,7 @@ void MeshGenerator::process()
             bmeshNode.origin = QVector3D(x, y, z);
             bmeshNode.radius = radius;
             bmeshNode.nodeId = bmeshToNodeId;
-            bmeshNode.color = partColorMap[partId];
+            bmeshNode.color = m_partColorMap[partId];
             m_meshResultContext->bmeshNodes.push_back(bmeshNode);
             
             if (partMirrorFlagMap[partId]) {
@@ -287,31 +366,15 @@ void MeshGenerator::process()
             }
         } else {
             bmeshToNodeId = bmeshToIt->second;
-            //qDebug() << "bmeshId[" << bmeshId << "] use existed node[" << bmeshToNodeId << "]";
         }
         
-        meshlite_bmesh_add_edge(meshliteContext, bmeshId, bmeshFromNodeId, bmeshToNodeId);
-        
-        //BmeshEdge bmeshEdge;
-        //bmeshEdge.fromBmeshId = bmeshId;
-        //bmeshEdge.fromNodeId = bmeshFromNodeId;
-        //bmeshEdge.toBmeshId = bmeshId;
-        //bmeshEdge.toNodeId = bmeshToNodeId;
-        //qDebug() << "add bmesh edge:" << bmeshEdge.fromBmeshId << bmeshEdge.fromNodeId << bmeshEdge.toBmeshId << bmeshEdge.toNodeId;
-        //m_meshResultContext->bmeshEdges.push_back(bmeshEdge);
-        
-        //if (partMirrorFlagMap[partId]) {
-            //bmeshEdge.fromBmeshId = -bmeshId;
-            //bmeshEdge.toBmeshId = -bmeshId;
-            //qDebug() << "add bmesh edge:" << bmeshEdge.fromBmeshId << bmeshEdge.fromNodeId << bmeshEdge.toBmeshId << bmeshEdge.toNodeId;
-            //m_meshResultContext->bmeshEdges.push_back(bmeshEdge);
-        //}
+        meshlite_bmesh_add_edge(m_meshliteContext, bmeshId, bmeshFromNodeId, bmeshToNodeId);
     }
     
     for (const auto &nodeIt: m_snapshot->nodes) {
         QString partId = valueOfKeyInMapOrEmpty(nodeIt.second, "partId");
-        const auto partBmeshIt = partBmeshMap.find(partId);
-        if (partBmeshIt == partBmeshMap.end())
+        const auto partBmeshIt = m_partBmeshMap.find(partId);
+        if (partBmeshIt == m_partBmeshMap.end())
             continue;
         const auto nodeBmeshIt = bmeshNodeMap.find(nodeIt.first);
         if (nodeBmeshIt != bmeshNodeMap.end())
@@ -321,7 +384,7 @@ void MeshGenerator::process()
         float x = (valueOfKeyInMapOrEmpty(nodeIt.second, "x").toFloat() - mainProfileMiddleX) / longHeight;
         float y = (mainProfileMiddleY - valueOfKeyInMapOrEmpty(nodeIt.second, "y").toFloat()) / longHeight;
         float z = (sideProfileMiddleX - valueOfKeyInMapOrEmpty(nodeIt.second, "z").toFloat()) / longHeight;
-        int bmeshNodeId = meshlite_bmesh_add_node(meshliteContext, bmeshId, x, y, z, radius);
+        int bmeshNodeId = meshlite_bmesh_add_node(m_meshliteContext, bmeshId, x, y, z, radius);
         //qDebug() << "bmeshId[" << bmeshId << "] add lonely node[" << bmeshNodeId << "]" << radius << x << y << z;
         bmeshNodeMap[nodeIt.first] = bmeshNodeId;
         
@@ -330,7 +393,7 @@ void MeshGenerator::process()
         bmeshNode.origin = QVector3D(x, y, z);
         bmeshNode.radius = radius;
         bmeshNode.nodeId = bmeshNodeId;
-        bmeshNode.color = partColorMap[partId];
+        bmeshNode.color = m_partColorMap[partId];
         m_meshResultContext->bmeshNodes.push_back(bmeshNode);
         
         if (partMirrorFlagMap[partId]) {
@@ -340,110 +403,24 @@ void MeshGenerator::process()
         }
     }
     
-    bool broken = false;
+    int mergedMeshId = generateComponent(QUuid());
     
-    std::vector<int> meshIds;
-    std::vector<int> subdivMeshIds;
-    std::set<int> inverseIds;
-    for (const auto &partIdIt: m_snapshot->partIdList) {
-        const auto &part = m_snapshot->parts.find(partIdIt);
-        if (part == m_snapshot->parts.end())
-            continue;
-        QString disabledString = valueOfKeyInMapOrEmpty(part->second, "disabled");
-        bool isDisabled = isTrueValueString(disabledString);
-        if (isDisabled)
-            continue;
-        int bmeshId = partBmeshMap[partIdIt];
-        int meshId = meshlite_bmesh_generate_mesh(meshliteContext, bmeshId);
-        if (meshlite_bmesh_error_count(meshliteContext, bmeshId) != 0)
-            broken = true;
-        bool xMirrored = isTrueValueString(valueOfKeyInMapOrEmpty(part->second, "xMirrored"));
-        loadVertexSourcesToMeshResultContext(meshliteContext, meshId, bmeshId);
-        QColor modelColor = partColorMap[partIdIt];
-        int xMirroredMeshId = 0;
-        if (xMirrored) {
-            if (xMirrored) {
-                xMirroredMeshId = meshlite_mirror_in_x(meshliteContext, meshId, 0);
-                loadVertexSourcesToMeshResultContext(meshliteContext, xMirroredMeshId, -bmeshId);
-            }
-        }
-        if (m_requirePartPreviewMap.find(partIdIt) != m_requirePartPreviewMap.end()) {
-            ModelOfflineRender *render = m_partPreviewRenderMap[partIdIt];
-            int trimedMeshId = meshlite_trim(meshliteContext, meshId, 1);
-            render->updateMesh(new MeshLoader(meshliteContext, trimedMeshId, -1, modelColor));
-            QImage *image = new QImage(render->toImage(QSize(Theme::previewImageRenderSize, Theme::previewImageRenderSize)));
-            if (Theme::previewImageSize != Theme::previewImageRenderSize) {
-                int cropOffset = (Theme::previewImageRenderSize - Theme::previewImageSize) / 2;
-                QImage *crop = new QImage(image->copy(cropOffset, cropOffset, Theme::previewImageSize, Theme::previewImageSize));
-                delete image;
-                image = crop;
-            }
-            m_partPreviewMap[partIdIt] = image;
-        }
-        meshIds.push_back(meshId);
-        bool inverse = isTrueValueString(valueOfKeyInMapOrEmpty(part->second, "inverse"));
-        if (inverse)
-            inverseIds.insert(meshId);
-        if (xMirroredMeshId) {
-            meshIds.push_back(xMirroredMeshId);
-            if (inverse)
-                inverseIds.insert(xMirroredMeshId);
-        }
-    }
-    
-    if (!subdivMeshIds.empty()) {
-        int mergedMeshId = 0;
-        if (subdivMeshIds.size() > 1) {
-            int errorCount = 0;
-            mergedMeshId = unionMeshs(meshliteContext, subdivMeshIds, inverseIds, &errorCount);
-            if (errorCount)
-                broken = true;
-        } else {
-            mergedMeshId = subdivMeshIds[0];
-        }
-        //if (mergedMeshId > 0)
-        //    mergedMeshId = meshlite_combine_coplanar_faces(meshliteContext, mergedMeshId);
-        if (mergedMeshId > 0) {
-            int errorCount = 0;
-            int subdivedMeshId = subdivMesh(meshliteContext, mergedMeshId, &errorCount);
-            if (errorCount > 0)
-                broken = true;
-            if (subdivedMeshId > 0)
-                mergedMeshId = subdivedMeshId;
-            else
-                broken = true;
-        }
+    if (mergedMeshId > 0) {
+        mergedMeshId = meshlite_combine_coplanar_faces(m_meshliteContext, mergedMeshId);
         if (mergedMeshId > 0)
-            meshIds.push_back(mergedMeshId);
-        else
-            broken = true;
-    }
-    
-    int mergedMeshId = 0;
-    if (meshIds.size() > 0) {
-        int errorCount = 0;
-        if (disableUnion)
-            mergedMeshId = mergeMeshs(meshliteContext, meshIds);
-        else
-            mergedMeshId = unionMeshs(meshliteContext, meshIds, inverseIds, &errorCount);
-        if (errorCount)
-            broken = true;
-        else if (mergedMeshId > 0)
-            mergedMeshId = meshlite_combine_coplanar_faces(meshliteContext, mergedMeshId);
-            if (mergedMeshId > 0)
-                mergedMeshId = meshlite_fix_hole(meshliteContext, mergedMeshId);
+            mergedMeshId = meshlite_fix_hole(m_meshliteContext, mergedMeshId);
     }
     
     if (mergedMeshId > 0) {
         if (m_requirePreview) {
-            m_previewRender->updateMesh(new MeshLoader(meshliteContext, mergedMeshId));
+            m_previewRender->updateMesh(new MeshLoader(m_meshliteContext, mergedMeshId));
             QImage *image = new QImage(m_previewRender->toImage(QSize(Theme::previewImageRenderSize, Theme::previewImageRenderSize)));
             m_preview = image;
         }
         int finalMeshId = mergedMeshId;
-        int triangulatedFinalMeshId = meshlite_triangulate(meshliteContext, mergedMeshId);
-        loadGeneratedPositionsToMeshResultContext(meshliteContext, triangulatedFinalMeshId);
-        m_mesh = new MeshLoader(meshliteContext, finalMeshId, triangulatedFinalMeshId, broken ? Theme::broken : Theme::white, &m_meshResultContext->triangleColors());
+        int triangulatedFinalMeshId = meshlite_triangulate(m_meshliteContext, mergedMeshId);
+        loadGeneratedPositionsToMeshResultContext(m_meshliteContext, triangulatedFinalMeshId);
+        m_mesh = new MeshLoader(m_meshliteContext, finalMeshId, triangulatedFinalMeshId, Theme::white, &m_meshResultContext->triangleColors());
     }
     
     if (m_previewRender) {
@@ -454,7 +431,7 @@ void MeshGenerator::process()
         partPreviewRender.second->setRenderThread(QGuiApplication::instance()->thread());
     }
     
-    meshlite_destroy_context(meshliteContext);
+    meshlite_destroy_context(m_meshliteContext);
     
     this->moveToThread(QGuiApplication::instance()->thread());
     

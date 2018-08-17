@@ -121,10 +121,10 @@ SkeletonPartWidget::SkeletonPartWidget(const SkeletonDocument *document, QUuid p
     connect(this, &SkeletonPartWidget::setPartRoundState, m_document, &SkeletonDocument::setPartRoundState);
     connect(this, &SkeletonPartWidget::setPartColorState, m_document, &SkeletonDocument::setPartColorState);
     connect(this, &SkeletonPartWidget::setPartInverseState, m_document, &SkeletonDocument::setPartInverseState);
-    connect(this, &SkeletonPartWidget::movePartUp, m_document, &SkeletonDocument::movePartUp);
-    connect(this, &SkeletonPartWidget::movePartDown, m_document, &SkeletonDocument::movePartDown);
-    connect(this, &SkeletonPartWidget::movePartToTop, m_document, &SkeletonDocument::movePartToTop);
-    connect(this, &SkeletonPartWidget::movePartToBottom, m_document, &SkeletonDocument::movePartToBottom);
+    //connect(this, &SkeletonPartWidget::movePartUp, m_document, &SkeletonDocument::moveComponentUp);
+    //connect(this, &SkeletonPartWidget::movePartDown, m_document, &SkeletonDocument::moveComponentDown);
+    //connect(this, &SkeletonPartWidget::movePartToTop, m_document, &SkeletonDocument::moveComponentToTop);
+    //connect(this, &SkeletonPartWidget::movePartToBottom, m_document, &SkeletonDocument::moveComponentToBottom);
     connect(this, &SkeletonPartWidget::checkPart, m_document, &SkeletonDocument::checkPart);
     connect(this, &SkeletonPartWidget::enableBackgroundBlur, m_document, &SkeletonDocument::enableBackgroundBlur);
     connect(this, &SkeletonPartWidget::disableBackgroundBlur, m_document, &SkeletonDocument::disableBackgroundBlur);
@@ -207,11 +207,11 @@ SkeletonPartWidget::SkeletonPartWidget(const SkeletonDocument *document, QUuid p
         showColorSettingPopup(mapFromGlobal(QCursor::pos()));
     });
     
-    setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(this, &SkeletonPartWidget::customContextMenuRequested, [=] {
-        emit checkPart(m_partId);
-    });
-    connect(this, &SkeletonPartWidget::customContextMenuRequested, this, &SkeletonPartWidget::showContextMenu);
+    //setContextMenuPolicy(Qt::CustomContextMenu);
+    //connect(this, &SkeletonPartWidget::customContextMenuRequested, [=] {
+    //    emit checkPart(m_partId);
+    //});
+    //connect(this, &SkeletonPartWidget::customContextMenuRequested, this, &SkeletonPartWidget::showContextMenu);
     
     setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
     setFixedSize(preferredSize());
@@ -260,6 +260,7 @@ void SkeletonPartWidget::showContextMenu(const QPoint &pos)
         contextMenu.addAction(&showPartAction);
     }
     
+    /*
     QAction hideOtherPartsAction(tr("Hide Other Parts"), this);
     connect(&hideOtherPartsAction, &QAction::triggered, [=]() {
         for (const auto &it: m_document->partIds) {
@@ -304,6 +305,7 @@ void SkeletonPartWidget::showContextMenu(const QPoint &pos)
     contextMenu.addAction(&unlockAllPartsAction);
     
     contextMenu.addSeparator();
+    */
     
     QAction invertPartAction(tr("Invert Part"), this);
     if (part && !part->inverse) {

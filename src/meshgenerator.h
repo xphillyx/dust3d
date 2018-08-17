@@ -41,12 +41,16 @@ private:
     QThread *m_thread;
     MeshResultContext *m_meshResultContext;
     QOpenGLWidget *m_sharedContextWidget;
+    void *m_meshliteContext;
+    std::map<QString, int> m_partBmeshMap;
+    std::map<QString, QColor> m_partColorMap;
+private:
+    static bool m_enableDebug;
 private:
     void resolveBoundingBox(QRectF *mainProfile, QRectF *sideProfile, const QString &partId=QString());
     void loadVertexSourcesToMeshResultContext(void *meshliteContext, int meshId, int bmeshId);
     void loadGeneratedPositionsToMeshResultContext(void *meshliteContext, int triangulatedMeshId);
-    static bool enableDebug;
-    static bool disableUnion;
+    int generateComponent(QUuid componentId);
 };
 
 #endif
