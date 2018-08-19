@@ -83,7 +83,6 @@ public:
     bool rounded;
     QColor color;
     bool hasColor;
-    bool inverse;
     QImage preview;
     QUuid componentId;
     std::vector<QUuid> nodeIds;
@@ -98,8 +97,7 @@ public:
         deformWidth(1.0),
         rounded(false),
         color(Theme::white),
-        hasColor(false),
-        inverse(false)
+        hasColor(false)
     {
         id = withId.isNull() ? QUuid::createUuid() : withId;
     }
@@ -148,7 +146,6 @@ public:
         rounded = other.rounded;
         color = other.color;
         hasColor = other.hasColor;
-        inverse = other.inverse;
         componentId = other.componentId;
     }
 };
@@ -195,6 +192,7 @@ public:
     QUuid linkToPartId;
     QUuid parentId;
     bool expanded = true;
+    bool inverse = false;
     std::vector<QUuid> childrenIds;
     QString linkData() const
     {
@@ -327,7 +325,7 @@ signals:
     void partDeformWidthChanged(QUuid partId);
     void partRoundStateChanged(QUuid partId);
     void partColorStateChanged(QUuid partId);
-    void partInverseStateChanged(QUuid partId);
+    void componentInverseStateChanged(QUuid partId);
     void cleanup();
     void originChanged();
     void xlockStateChanged();
@@ -422,7 +420,7 @@ public slots:
     void setPartDeformWidth(QUuid partId, float width);
     void setPartRoundState(QUuid partId, bool rounded);
     void setPartColorState(QUuid partId, bool hasColor, QColor color);
-    void setPartInverseState(QUuid partId, bool inverse);
+    void setComponentInverseState(QUuid componentId, bool inverse);
     void moveComponentUp(QUuid componentId);
     void moveComponentDown(QUuid componentId);
     void moveComponentToTop(QUuid componentId);
@@ -434,6 +432,18 @@ public slots:
     void setCurrentCanvasComponentId(QUuid componentId);
     void createNewComponentAndMoveThisIn(QUuid componentId);
     void setComponentExpandState(QUuid componentId, bool expanded);
+    void hideOtherComponents(QUuid componentId);
+    void lockOtherComponents(QUuid componentId);
+    void hideAllComponents();
+    void showAllComponents();
+    void collapseAllComponents();
+    void expandAllComponents();
+    void lockAllComponents();
+    void unlockAllComponents();
+    void hideDescendantComponents(QUuid componentId);
+    void showDescendantComponents(QUuid componentId);
+    void lockDescendantComponents(QUuid componentId);
+    void unlockDescendantComponents(QUuid componentId);
     void saveSnapshot();
     void undo();
     void redo();
@@ -457,6 +467,9 @@ private:
     void removePartDontCareComponent(QUuid partId);
     void addPartToComponent(QUuid partId, QUuid componentId);
     bool isDescendantComponent(QUuid componentId, QUuid suspiciousId);
+    void removeComponentRecursively(QUuid componentId);
+    void collectComponentDescendantParts(QUuid componentId, std::vector<QUuid> &partIds);
+    void collectComponentDescendantComponents(QUuid componentId, std::vector<QUuid> &componentIds);
 private: // need initialize
     bool m_isResultMeshObsolete;
     MeshGenerator *m_meshGenerator;

@@ -638,7 +638,6 @@ void SkeletonDocument::toSnapshot(SkeletonSnapshot *snapshot, const std::set<QUu
         part["xMirrored"] = partIt.second.xMirrored ? "true" : "false";
         part["zMirrored"] = partIt.second.zMirrored ? "true" : "false";
         part["rounded"] = partIt.second.rounded ? "true" : "false";
-        part["inverse"] = partIt.second.inverse ? "true" : "false";
         if (partIt.second.hasColor)
             part["color"] = partIt.second.color.name();
         if (partIt.second.deformThicknessAdjusted())
@@ -687,6 +686,7 @@ void SkeletonDocument::toSnapshot(SkeletonSnapshot *snapshot, const std::set<QUu
         if (!componentIt.second.name.isEmpty())
             component["name"] = componentIt.second.name;
         component["expanded"] = componentIt.second.expanded ? "true" : "false";
+        component["inverse"] = componentIt.second.inverse ? "true" : "false";
         QStringList childIdList;
         for (const auto &childId: componentIt.second.childrenIds) {
             childIdList.append(childId.toString());
@@ -738,6 +738,8 @@ void SkeletonDocument::addFromSnapshot(const SkeletonSnapshot &snapshot)
     std::set<QUuid> newAddedPartIds;
     std::set<QUuid> newAddedComponentIds;
     
+    std::set<QUuid> inversePartIds;
+    
     std::map<QUuid, QUuid> oldNewIdMap;
     for (const auto &partKv: snapshot.parts) {
         SkeletonPart part;
@@ -750,7 +752,8 @@ void SkeletonDocument::addFromSnapshot(const SkeletonSnapshot &snapshot)
         part.xMirrored = isTrueValueString(valueOfKeyInMapOrEmpty(partKv.second, "xMirrored"));
         part.zMirrored = isTrueValueString(valueOfKeyInMapOrEmpty(partKv.second, "zMirrored"));
         part.rounded = isTrueValueString(valueOfKeyInMapOrEmpty(partKv.second, "rounded"));
-        part.inverse = isTrueValueString(valueOfKeyInMapOrEmpty(partKv.second, "inverse"));
+        if (isTrueValueString(valueOfKeyInMapOrEmpty(partKv.second, "inverse")))
+            inversePartIds.insert(part.id);
         const auto &colorIt = partKv.second.find("color");
         if (colorIt != partKv.second.end()) {
             part.color = QColor(colorIt->second);
@@ -819,12 +822,15 @@ void SkeletonDocument::addFromSnapshot(const SkeletonSnapshot &snapshot)
         oldNewIdMap[QUuid(componentKv.first)] = component.id;
         component.name = valueOfKeyInMapOrEmpty(componentKv.second, "name");
         component.expanded = isTrueValueString(valueOfKeyInMapOrEmpty(componentKv.second, "expanded"));
+        component.inverse = isTrueValueString(valueOfKeyInMapOrEmpty(componentKv.second, "inverse"));
         qDebug() << "Add component:" << component.id << " old:" << componentKv.first << "name:" << component.name;
         if ("partId" == linkDataType) {
             QUuid partId = oldNewIdMap[QUuid(linkData)];
             component.linkToPartId = partId;
             qDebug() << "Add part:" << partId << " from component:" << component.id;
             partMap[partId].componentId = component.id;
+            if (inversePartIds.find(partId) != inversePartIds.end())
+                component.inverse = true;
         }
         componentMap[component.id] = component;
         newAddedComponentIds.insert(component.id);
@@ -1210,17 +1216,17 @@ void SkeletonDocument::setPartVisibleState(QUuid partId, bool visible)
     emit optionsChanged();
 }
 
-void SkeletonDocument::setPartInverseState(QUuid partId, bool inverse)
+void SkeletonDocument::setComponentInverseState(QUuid componentId, bool inverse)
 {
-    auto part = partMap.find(partId);
-    if (part == partMap.end()) {
-        qDebug() << "Part not found:" << partId;
+    auto component = componentMap.find(componentId);
+    if (component == componentMap.end()) {
+        qDebug() << "Component not found:" << componentId;
         return;
     }
-    if (part->second.inverse == inverse)
+    if (component->second.inverse == inverse)
         return;
-    part->second.inverse = inverse;
-    emit partInverseStateChanged(partId);
+    component->second.inverse = inverse;
+    emit componentInverseStateChanged(componentId);
     emit skeletonChanged();
 }
 
@@ -1469,18 +1475,24 @@ void SkeletonDocument::addPartToComponent(QUuid partId, QUuid componentId)
 
 void SkeletonDocument::removeComponent(QUuid componentId)
 {
+    removeComponentRecursively(componentId);
+    emit skeletonChanged();
+}
+
+void SkeletonDocument::removeComponentRecursively(QUuid componentId)
+{
     auto component = componentMap.find(componentId);
     if (component == componentMap.end()) {
         qDebug() << "Component not found:" << componentId;
         return;
     }
     
-    if (!component->second.linkToPartId.isNull()) {
-        removePartDontCareComponent(component->second.linkToPartId);
-    }
-    
     for (const auto &childId: component->second.childrenIds) {
         removeComponent(childId);
+    }
+    
+    if (!component->second.linkToPartId.isNull()) {
+        removePartDontCareComponent(component->second.linkToPartId);
     }
     
     QUuid parentId = component->second.parentId;
@@ -1497,7 +1509,6 @@ void SkeletonDocument::removeComponent(QUuid componentId)
     componentMap.erase(component);
     emit componentRemoved(componentId);
     emit componentChildrenChanged(parentId);
-    emit skeletonChanged();
 }
 
 void SkeletonDocument::setCurrentCanvasComponentId(QUuid componentId)
@@ -1836,3 +1847,149 @@ void SkeletonDocument::setSharedContextWidget(QOpenGLWidget *sharedContextWidget
 {
     m_sharedContextWidget = sharedContextWidget;
 }
+
+void SkeletonDocument::collectComponentDescendantParts(QUuid componentId, std::vector<QUuid> &partIds)
+{
+    const SkeletonComponent *component = findComponent(componentId);
+    if (nullptr == component)
+        return;
+    
+    if (!component->linkToPartId.isNull()) {
+        partIds.push_back(component->linkToPartId);
+        return;
+    }
+    
+    for (const auto &childId: component->childrenIds) {
+        collectComponentDescendantParts(childId, partIds);
+    }
+}
+
+void SkeletonDocument::collectComponentDescendantComponents(QUuid componentId, std::vector<QUuid> &componentIds)
+{
+    const SkeletonComponent *component = findComponent(componentId);
+    if (nullptr == component)
+        return;
+    
+    if (!component->linkToPartId.isNull()) {
+        return;
+    }
+    
+    componentIds.push_back(component->id);
+
+    for (const auto &childId: component->childrenIds) {
+        collectComponentDescendantComponents(childId, componentIds);
+    }
+}
+
+void SkeletonDocument::hideOtherComponents(QUuid componentId)
+{
+    std::vector<QUuid> partIds;
+    collectComponentDescendantParts(componentId, partIds);
+    std::set<QUuid> partIdSet;
+    for (const auto &partId: partIds) {
+        partIdSet.insert(partId);
+    }
+    for (const auto &part: partMap) {
+        if (partIdSet.find(part.first) != partIdSet.end())
+            continue;
+        setPartVisibleState(part.first, false);
+    }
+}
+
+void SkeletonDocument::lockOtherComponents(QUuid componentId)
+{
+    std::vector<QUuid> partIds;
+    collectComponentDescendantParts(componentId, partIds);
+    std::set<QUuid> partIdSet;
+    for (const auto &partId: partIds) {
+        partIdSet.insert(partId);
+    }
+    for (const auto &part: partMap) {
+        if (partIdSet.find(part.first) != partIdSet.end())
+            continue;
+        setPartLockState(part.first, true);
+    }
+}
+
+void SkeletonDocument::hideAllComponents()
+{
+    for (const auto &part: partMap) {
+        setPartVisibleState(part.first, false);
+    }
+}
+
+void SkeletonDocument::showAllComponents()
+{
+    for (const auto &part: partMap) {
+        setPartVisibleState(part.first, true);
+    }
+}
+
+void SkeletonDocument::collapseAllComponents()
+{
+    for (const auto &component: componentMap) {
+        if (!component.second.linkToPartId.isNull())
+            continue;
+        setComponentExpandState(component.first, false);
+    }
+}
+
+void SkeletonDocument::expandAllComponents()
+{
+    for (const auto &component: componentMap) {
+        if (!component.second.linkToPartId.isNull())
+            continue;
+        setComponentExpandState(component.first, true);
+    }
+}
+
+void SkeletonDocument::lockAllComponents()
+{
+    for (const auto &part: partMap) {
+        setPartLockState(part.first, true);
+    }
+}
+
+void SkeletonDocument::unlockAllComponents()
+{
+    for (const auto &part: partMap) {
+        setPartLockState(part.first, false);
+    }
+}
+
+void SkeletonDocument::hideDescendantComponents(QUuid componentId)
+{
+    std::vector<QUuid> partIds;
+    collectComponentDescendantParts(componentId, partIds);
+    for (const auto &partId: partIds) {
+        setPartVisibleState(partId, false);
+    }
+}
+
+void SkeletonDocument::showDescendantComponents(QUuid componentId)
+{
+    std::vector<QUuid> partIds;
+    collectComponentDescendantParts(componentId, partIds);
+    for (const auto &partId: partIds) {
+        setPartVisibleState(partId, true);
+    }
+}
+
+void SkeletonDocument::lockDescendantComponents(QUuid componentId)
+{
+    std::vector<QUuid> partIds;
+    collectComponentDescendantParts(componentId, partIds);
+    for (const auto &partId: partIds) {
+        setPartLockState(partId, true);
+    }
+}
+
+void SkeletonDocument::unlockDescendantComponents(QUuid componentId)
+{
+    std::vector<QUuid> partIds;
+    collectComponentDescendantParts(componentId, partIds);
+    for (const auto &partId: partIds) {
+        setPartLockState(partId, false);
+    }
+}
+

@@ -137,7 +137,7 @@ SkeletonDocumentWindow::SkeletonDocumentWindow() :
 
     QLabel *verticalLogoLabel = new QLabel;
     QImage verticalLogoImage;
-    verticalLogoImage.load(":/resources/dust3d_vertical.png");
+    verticalLogoImage.load(":/resources/dust3d-vertical.png");
     verticalLogoLabel->setPixmap(QPixmap::fromImage(verticalLogoImage));
 
     QHBoxLayout *logoLayout = new QHBoxLayout;
@@ -561,6 +561,21 @@ SkeletonDocumentWindow::SkeletonDocumentWindow() :
     connect(partTreeWidget, &SkeletonPartTreeWidget::setComponentExpandState, m_document, &SkeletonDocument::setComponentExpandState);
     connect(partTreeWidget, &SkeletonPartTreeWidget::moveComponent, m_document, &SkeletonDocument::moveComponent);
     connect(partTreeWidget, &SkeletonPartTreeWidget::removeComponent, m_document, &SkeletonDocument::removeComponent);
+    connect(partTreeWidget, &SkeletonPartTreeWidget::hideOtherComponents, m_document, &SkeletonDocument::hideOtherComponents);
+    connect(partTreeWidget, &SkeletonPartTreeWidget::lockOtherComponents, m_document, &SkeletonDocument::lockOtherComponents);
+    connect(partTreeWidget, &SkeletonPartTreeWidget::hideAllComponents, m_document, &SkeletonDocument::hideAllComponents);
+    connect(partTreeWidget, &SkeletonPartTreeWidget::showAllComponents, m_document, &SkeletonDocument::showAllComponents);
+    connect(partTreeWidget, &SkeletonPartTreeWidget::collapseAllComponents, m_document, &SkeletonDocument::collapseAllComponents);
+    connect(partTreeWidget, &SkeletonPartTreeWidget::expandAllComponents, m_document, &SkeletonDocument::expandAllComponents);
+    connect(partTreeWidget, &SkeletonPartTreeWidget::lockAllComponents, m_document, &SkeletonDocument::lockAllComponents);
+    connect(partTreeWidget, &SkeletonPartTreeWidget::unlockAllComponents, m_document, &SkeletonDocument::unlockAllComponents);
+    connect(partTreeWidget, &SkeletonPartTreeWidget::setPartLockState, m_document, &SkeletonDocument::setPartLockState);
+    connect(partTreeWidget, &SkeletonPartTreeWidget::setPartVisibleState, m_document, &SkeletonDocument::setPartVisibleState);
+    connect(partTreeWidget, &SkeletonPartTreeWidget::setComponentInverseState, m_document, &SkeletonDocument::setComponentInverseState);
+    connect(partTreeWidget, &SkeletonPartTreeWidget::hideDescendantComponents, m_document, &SkeletonDocument::hideDescendantComponents);
+    connect(partTreeWidget, &SkeletonPartTreeWidget::showDescendantComponents, m_document, &SkeletonDocument::showDescendantComponents);
+    connect(partTreeWidget, &SkeletonPartTreeWidget::lockDescendantComponents, m_document, &SkeletonDocument::lockDescendantComponents);
+    connect(partTreeWidget, &SkeletonPartTreeWidget::unlockDescendantComponents, m_document, &SkeletonDocument::unlockDescendantComponents);
     
     connect(m_document, &SkeletonDocument::componentNameChanged, partTreeWidget, &SkeletonPartTreeWidget::componentNameChanged);
     connect(m_document, &SkeletonDocument::componentChildrenChanged, partTreeWidget, &SkeletonPartTreeWidget::componentChildrenChanged);

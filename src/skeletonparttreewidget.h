@@ -19,6 +19,21 @@ signals:
     void setComponentExpandState(QUuid componentId, bool expanded);
     void moveComponent(QUuid componentId, QUuid toParentId);
     void removeComponent(QUuid componentId);
+    void hideOtherComponents(QUuid componentId);
+    void lockOtherComponents(QUuid componentId);
+    void hideAllComponents();
+    void showAllComponents();
+    void collapseAllComponents();
+    void expandAllComponents();
+    void lockAllComponents();
+    void unlockAllComponents();
+    void setPartLockState(QUuid partId, bool locked);
+    void setPartVisibleState(QUuid partId, bool visible);
+    void setComponentInverseState(QUuid componentId, bool inverse);
+    void hideDescendantComponents(QUuid componentId);
+    void showDescendantComponents(QUuid componentId);
+    void lockDescendantComponents(QUuid componentId);
+    void unlockDescendantComponents(QUuid componentId);
 public:
     SkeletonPartTreeWidget(const SkeletonDocument *document, QWidget *parent);
     QTreeWidgetItem *findComponentItem(QUuid componentId);

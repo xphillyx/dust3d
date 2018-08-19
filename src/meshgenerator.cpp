@@ -171,6 +171,8 @@ int MeshGenerator::generateComponent(QUuid componentId)
         if (childComponent == m_snapshot->components.end())
             continue;
         QString linkDataType = valueOfKeyInMapOrEmpty(childComponent->second, "linkDataType");
+        int meshId = 0;
+        int xMirroredMeshId = 0;
         if ("partId" == linkDataType) {
             QString partId = valueOfKeyInMapOrEmpty(childComponent->second, "linkData");
             const auto &part = m_snapshot->parts.find(partId);
@@ -181,13 +183,12 @@ int MeshGenerator::generateComponent(QUuid componentId)
             if (isDisabled)
                 continue;
             int bmeshId = m_partBmeshMap[partId];
-            int meshId = meshlite_bmesh_generate_mesh(m_meshliteContext, bmeshId);
+            meshId = meshlite_bmesh_generate_mesh(m_meshliteContext, bmeshId);
             if (meshlite_bmesh_error_count(m_meshliteContext, bmeshId) != 0)
                 broken = true;
             bool xMirrored = isTrueValueString(valueOfKeyInMapOrEmpty(part->second, "xMirrored"));
             loadVertexSourcesToMeshResultContext(m_meshliteContext, meshId, bmeshId);
             QColor modelColor = m_partColorMap[partId];
-            int xMirroredMeshId = 0;
             if (xMirrored) {
                 if (xMirrored) {
                     xMirroredMeshId = meshlite_mirror_in_x(m_meshliteContext, meshId, 0);
@@ -207,22 +208,21 @@ int MeshGenerator::generateComponent(QUuid componentId)
                 }
                 m_partPreviewMap[partId] = image;
             }
-            meshIds.push_back(meshId);
-            bool inverse = isTrueValueString(valueOfKeyInMapOrEmpty(part->second, "inverse"));
-            if (inverse)
-                inverseIds.insert(meshId);
-            if (xMirroredMeshId) {
-                meshIds.push_back(xMirroredMeshId);
-                if (inverse)
-                    inverseIds.insert(xMirroredMeshId);
-            }
         } else if (linkDataType.isEmpty()) {
-            int meshId = generateComponent(QUuid(childId));
-            if (0 == meshId) {
-                broken = true;
-                continue;
-            }
-            meshIds.push_back(meshId);
+            meshId = generateComponent(QUuid(childId));
+        }
+        if (0 == meshId) {
+            broken = true;
+            continue;
+        }
+        meshIds.push_back(meshId);
+        bool inverse = isTrueValueString(valueOfKeyInMapOrEmpty(childComponent->second, "inverse"));
+        if (inverse)
+            inverseIds.insert(meshId);
+        if (xMirroredMeshId) {
+            meshIds.push_back(xMirroredMeshId);
+            if (inverse)
+                inverseIds.insert(xMirroredMeshId);
         }
     }
     

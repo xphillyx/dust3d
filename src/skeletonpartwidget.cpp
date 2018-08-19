@@ -120,11 +120,6 @@ SkeletonPartWidget::SkeletonPartWidget(const SkeletonDocument *document, QUuid p
     connect(this, &SkeletonPartWidget::setPartDeformWidth, m_document, &SkeletonDocument::setPartDeformWidth);
     connect(this, &SkeletonPartWidget::setPartRoundState, m_document, &SkeletonDocument::setPartRoundState);
     connect(this, &SkeletonPartWidget::setPartColorState, m_document, &SkeletonDocument::setPartColorState);
-    connect(this, &SkeletonPartWidget::setPartInverseState, m_document, &SkeletonDocument::setPartInverseState);
-    //connect(this, &SkeletonPartWidget::movePartUp, m_document, &SkeletonDocument::moveComponentUp);
-    //connect(this, &SkeletonPartWidget::movePartDown, m_document, &SkeletonDocument::moveComponentDown);
-    //connect(this, &SkeletonPartWidget::movePartToTop, m_document, &SkeletonDocument::moveComponentToTop);
-    //connect(this, &SkeletonPartWidget::movePartToBottom, m_document, &SkeletonDocument::moveComponentToBottom);
     connect(this, &SkeletonPartWidget::checkPart, m_document, &SkeletonDocument::checkPart);
     connect(this, &SkeletonPartWidget::enableBackgroundBlur, m_document, &SkeletonDocument::enableBackgroundBlur);
     connect(this, &SkeletonPartWidget::disableBackgroundBlur, m_document, &SkeletonDocument::disableBackgroundBlur);
@@ -207,12 +202,6 @@ SkeletonPartWidget::SkeletonPartWidget(const SkeletonDocument *document, QUuid p
         showColorSettingPopup(mapFromGlobal(QCursor::pos()));
     });
     
-    //setContextMenuPolicy(Qt::CustomContextMenu);
-    //connect(this, &SkeletonPartWidget::customContextMenuRequested, [=] {
-    //    emit checkPart(m_partId);
-    //});
-    //connect(this, &SkeletonPartWidget::customContextMenuRequested, this, &SkeletonPartWidget::showContextMenu);
-    
     setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
     setFixedSize(preferredSize());
     
@@ -236,118 +225,6 @@ void SkeletonPartWidget::updateAllButtons()
     updateDeformButton();
     updateRoundButton();
     updateColorButton();
-}
-
-void SkeletonPartWidget::showContextMenu(const QPoint &pos)
-{
-    QMenu contextMenu(this);
-    
-    const SkeletonPart *part = m_document->findPart(m_partId);
-    
-    QAction hidePartAction(tr("Hide Part"), this);
-    if (part && part->visible) {
-        connect(&hidePartAction, &QAction::triggered, [=]() {
-            emit setPartVisibleState(m_partId, false);
-        });
-        contextMenu.addAction(&hidePartAction);
-    }
-    
-    QAction showPartAction(tr("Show Part"), this);
-    if (part && !part->visible) {
-        connect(&showPartAction, &QAction::triggered, [=]() {
-            emit setPartVisibleState(m_partId, true);
-        });
-        contextMenu.addAction(&showPartAction);
-    }
-    
-    /*
-    QAction hideOtherPartsAction(tr("Hide Other Parts"), this);
-    connect(&hideOtherPartsAction, &QAction::triggered, [=]() {
-        for (const auto &it: m_document->partIds) {
-            if (it != m_partId)
-                emit setPartVisibleState(it, false);
-        }
-    });
-    contextMenu.addAction(&hideOtherPartsAction);
-    
-    QAction showAllPartsAction(tr("Show All Parts"), this);
-    connect(&showAllPartsAction, &QAction::triggered, [=]() {
-        for (const auto &it: m_document->partIds) {
-            emit setPartVisibleState(it, true);
-        }
-    });
-    contextMenu.addAction(&showAllPartsAction);
-    
-    QAction hideAllPartsAction(tr("Hide All Parts"), this);
-    connect(&hideAllPartsAction, &QAction::triggered, [=]() {
-        for (const auto &it: m_document->partIds) {
-            emit setPartVisibleState(it, false);
-        }
-    });
-    contextMenu.addAction(&hideAllPartsAction);
-    
-    contextMenu.addSeparator();
-    
-    QAction lockAllPartsAction(tr("Lock All Parts"), this);
-    connect(&lockAllPartsAction, &QAction::triggered, [=]() {
-        for (const auto &it: m_document->partIds) {
-            emit setPartLockState(it, true);
-        }
-    });
-    contextMenu.addAction(&lockAllPartsAction);
-    
-    QAction unlockAllPartsAction(tr("Unlock All Parts"), this);
-    connect(&unlockAllPartsAction, &QAction::triggered, [=]() {
-        for (const auto &it: m_document->partIds) {
-            emit setPartLockState(it, false);
-        }
-    });
-    contextMenu.addAction(&unlockAllPartsAction);
-    
-    contextMenu.addSeparator();
-    */
-    
-    QAction invertPartAction(tr("Invert Part"), this);
-    if (part && !part->inverse) {
-        connect(&invertPartAction, &QAction::triggered, [=]() {
-            emit setPartInverseState(m_partId, true);
-        });
-        contextMenu.addAction(&invertPartAction);
-    }
-    
-    QAction cancelInverseAction(tr("Cancel Inverse"), this);
-    if (part && part->inverse) {
-        connect(&cancelInverseAction, &QAction::triggered, [=]() {
-            emit setPartInverseState(m_partId, false);
-        });
-        contextMenu.addAction(&cancelInverseAction);
-    }
-    
-    QAction moveUpAction(tr("Move Up"), this);
-    connect(&moveUpAction, &QAction::triggered, [=]() {
-        emit movePartUp(m_partId);
-    });
-    contextMenu.addAction(&moveUpAction);
-    
-    QAction moveDownAction(tr("Move Down"), this);
-    connect(&moveDownAction, &QAction::triggered, [=]() {
-        emit movePartDown(m_partId);
-    });
-    contextMenu.addAction(&moveDownAction);
-    
-    QAction moveToTopAction(tr("Move To Top"), this);
-    connect(&moveToTopAction, &QAction::triggered, [=]() {
-        emit movePartToTop(m_partId);
-    });
-    contextMenu.addAction(&moveToTopAction);
-    
-    QAction moveToBottomAction(tr("Move To Bottom"), this);
-    connect(&moveToBottomAction, &QAction::triggered, [=]() {
-        emit movePartToBottom(m_partId);
-    });
-    contextMenu.addAction(&moveToBottomAction);
-
-    contextMenu.exec(mapToGlobal(pos));
 }
 
 void SkeletonPartWidget::updateCheckedState(bool checked)

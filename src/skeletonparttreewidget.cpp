@@ -7,7 +7,7 @@ SkeletonPartTreeWidget::SkeletonPartTreeWidget(const SkeletonDocument *document,
     QTreeWidget(parent),
     m_document(document)
 {
-    setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    //setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
     
     setSelectionMode(QAbstractItemView::NoSelection);
@@ -25,7 +25,18 @@ SkeletonPartTreeWidget::SkeletonPartTreeWidget(const SkeletonDocument *document,
     
     setContextMenuPolicy(Qt::CustomContextMenu);
     
-    setStyleSheet(QString("QTreeView {qproperty-indentation: 10; margin-left: 5px;}"));
+    setStyleSheet("QTreeView {qproperty-indentation: 10; margin-left: 5px; margin-top: 5px;}"
+        "QTreeView::branch:has-siblings:!adjoins-item {border-image: url(:/resources/tree-vline.png);}"
+        "QTreeView::branch:has-siblings:adjoins-item {border-image: url(:/resources/tree-branch-more.png);}"
+        "QTreeView::branch:!has-children:!has-siblings:adjoins-item {border-image: url(:/resources/tree-branch-end.png);}"
+        "QTreeView::branch:has-children:!has-siblings:closed, QTreeView::branch:closed:has-children:has-siblings {border-image: none; image: url(:/resources/tree-branch-closed.png);}"
+        "QTreeView::branch:open:has-children:!has-siblings, QTreeView::branch:open:has-children:has-siblings  {border-image: none; image: url(:/resources/tree-branch-open.png);}");
+    
+    QFont font;
+    font.setWeight(QFont::Light);
+    font.setPixelSize(9);
+    font.setBold(false);
+    setFont(font);
     
     connect(this, &QTreeWidget::customContextMenuRequested, this, &SkeletonPartTreeWidget::showContextMenu);
     connect(this, &QTreeWidget::itemChanged, this, &SkeletonPartTreeWidget::groupChanged);
@@ -46,42 +57,174 @@ void SkeletonPartTreeWidget::showContextMenu(const QPoint &pos)
         return;
     }
     
+    const SkeletonPart *part = nullptr;
+    if (!component->linkToPartId.isNull()) {
+        part = m_document->findPart(component->linkToPartId);
+    }
+    
     QMenu contextMenu(this);
     
     if (!component->name.isEmpty())
         contextMenu.addSection(component->name);
     
-    if (component->linkToPartId.isNull()) {
-        
-    } else {
+    QAction showAction(tr("Show"), this);
+    QAction hideAction(tr("Hide"), this);
+    QAction lockAction(tr("Lock"), this);
+    QAction unlockAction(tr("Unlock"), this);
+    QAction invertPartAction(tr("Invert Part"), this);
+    QAction cancelInverseAction(tr("Cancel Inverse"), this);
+    
+    if (!component->linkToPartId.isNull()) {
         emit checkPart(component->linkToPartId);
+        
+        if (nullptr != part) {
+            if (part->visible) {
+                connect(&hideAction, &QAction::triggered, [=]() {
+                    emit setPartVisibleState(component->linkToPartId, false);
+                });
+                contextMenu.addAction(&hideAction);
+            } else {
+                connect(&showAction, &QAction::triggered, [=]() {
+                    emit setPartVisibleState(component->linkToPartId, true);
+                });
+                contextMenu.addAction(&showAction);
+            }
+            
+            if (part->locked) {
+                connect(&unlockAction, &QAction::triggered, [=]() {
+                    emit setPartLockState(component->linkToPartId, false);
+                });
+                contextMenu.addAction(&unlockAction);
+            } else {
+                connect(&lockAction, &QAction::triggered, [=]() {
+                    emit setPartLockState(component->linkToPartId, true);
+                });
+                contextMenu.addAction(&lockAction);
+            }
+        }
+    } else {
+        if (!component->childrenIds.empty()) {
+            connect(&showAction, &QAction::triggered, [=]() {
+                emit showDescendantComponents(componentId);
+            });
+            contextMenu.addAction(&showAction);
+            
+            connect(&hideAction, &QAction::triggered, [=]() {
+                emit hideDescendantComponents(componentId);
+            });
+            contextMenu.addAction(&hideAction);
+            
+            connect(&lockAction, &QAction::triggered, [=]() {
+                emit lockDescendantComponents(componentId);
+            });
+            contextMenu.addAction(&lockAction);
+            
+            connect(&unlockAction, &QAction::triggered, [=]() {
+                emit unlockDescendantComponents(componentId);
+            });
+            contextMenu.addAction(&unlockAction);
+        }
     }
     
-    QAction moveUpAction(tr("Move Up"), this);
+    if (!component->inverse) {
+        connect(&invertPartAction, &QAction::triggered, [=]() {
+            emit setComponentInverseState(componentId, true);
+        });
+        contextMenu.addAction(&invertPartAction);
+    }
+
+    if (component->inverse) {
+        connect(&cancelInverseAction, &QAction::triggered, [=]() {
+            emit setComponentInverseState(componentId, false);
+        });
+        contextMenu.addAction(&cancelInverseAction);
+    }
+    
+    contextMenu.addSeparator();
+    
+    QAction hideOthersAction(tr("Hide Others"), this);
+    connect(&hideOthersAction, &QAction::triggered, [=]() {
+        emit hideOtherComponents(componentId);
+    });
+    contextMenu.addAction(&hideOthersAction);
+    
+    QAction lockOthersAction(tr("Lock Others"), this);
+    connect(&lockOthersAction, &QAction::triggered, [=]() {
+        emit lockOtherComponents(componentId);
+    });
+    contextMenu.addAction(&lockOthersAction);
+    
+    contextMenu.addSeparator();
+    
+    QAction collapseAllAction(tr("Collapse All"), this);
+    connect(&collapseAllAction, &QAction::triggered, [=]() {
+        emit collapseAllComponents();
+    });
+    contextMenu.addAction(&collapseAllAction);
+    
+    QAction expandAllAction(tr("Expand All"), this);
+    connect(&expandAllAction, &QAction::triggered, [=]() {
+        emit expandAllComponents();
+    });
+    contextMenu.addAction(&expandAllAction);
+    
+    contextMenu.addSeparator();
+    
+    QAction hideAllAction(tr("Hide All"), this);
+    connect(&hideAllAction, &QAction::triggered, [=]() {
+        emit hideAllComponents();
+    });
+    contextMenu.addAction(&hideAllAction);
+    
+    QAction showAllAction(tr("Show All"), this);
+    connect(&showAllAction, &QAction::triggered, [=]() {
+        emit showAllComponents();
+    });
+    contextMenu.addAction(&showAllAction);
+    
+    contextMenu.addSeparator();
+    
+    QAction lockAllAction(tr("Lock All"), this);
+    connect(&lockAllAction, &QAction::triggered, [=]() {
+        emit lockAllComponents();
+    });
+    contextMenu.addAction(&lockAllAction);
+    
+    QAction unlockAllAction(tr("Unlock All"), this);
+    connect(&unlockAllAction, &QAction::triggered, [=]() {
+        emit unlockAllComponents();
+    });
+    contextMenu.addAction(&unlockAllAction);
+    
+    contextMenu.addSeparator();
+    
+    QMenu *moveToMenu = contextMenu.addMenu(tr("Move To"));
+    
+    QAction moveUpAction(tr("Up"), this);
     connect(&moveUpAction, &QAction::triggered, [=]() {
         emit moveComponentUp(componentId);
     });
-    contextMenu.addAction(&moveUpAction);
+    moveToMenu->addAction(&moveUpAction);
     
-    QAction moveDownAction(tr("Move Down"), this);
+    QAction moveDownAction(tr("Down"), this);
     connect(&moveDownAction, &QAction::triggered, [=]() {
         emit moveComponentDown(componentId);
     });
-    contextMenu.addAction(&moveDownAction);
+    moveToMenu->addAction(&moveDownAction);
     
-    QAction moveToTopAction(tr("Move To Top"), this);
+    QAction moveToTopAction(tr("Top"), this);
     connect(&moveToTopAction, &QAction::triggered, [=]() {
         emit moveComponentToTop(componentId);
     });
-    contextMenu.addAction(&moveToTopAction);
+    moveToMenu->addAction(&moveToTopAction);
     
-    QAction moveToBottomAction(tr("Move To Bottom"), this);
+    QAction moveToBottomAction(tr("Bottom"), this);
     connect(&moveToBottomAction, &QAction::triggered, [=]() {
         emit moveComponentToBottom(componentId);
     });
-    contextMenu.addAction(&moveToBottomAction);
+    moveToMenu->addAction(&moveToBottomAction);
     
-    QMenu *moveToMenu = contextMenu.addMenu(tr("Move To"));
+    moveToMenu->addSeparator();
     
     QAction moveToNewGroupAction(tr("New Group"), this);
     moveToMenu->addAction(&moveToNewGroupAction);
@@ -409,6 +552,6 @@ void SkeletonPartTreeWidget::partUnchecked(QUuid partId)
 QSize SkeletonPartTreeWidget::sizeHint() const
 {
     QSize size = SkeletonPartWidget::preferredSize();
-    return QSize(size.width() * 1.3, size.height() * 5.5);
+    return QSize(size.width() * 1.35, size.height() * 5.5);
 }
 

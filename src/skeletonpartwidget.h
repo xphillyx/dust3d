@@ -48,7 +48,6 @@ protected:
 public slots:
     void showDeformSettingPopup(const QPoint &pos);
     void showColorSettingPopup(const QPoint &pos);
-    void showContextMenu(const QPoint &pos);
 private: // need initialize
     const SkeletonDocument *m_document;
     QUuid m_partId;
