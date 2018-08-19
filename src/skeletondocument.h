@@ -388,6 +388,7 @@ public:
     bool isExportReady() const;
     bool isPostProcessResultObsolete() const;
     void findAllNeighbors(QUuid nodeId, std::set<QUuid> &neighbors) const;
+    void collectComponentDescendantParts(QUuid componentId, std::vector<QUuid> &partIds) const;
 public slots:
     void removeNode(QUuid nodeId);
     void removeEdge(QUuid edgeId);
@@ -468,7 +469,6 @@ private:
     void addPartToComponent(QUuid partId, QUuid componentId);
     bool isDescendantComponent(QUuid componentId, QUuid suspiciousId);
     void removeComponentRecursively(QUuid componentId);
-    void collectComponentDescendantParts(QUuid componentId, std::vector<QUuid> &partIds);
     void collectComponentDescendantComponents(QUuid componentId, std::vector<QUuid> &componentIds);
 private: // need initialize
     bool m_isResultMeshObsolete;

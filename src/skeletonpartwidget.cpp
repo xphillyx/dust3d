@@ -206,8 +206,6 @@ SkeletonPartWidget::SkeletonPartWidget(const SkeletonDocument *document, QUuid p
     setFixedSize(preferredSize());
     
     updateAllButtons();
-    
-    setMouseTracking(true);
 }
 
 QSize SkeletonPartWidget::preferredSize()

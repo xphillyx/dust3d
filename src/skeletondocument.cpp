@@ -1379,7 +1379,7 @@ void SkeletonDocument::createNewComponentAndMoveThisIn(QUuid componentId)
     SkeletonComponent *oldParent = (SkeletonComponent *)findComponentParent(componentId);
     
     SkeletonComponent newParent(QUuid::createUuid());
-    newParent.name = tr("Group") + " " + QString::number(componentMap.size());
+    newParent.name = tr("Group") + " " + QString::number(componentMap.size() - partMap.size() + 1);
     
     oldParent->replaceChild(componentId, newParent.id);
     newParent.parentId = oldParent->id;
@@ -1848,7 +1848,7 @@ void SkeletonDocument::setSharedContextWidget(QOpenGLWidget *sharedContextWidget
     m_sharedContextWidget = sharedContextWidget;
 }
 
-void SkeletonDocument::collectComponentDescendantParts(QUuid componentId, std::vector<QUuid> &partIds)
+void SkeletonDocument::collectComponentDescendantParts(QUuid componentId, std::vector<QUuid> &partIds) const
 {
     const SkeletonComponent *component = findComponent(componentId);
     if (nullptr == component)

@@ -71,7 +71,7 @@ void SkeletonPartTreeWidget::showContextMenu(const QPoint &pos)
     QAction hideAction(tr("Hide"), this);
     QAction lockAction(tr("Lock"), this);
     QAction unlockAction(tr("Unlock"), this);
-    QAction invertPartAction(tr("Invert Part"), this);
+    QAction invertAction(tr("Invert"), this);
     QAction cancelInverseAction(tr("Cancel Inverse"), this);
     
     if (!component->linkToPartId.isNull()) {
@@ -127,10 +127,10 @@ void SkeletonPartTreeWidget::showContextMenu(const QPoint &pos)
     }
     
     if (!component->inverse) {
-        connect(&invertPartAction, &QAction::triggered, [=]() {
+        connect(&invertAction, &QAction::triggered, [=]() {
             emit setComponentInverseState(componentId, true);
         });
-        contextMenu.addAction(&invertPartAction);
+        contextMenu.addAction(&invertAction);
     }
 
     if (component->inverse) {
@@ -338,7 +338,6 @@ void SkeletonPartTreeWidget::addComponentChildrenToItem(QUuid componentId, QTree
             setItemWidget(item, 0, widget);
             widget->reload();
             m_partItemMap[partId] = item;
-            addComponentChildrenToItem(childId, item);
         } else {
             QTreeWidgetItem *item = new QTreeWidgetItem(QStringList(component->name));
             parentItem->addChild(item);
@@ -362,10 +361,14 @@ void SkeletonPartTreeWidget::componentChildrenChanged(QUuid componentId)
     qDeleteAll(parentItem->takeChildren());
     addComponentChildrenToItem(componentId, parentItem);
     
-    // Fix part widget show improperly even the parent item is collapsed.
-    bool isExpanded = parentItem->isExpanded();
-    parentItem->setExpanded(!isExpanded);
-    parentItem->setExpanded(isExpanded);
+    // Fix the last item show in the wrong place sometimes
+    int childCount = invisibleRootItem()->childCount();
+    if (childCount > 0) {
+        QTreeWidgetItem *lastItem = invisibleRootItem()->child(childCount - 1);
+        bool isExpanded = lastItem->isExpanded();
+        lastItem->setExpanded(!isExpanded);
+        lastItem->setExpanded(isExpanded);
+    }
 }
 
 void SkeletonPartTreeWidget::removeAllContent()
