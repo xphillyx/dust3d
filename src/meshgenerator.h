@@ -44,11 +44,13 @@ private:
     void *m_meshliteContext;
     std::map<QString, int> m_partBmeshMap;
     std::map<QString, QColor> m_partColorMap;
+    std::map<QUuid, std::map<int, QUuid>> m_partNodeIndexToIdMap;
+    std::map<QUuid, QUuid> m_mirroredPartIdMap;
 private:
     static bool m_enableDebug;
 private:
     void resolveBoundingBox(QRectF *mainProfile, QRectF *sideProfile, const QString &partId=QString());
-    void loadVertexSourcesToMeshResultContext(void *meshliteContext, int meshId, int bmeshId);
+    void loadVertexSourcesToMeshResultContext(void *meshliteContext, int meshId, QUuid partId);
     void loadGeneratedPositionsToMeshResultContext(void *meshliteContext, int triangulatedMeshId);
     int generateComponent(QUuid componentId);
 };

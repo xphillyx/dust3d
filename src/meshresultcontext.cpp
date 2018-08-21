@@ -11,12 +11,12 @@
 struct HalfColorEdge
 {
     int cornVertexIndex;
-    std::pair<int, int> source;
+    std::pair<QUuid, QUuid> source;
 };
 
 struct CandidateEdge
 {
-    std::pair<int, int> source;
+    std::pair<QUuid, QUuid> source;
     int fromVertexIndex;
     int toVertexIndex;
     float dot;
@@ -34,7 +34,7 @@ MeshResultContext::MeshResultContext() :
 {
 }
 
-const std::vector<std::pair<int, int>> &MeshResultContext::triangleSourceNodes()
+const std::vector<std::pair<QUuid, QUuid>> &MeshResultContext::triangleSourceNodes()
 {
     if (!m_triangleSourceResolved) {
         m_triangleSourceResolved = true;
@@ -44,7 +44,7 @@ const std::vector<std::pair<int, int>> &MeshResultContext::triangleSourceNodes()
     return m_triangleSourceNodes;
 }
 
-const std::map<int, std::pair<int, int>> &MeshResultContext::vertexSourceMap()
+const std::map<int, std::pair<QUuid, QUuid>> &MeshResultContext::vertexSourceMap()
 {
     if (!m_triangleSourceResolved) {
         m_triangleSourceResolved = true;
@@ -63,7 +63,7 @@ const std::vector<QColor> &MeshResultContext::triangleColors()
     return m_triangleColors;
 }
 
-const std::map<std::pair<int, int>, std::pair<int, int>> &MeshResultContext::triangleEdgeSourceMap()
+const std::map<std::pair<int, int>, std::pair<QUuid, QUuid>> &MeshResultContext::triangleEdgeSourceMap()
 {
     if (!m_triangleEdgeSourceMapResolved) {
         calculateTriangleEdgeSourceMap(m_triangleEdgeSourceMap);
@@ -72,7 +72,7 @@ const std::map<std::pair<int, int>, std::pair<int, int>> &MeshResultContext::tri
     return m_triangleEdgeSourceMap;
 }
 
-const std::map<std::pair<int, int>, BmeshNode *> &MeshResultContext::bmeshNodeMap()
+const std::map<std::pair<QUuid, QUuid>, BmeshNode *> &MeshResultContext::bmeshNodeMap()
 {
     if (!m_bmeshNodeMapResolved) {
         calculateBmeshNodeMap(m_bmeshNodeMap);
@@ -81,30 +81,30 @@ const std::map<std::pair<int, int>, BmeshNode *> &MeshResultContext::bmeshNodeMa
     return m_bmeshNodeMap;
 }
 
-void MeshResultContext::calculateTriangleSourceNodes(std::vector<std::pair<int, int>> &triangleSourceNodes, std::map<int, std::pair<int, int>> &vertexSourceMap)
+void MeshResultContext::calculateTriangleSourceNodes(std::vector<std::pair<QUuid, QUuid>> &triangleSourceNodes, std::map<int, std::pair<QUuid, QUuid>> &vertexSourceMap)
 {
-    PositionMap<std::pair<int, int>> positionMap;
+    PositionMap<std::pair<QUuid, QUuid>> positionMap;
     std::map<std::pair<int, int>, HalfColorEdge> halfColorEdgeMap;
     std::set<int> brokenTriangleSet;
     for (const auto &it: bmeshVertices) {
         positionMap.addPosition(it.position.x(), it.position.y(), it.position.z(),
-            std::make_pair(it.bmeshId, it.nodeId));
+            std::make_pair(it.partId, it.nodeId));
     }
     for (auto x = 0u; x < vertices.size(); x++) {
         ResultVertex *resultVertex = &vertices[x];
-        std::pair<int, int> source;
+        std::pair<QUuid, QUuid> source;
         if (positionMap.findPosition(resultVertex->position.x(), resultVertex->position.y(), resultVertex->position.z(), &source)) {
             vertexSourceMap[x] = source;
         }
     }
     for (auto x = 0u; x < triangles.size(); x++) {
         const auto triangle = &triangles[x];
-        std::vector<std::pair<std::pair<int, int>, int>> colorTypes;
+        std::vector<std::pair<std::pair<QUuid, QUuid>, int>> colorTypes;
         for (int i = 0; i < 3; i++) {
             int index = triangle->indicies[i];
             const auto &findResult = vertexSourceMap.find(index);
             if (findResult != vertexSourceMap.end()) {
-                std::pair<int, int> source = findResult->second;
+                std::pair<QUuid, QUuid> source = findResult->second;
                 bool colorExisted = false;
                 for (auto j = 0u; j < colorTypes.size(); j++) {
                     if (colorTypes[j].first == source) {
@@ -120,16 +120,16 @@ void MeshResultContext::calculateTriangleSourceNodes(std::vector<std::pair<int, 
         }
         if (colorTypes.empty()) {
             //qDebug() << "All vertices of a triangle can't find a color";
-            triangleSourceNodes.push_back(std::make_pair(0, 0));
+            triangleSourceNodes.push_back(std::make_pair(QUuid(), QUuid()));
             brokenTriangleSet.insert(x);
             continue;
         }
         if (colorTypes.size() != 1 || 3 == colorTypes[0].second) {
-            std::sort(colorTypes.begin(), colorTypes.end(), [](const std::pair<std::pair<int, int>, int> &a, const std::pair<std::pair<int, int>, int> &b) -> bool {
+            std::sort(colorTypes.begin(), colorTypes.end(), [](const std::pair<std::pair<QUuid, QUuid>, int> &a, const std::pair<std::pair<QUuid, QUuid>, int> &b) -> bool {
                 return a.second > b.second;
             });
         }
-        std::pair<int, int> choosenColor = colorTypes[0].first;
+        std::pair<QUuid, QUuid> choosenColor = colorTypes[0].first;
         triangleSourceNodes.push_back(choosenColor);
         for (int i = 0; i < 3; i++) {
             int oppositeStartIndex = triangle->indicies[(i + 1) % 3];
@@ -224,9 +224,9 @@ void MeshResultContext::calculateTriangleSourceNodes(std::vector<std::pair<int, 
     }
 }
 
-void MeshResultContext::calculateRemainingVertexSourceNodesAfterTriangleSourceNodesSolved(std::map<int, std::pair<int, int>> &vertexSourceMap)
+void MeshResultContext::calculateRemainingVertexSourceNodesAfterTriangleSourceNodesSolved(std::map<int, std::pair<QUuid, QUuid>> &vertexSourceMap)
 {
-    std::map<int, std::set<std::pair<int, int>>> remainings;
+    std::map<int, std::set<std::pair<QUuid, QUuid>>> remainings;
     for (auto x = 0u; x < triangles.size(); x++) {
         const auto triangle = &triangles[x];
         for (int i = 0; i < 3; i++) {
@@ -239,7 +239,7 @@ void MeshResultContext::calculateRemainingVertexSourceNodesAfterTriangleSourceNo
     }
     for (const auto &it: remainings) {
         float minDist2 = 100000000;
-        std::pair<int, int> minSource = std::make_pair(0, 0);
+        std::pair<QUuid, QUuid> minSource = std::make_pair(QUuid(), QUuid());
         for (const auto &source: it.second) {
             const auto &vertex = vertices[it.first];
             const auto &findNode = bmeshNodeMap().find(source);
@@ -257,9 +257,9 @@ void MeshResultContext::calculateRemainingVertexSourceNodesAfterTriangleSourceNo
 
 void MeshResultContext::calculateTriangleColors(std::vector<QColor> &triangleColors)
 {
-    std::map<std::pair<int, int>, QColor> nodeColorMap;
+    std::map<std::pair<QUuid, QUuid>, QColor> nodeColorMap;
     for (const auto &it: bmeshNodes) {
-        nodeColorMap[std::make_pair(it.bmeshId, it.nodeId)] = it.color;
+        nodeColorMap[std::make_pair(it.partId, it.nodeId)] = it.color;
     }
     const auto sourceNodes = triangleSourceNodes();
     for (const auto &it: sourceNodes) {
@@ -267,9 +267,9 @@ void MeshResultContext::calculateTriangleColors(std::vector<QColor> &triangleCol
     }
 }
 
-void MeshResultContext::calculateTriangleEdgeSourceMap(std::map<std::pair<int, int>, std::pair<int, int>> &triangleEdgeSourceMap)
+void MeshResultContext::calculateTriangleEdgeSourceMap(std::map<std::pair<int, int>, std::pair<QUuid, QUuid>> &triangleEdgeSourceMap)
 {
-    const std::vector<std::pair<int, int>> sourceNodes = triangleSourceNodes();
+    const std::vector<std::pair<QUuid, QUuid>> sourceNodes = triangleSourceNodes();
     for (auto x = 0u; x < triangles.size(); x++) {
         const auto triangle = &triangles[x];
         for (int i = 0; i < 3; i++) {
@@ -280,10 +280,10 @@ void MeshResultContext::calculateTriangleEdgeSourceMap(std::map<std::pair<int, i
     }
 }
 
-void MeshResultContext::calculateBmeshNodeMap(std::map<std::pair<int, int>, BmeshNode *> &bmeshNodeMap) {
+void MeshResultContext::calculateBmeshNodeMap(std::map<std::pair<QUuid, QUuid>, BmeshNode *> &bmeshNodeMap) {
     for (auto i = 0u; i < bmeshNodes.size(); i++) {
         BmeshNode *bmeshNode = &bmeshNodes[i];
-        bmeshNodeMap[std::make_pair(bmeshNode->bmeshId, bmeshNode->nodeId)] = bmeshNode;
+        bmeshNodeMap[std::make_pair(bmeshNode->partId, bmeshNode->nodeId)] = bmeshNode;
     }
 }
 
@@ -293,7 +293,7 @@ struct BmeshNodeDistWithWorldCenter
     float dist2;
 };
 
-const std::map<int, ResultPart> &MeshResultContext::parts()
+const std::map<QUuid, ResultPart> &MeshResultContext::parts()
 {
     if (!m_resultPartsResolved) {
         calculateResultParts(m_resultParts);
@@ -311,9 +311,9 @@ const std::vector<ResultTriangleUv> &MeshResultContext::triangleUvs()
     return m_resultTriangleUvs;
 }
 
-void MeshResultContext::calculateResultParts(std::map<int, ResultPart> &parts)
+void MeshResultContext::calculateResultParts(std::map<QUuid, ResultPart> &parts)
 {
-    std::map<std::pair<int, int>, int> oldVertexToNewMap;
+    std::map<std::pair<QUuid, int>, int> oldVertexToNewMap;
     for (auto x = 0u; x < triangles.size(); x++) {
         const auto &triangle = triangles[x];
         const auto &sourceNode = triangleSourceNodes()[x];
@@ -384,10 +384,20 @@ void MeshResultContext::calculateResultTriangleUvs(std::vector<ResultTriangleUv>
         dest->first_colocal = i;
     }
     std::map<std::pair<int, int>, int> edgeToFaceIndexMap;
+    std::map<QUuid, int> materialIndexMap;
     for (auto i = 0; i < inputMesh.face_count; i++) {
         const ResultRearrangedTriangle *src = &choosenTriangles[i];
         Atlas_Input_Face *dest = &inputMesh.face_array[i];
-        dest->material_index = abs(triangleSourceNodes()[src->originalIndex].first);
+        auto &materialKey = triangleSourceNodes()[src->originalIndex].first;
+        auto findMaterialResult = materialIndexMap.find(materialKey);
+        int materialIndex = 0;
+        if (findMaterialResult == materialIndexMap.end()) {
+            materialIndex = materialIndexMap.size() + 1;
+            materialIndexMap[materialKey] = materialIndex;
+        } else {
+            materialIndex = findMaterialResult->second;
+        }
+        dest->material_index = materialIndex;
         dest->vertex_index[0] = src->indicies[0];
         dest->vertex_index[1] = src->indicies[1];
         dest->vertex_index[2] = src->indicies[2];
@@ -488,7 +498,7 @@ const std::vector<ResultRearrangedTriangle> &MeshResultContext::rearrangedTriang
 
 void MeshResultContext::calculateResultRearrangedVertices(std::vector<ResultRearrangedVertex> &rearrangedVertices, std::vector<ResultRearrangedTriangle> &rearrangedTriangles)
 {
-    std::map<std::pair<int, int>, int> oldVertexToNewMap;
+    std::map<std::pair<QUuid, int>, int> oldVertexToNewMap;
     rearrangedVertices.clear();
     rearrangedTriangles.clear();
     for (auto x = 0u; x < triangles.size(); x++) {

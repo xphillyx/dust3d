@@ -60,9 +60,9 @@ GLTFFileWriter::GLTFFileWriter(MeshResultContext &resultContext, const QString &
     m_json["samplers"][0]["wrapS"] = 33648;
     m_json["samplers"][0]["wrapT"] = 33648;
     
-    const std::map<int, ResultPart> *parts = &resultContext.parts();
+    const std::map<QUuid, ResultPart> *parts = &resultContext.parts();
     
-    std::map<int, ResultPart> testParts;
+    std::map<QUuid, ResultPart> testParts;
     if (m_testOutputAsWhole) {
         testParts[0].vertices = resultContext.vertices;
         testParts[0].triangles = resultContext.triangles;

@@ -96,7 +96,7 @@ void MeshGenerator::resolveBoundingBox(QRectF *mainProfile, QRectF *sideProfile,
     m_snapshot->resolveBoundingBox(mainProfile, sideProfile, partId);
 }
 
-void MeshGenerator::loadVertexSourcesToMeshResultContext(void *meshliteContext, int meshId, int bmeshId)
+void MeshGenerator::loadVertexSourcesToMeshResultContext(void *meshliteContext, int meshId, QUuid partId)
 {
     int vertexCount = meshlite_get_vertex_count(meshliteContext, meshId);
     int positionBufferLen = vertexCount * 3;
@@ -107,8 +107,8 @@ void MeshGenerator::loadVertexSourcesToMeshResultContext(void *meshliteContext, 
     Q_ASSERT(positionCount == sourceCount);
     for (int i = 0, positionIndex = 0; i < positionCount; i++, positionIndex+=3) {
         BmeshVertex vertex;
-        vertex.bmeshId = bmeshId;
-        vertex.nodeId = sourceBuffer[i];
+        vertex.partId = partId;
+        vertex.nodeId = m_partNodeIndexToIdMap[partId][sourceBuffer[i]];
         vertex.position = QVector3D(positionBuffer[positionIndex + 0], positionBuffer[positionIndex + 1], positionBuffer[positionIndex + 2]);
         m_meshResultContext->bmeshVertices.push_back(vertex);
     }
@@ -187,12 +187,12 @@ int MeshGenerator::generateComponent(QUuid componentId)
             if (meshlite_bmesh_error_count(m_meshliteContext, bmeshId) != 0)
                 broken = true;
             bool xMirrored = isTrueValueString(valueOfKeyInMapOrEmpty(part->second, "xMirrored"));
-            loadVertexSourcesToMeshResultContext(m_meshliteContext, meshId, bmeshId);
+            loadVertexSourcesToMeshResultContext(m_meshliteContext, meshId, QUuid(partId));
             QColor modelColor = m_partColorMap[partId];
             if (xMirrored) {
                 if (xMirrored) {
                     xMirroredMeshId = meshlite_mirror_in_x(m_meshliteContext, meshId, 0);
-                    loadVertexSourcesToMeshResultContext(m_meshliteContext, xMirroredMeshId, -bmeshId);
+                    loadVertexSourcesToMeshResultContext(m_meshliteContext, xMirroredMeshId, m_mirroredPartIdMap[QUuid(partId)]);
                 }
             }
             if (m_requirePartPreviewMap.find(partId) != m_requirePartPreviewMap.end()) {
@@ -284,6 +284,8 @@ void MeshGenerator::process()
         if (isTrueValueString(valueOfKeyInMapOrEmpty(part, "rounded")))
             meshlite_bmesh_set_round_way(m_meshliteContext, bmeshId, 1);
         partMirrorFlagMap[partId] = isTrueValueString(valueOfKeyInMapOrEmpty(part, "xMirrored"));
+        if (partMirrorFlagMap[partId])
+            m_mirroredPartIdMap[QUuid(partId)] = QUuid::createUuid();
         QString colorString = valueOfKeyInMapOrEmpty(part, "color");
         QColor partColor = colorString.isEmpty() ? Theme::white : QColor(colorString);
         m_partColorMap[partId] = partColor;
@@ -324,15 +326,19 @@ void MeshGenerator::process()
             bmeshNodeMap[fromNodeId] = bmeshFromNodeId;
             
             BmeshNode bmeshNode;
-            bmeshNode.bmeshId = bmeshId;
+            bmeshNode.partId = QUuid(partId);
             bmeshNode.origin = QVector3D(x, y, z);
             bmeshNode.radius = radius;
-            bmeshNode.nodeId = bmeshFromNodeId;
+            bmeshNode.nodeId = QUuid(fromNodeId);
             bmeshNode.color = m_partColorMap[partId];
             m_meshResultContext->bmeshNodes.push_back(bmeshNode);
             
+            m_partNodeIndexToIdMap[bmeshNode.partId][bmeshFromNodeId] = bmeshNode.nodeId;
+            
             if (partMirrorFlagMap[partId]) {
-                bmeshNode.bmeshId = -bmeshId;
+                //bmeshNode.bmeshId = -bmeshId;
+                bmeshNode.partId = m_mirroredPartIdMap[QUuid(partId)];
+                m_partNodeIndexToIdMap[bmeshNode.partId][bmeshFromNodeId] = bmeshNode.nodeId;
                 bmeshNode.origin.setX(-x);
                 m_meshResultContext->bmeshNodes.push_back(bmeshNode);
             }
@@ -352,15 +358,19 @@ void MeshGenerator::process()
             bmeshNodeMap[toNodeId] = bmeshToNodeId;
             
             BmeshNode bmeshNode;
-            bmeshNode.bmeshId = bmeshId;
+            bmeshNode.partId = QUuid(partId);
             bmeshNode.origin = QVector3D(x, y, z);
             bmeshNode.radius = radius;
-            bmeshNode.nodeId = bmeshToNodeId;
+            bmeshNode.nodeId = QUuid(toNodeId);
             bmeshNode.color = m_partColorMap[partId];
             m_meshResultContext->bmeshNodes.push_back(bmeshNode);
             
+            m_partNodeIndexToIdMap[bmeshNode.partId][bmeshToNodeId] = bmeshNode.nodeId;
+            
             if (partMirrorFlagMap[partId]) {
-                bmeshNode.bmeshId = -bmeshId;
+                //bmeshNode.bmeshId = -bmeshId;
+                bmeshNode.partId = m_mirroredPartIdMap[QUuid(partId)];
+                m_partNodeIndexToIdMap[bmeshNode.partId][bmeshToNodeId] = bmeshNode.nodeId;
                 bmeshNode.origin.setX(-x);
                 m_meshResultContext->bmeshNodes.push_back(bmeshNode);
             }
@@ -389,15 +399,19 @@ void MeshGenerator::process()
         bmeshNodeMap[nodeIt.first] = bmeshNodeId;
         
         BmeshNode bmeshNode;
-        bmeshNode.bmeshId = bmeshId;
+        bmeshNode.partId = QUuid(partId);
         bmeshNode.origin = QVector3D(x, y, z);
         bmeshNode.radius = radius;
-        bmeshNode.nodeId = bmeshNodeId;
+        bmeshNode.nodeId = QUuid(nodeIt.first);
         bmeshNode.color = m_partColorMap[partId];
         m_meshResultContext->bmeshNodes.push_back(bmeshNode);
         
+        m_partNodeIndexToIdMap[bmeshNode.partId][bmeshNodeId] = bmeshNode.nodeId;
+        
         if (partMirrorFlagMap[partId]) {
-            bmeshNode.bmeshId = -bmeshId;
+            //bmeshNode.bmeshId = -bmeshId;
+            bmeshNode.partId = m_mirroredPartIdMap[QUuid(partId)];
+            m_partNodeIndexToIdMap[bmeshNode.partId][bmeshNodeId] = bmeshNode.nodeId;
             bmeshNode.origin.setX(-x);
             m_meshResultContext->bmeshNodes.push_back(bmeshNode);
         }

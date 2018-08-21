@@ -11,8 +11,8 @@
 
 struct BmeshNode
 {
-    int bmeshId = 0;
-    int nodeId = 0;
+    QUuid partId;
+    QUuid nodeId;
     QVector3D origin;
     float radius = 0;
     QColor color;
@@ -21,16 +21,8 @@ struct BmeshNode
 struct BmeshVertex
 {
     QVector3D position;
-    int bmeshId = 0;
-    int nodeId = 0;
-};
-
-struct BmeshEdge
-{
-    int fromBmeshId = 0;
-    int fromNodeId = 0;
-    int toBmeshId = 0;
-    int toNodeId = 0;
+    QUuid partId;
+    QUuid nodeId;
 };
 
 struct ResultVertex
@@ -87,15 +79,15 @@ public:
     std::vector<ResultTriangle> triangles;
     MeshResultContext();
 public:
-    const std::vector<std::pair<int, int>> &triangleSourceNodes();
+    const std::vector<std::pair<QUuid, QUuid>> &triangleSourceNodes();
     const std::vector<QColor> &triangleColors();
-    const std::map<std::pair<int, int>, std::pair<int, int>> &triangleEdgeSourceMap();
-    const std::map<std::pair<int, int>, BmeshNode *> &bmeshNodeMap();
-    const std::map<int, ResultPart> &parts();
+    const std::map<std::pair<int, int>, std::pair<QUuid, QUuid>> &triangleEdgeSourceMap();
+    const std::map<std::pair<QUuid, QUuid>, BmeshNode *> &bmeshNodeMap();
+    const std::map<QUuid, ResultPart> &parts();
     const std::vector<ResultTriangleUv> &triangleUvs();
     const std::vector<ResultRearrangedVertex> &rearrangedVertices();
     const std::vector<ResultRearrangedTriangle> &rearrangedTriangles();
-    const std::map<int, std::pair<int, int>> &vertexSourceMap();
+    const std::map<int, std::pair<QUuid, QUuid>> &vertexSourceMap();
 private:
     bool m_triangleSourceResolved;
     bool m_triangleColorResolved;
@@ -105,23 +97,23 @@ private:
     bool m_resultTriangleUvsResolved;
     bool m_resultRearrangedVerticesResolved;
 private:
-    std::vector<std::pair<int, int>> m_triangleSourceNodes;
+    std::vector<std::pair<QUuid, QUuid>> m_triangleSourceNodes;
     std::vector<QColor> m_triangleColors;
-    std::map<std::pair<int, int>, std::pair<int, int>> m_triangleEdgeSourceMap;
-    std::map<std::pair<int, int>, BmeshNode *> m_bmeshNodeMap;
-    std::map<int, ResultPart> m_resultParts;
+    std::map<std::pair<int, int>, std::pair<QUuid, QUuid>> m_triangleEdgeSourceMap;
+    std::map<std::pair<QUuid, QUuid>, BmeshNode *> m_bmeshNodeMap;
+    std::map<QUuid, ResultPart> m_resultParts;
     std::vector<ResultTriangleUv> m_resultTriangleUvs;
     std::set<int> m_seamVertices;
     std::vector<ResultRearrangedVertex> m_rearrangedVertices;
     std::vector<ResultRearrangedTriangle> m_rearrangedTriangles;
-    std::map<int, std::pair<int, int>> m_vertexSourceMap;
+    std::map<int, std::pair<QUuid, QUuid>> m_vertexSourceMap;
 private:
-    void calculateTriangleSourceNodes(std::vector<std::pair<int, int>> &triangleSourceNodes, std::map<int, std::pair<int, int>> &vertexSourceMap);
-    void calculateRemainingVertexSourceNodesAfterTriangleSourceNodesSolved(std::map<int, std::pair<int, int>> &vertexSourceMap);
+    void calculateTriangleSourceNodes(std::vector<std::pair<QUuid, QUuid>> &triangleSourceNodes, std::map<int, std::pair<QUuid, QUuid>> &vertexSourceMap);
+    void calculateRemainingVertexSourceNodesAfterTriangleSourceNodesSolved(std::map<int, std::pair<QUuid, QUuid>> &vertexSourceMap);
     void calculateTriangleColors(std::vector<QColor> &triangleColors);
-    void calculateTriangleEdgeSourceMap(std::map<std::pair<int, int>, std::pair<int, int>> &triangleEdgeSourceMap);
-    void calculateBmeshNodeMap(std::map<std::pair<int, int>, BmeshNode *> &bmeshNodeMap);
-    void calculateResultParts(std::map<int, ResultPart> &parts);
+    void calculateTriangleEdgeSourceMap(std::map<std::pair<int, int>, std::pair<QUuid, QUuid>> &triangleEdgeSourceMap);
+    void calculateBmeshNodeMap(std::map<std::pair<QUuid, QUuid>, BmeshNode *> &bmeshNodeMap);
+    void calculateResultParts(std::map<QUuid, ResultPart> &parts);
     void calculateResultTriangleUvs(std::vector<ResultTriangleUv> &uvs, std::set<int> &seamVertices);
     void calculateResultRearrangedVertices(std::vector<ResultRearrangedVertex> &rearrangedVertices, std::vector<ResultRearrangedTriangle> &rearrangedTriangles);
 };
