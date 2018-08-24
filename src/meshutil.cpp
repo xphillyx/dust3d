@@ -168,7 +168,7 @@ ExactMesh *diffCgalMeshs(ExactMesh *first, ExactMesh *second)
 int unionMeshs(void *meshliteContext, const std::vector<int> &meshIds, const std::set<int> &inverseIds, int *errorCount)
 {
 #if USE_CGAL == 1
-    CGAL::set_error_behaviour(CGAL::THROW_EXCEPTION);
+    CGAL::set_error_behaviour(CGAL::CONTINUE);
     std::vector<ExactMesh *> externalMeshs;
     for (size_t i = 0; i < meshIds.size(); i++) {
         int triangledMeshId = meshlite_triangulate(meshliteContext, meshIds[i]);
@@ -268,3 +268,48 @@ int fixMeshHoles(void *meshliteContext, int meshId)
 {
     return meshlite_fix_hole(meshliteContext, meshId);
 }
+
+void initMeshUtils()
+{
+    CGAL::set_error_behaviour(CGAL::CONTINUE);
+}
+
+void *convertToCombinableMesh(void *meshliteContext, int meshId)
+{
+    ExactMesh *mesh = nullptr;
+    if (0 == meshId)
+        return nullptr;
+    mesh = makeCgalMeshFromMeshlite<ExactKernel>(meshliteContext, meshId);
+    if (CGAL::Polygon_mesh_processing::does_self_intersect(*mesh)) {
+        qDebug() << "CGAL::Polygon_mesh_processing::does_self_intersect meshId:" << meshId;
+        delete mesh;
+        return nullptr;
+    }
+    return (void *)mesh;
+}
+
+void *unionCombinableMeshs(void *first, void *second)
+{
+    return (void *)unionCgalMeshs((ExactMesh *)first, (ExactMesh *)second);
+}
+
+void *diffCombinableMeshs(void *first, void *second)
+{
+    return (void *)diffCgalMeshs((ExactMesh *)first, (ExactMesh *)second);
+}
+
+int convertFromCombinableMesh(void *meshliteContext, void *mesh)
+{
+    return makeMeshliteMeshFromCgal<ExactKernel>(meshliteContext, (ExactMesh *)mesh);
+}
+
+void deleteCombinableMesh(void *mesh)
+{
+    delete (ExactMesh *)mesh;
+}
+
+void *cloneCombinableMesh(void *mesh)
+{
+    return (void *)new ExactMesh(*(ExactMesh *)mesh);
+}
+

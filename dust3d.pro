@@ -1,5 +1,6 @@
 QT += core widgets opengl
 CONFIG += release
+DEFINES += NDEBUG
 RESOURCES += resources.qrc
 
 isEmpty(HUMAN_VERSION) {

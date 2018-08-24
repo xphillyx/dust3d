@@ -12,6 +12,23 @@
 #include "modelofflinerender.h"
 #include "meshresultcontext.h"
 
+struct GeneratedPartCache
+{
+    std::vector<BmeshVertex> bmeshVertices;
+    void *triangulatedMesh = nullptr;
+};
+
+struct GeneratedComponentCache
+{
+    void *triangulatedMesh = nullptr;
+};
+
+struct GeneratedCacheContext
+{
+    std::map<QUuid, GeneratedPartCache> partCaches;
+    std::map<QUuid, GeneratedComponentCache> componentCaches;
+};
+
 class MeshGenerator : public QObject
 {
     Q_OBJECT
@@ -21,6 +38,7 @@ public:
     void setSharedContextWidget(QOpenGLWidget *widget);
     void addPreviewRequirement();
     void addPartPreviewRequirement(const QString &partId);
+    void setGeneratedCacheContext(GeneratedCacheContext *cacheContext);
     MeshLoader *takeResultMesh();
     QImage *takePreview();
     QImage *takePartPreview(const QString &partId);
@@ -42,17 +60,20 @@ private:
     MeshResultContext *m_meshResultContext;
     QOpenGLWidget *m_sharedContextWidget;
     void *m_meshliteContext;
-    std::map<QString, int> m_partBmeshMap;
-    std::map<QString, QColor> m_partColorMap;
-    std::map<QUuid, std::map<int, QUuid>> m_partNodeIndexToIdMap;
-    std::map<QUuid, QUuid> m_mirroredPartIdMap;
+    GeneratedCacheContext *m_cacheContext;
+    float m_mainProfileMiddleX;
+    float m_sideProfileMiddleX;
+    float m_mainProfileMiddleY;
+    std::map<QString, std::set<QString>> m_partNodeIds;
+    std::map<QString, std::set<QString>> m_partEdgeIds;
 private:
     static bool m_enableDebug;
 private:
-    void resolveBoundingBox(QRectF *mainProfile, QRectF *sideProfile, const QString &partId=QString());
-    void loadVertexSourcesToMeshResultContext(void *meshliteContext, int meshId, QUuid partId);
+    void loadVertexSourcesToMeshResultContext(void *meshliteContext, int meshId, QUuid partId, const std::map<int, QUuid> &bmeshToNodeIdMap);
     void loadGeneratedPositionsToMeshResultContext(void *meshliteContext, int triangulatedMeshId);
-    int generateComponent(QUuid componentId);
+    void collectParts();
+    void *combineComponentMesh(QString componentId, bool *inverse);
+    void *combinePartMesh(QString partId);
 };
 
 #endif

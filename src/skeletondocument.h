@@ -86,6 +86,7 @@ public:
     QImage preview;
     QUuid componentId;
     std::vector<QUuid> nodeIds;
+    bool dirty;
     SkeletonPart(const QUuid &withId=QUuid()) :
         visible(true),
         locked(false),
@@ -97,7 +98,8 @@ public:
         deformWidth(1.0),
         rounded(false),
         color(Theme::white),
-        hasColor(false)
+        hasColor(false),
+        dirty(true)
     {
         id = withId.isNull() ? QUuid::createUuid() : withId;
     }
@@ -193,6 +195,7 @@ public:
     QUuid parentId;
     bool expanded = true;
     bool inverse = false;
+    bool dirty = true;
     std::vector<QUuid> childrenIds;
     QString linkData() const
     {
@@ -470,6 +473,7 @@ private:
     bool isDescendantComponent(QUuid componentId, QUuid suspiciousId);
     void removeComponentRecursively(QUuid componentId);
     void collectComponentDescendantComponents(QUuid componentId, std::vector<QUuid> &componentIds);
+    void resetDirtyFlags();
 private: // need initialize
     bool m_isResultMeshObsolete;
     MeshGenerator *m_meshGenerator;

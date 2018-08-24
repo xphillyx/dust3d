@@ -344,6 +344,8 @@ void SkeletonDocument::addEdge(QUuid fromNodeId, QUuid toNodeId)
         return;
     }
     
+    fromPart->second.dirty = true;
+    
     if (fromNode->partId != toNode->partId) {
         toPartRemoved = true;
         std::vector<QUuid> toGroup;
@@ -430,6 +432,9 @@ void SkeletonDocument::scaleNodeByAddRadius(QUuid nodeId, float amount)
     if (isPartReadonly(it->second.partId))
         return;
     it->second.setRadius(it->second.radius + amount);
+    auto part = partMap.find(it->second.partId);
+    if (part != partMap.end())
+        part->second.dirty = true;
     emit nodeRadiusChanged(nodeId);
     emit skeletonChanged();
 }
@@ -459,6 +464,9 @@ void SkeletonDocument::moveNodeBy(QUuid nodeId, float x, float y, float z)
         it->second.y += y;
     if (!zlocked)
         it->second.z += z;
+    auto part = partMap.find(it->second.partId);
+    if (part != partMap.end())
+        part->second.dirty = true;
     emit nodeOriginChanged(nodeId);
     emit skeletonChanged();
 }
@@ -501,6 +509,9 @@ void SkeletonDocument::setNodeOrigin(QUuid nodeId, float x, float y, float z)
         it->second.y = y;
     if (!zlocked)
         it->second.z = z;
+    auto part = partMap.find(it->second.partId);
+    if (part != partMap.end())
+        part->second.dirty = true;
     emit nodeOriginChanged(nodeId);
     emit skeletonChanged();
 }
@@ -515,6 +526,9 @@ void SkeletonDocument::setNodeRadius(QUuid nodeId, float radius)
     if (isPartReadonly(it->second.partId))
         return;
     it->second.setRadius(radius);
+    auto part = partMap.find(it->second.partId);
+    if (part != partMap.end())
+        part->second.dirty = true;
     emit nodeRadiusChanged(nodeId);
     emit skeletonChanged();
 }
@@ -529,6 +543,9 @@ void SkeletonDocument::switchNodeXZ(QUuid nodeId)
     if (isPartReadonly(it->second.partId))
         return;
     std::swap(it->second.x, it->second.z);
+    auto part = partMap.find(it->second.partId);
+    if (part != partMap.end())
+        part->second.dirty = true;
     emit nodeOriginChanged(nodeId);
     emit skeletonChanged();
 }
@@ -606,6 +623,16 @@ void SkeletonDocument::splitPartByEdge(std::vector<std::vector<QUuid>> *groups, 
     }
 }
 
+void SkeletonDocument::resetDirtyFlags()
+{
+    for (auto &part: partMap) {
+        part.second.dirty = false;
+    }
+    for (auto &component: componentMap) {
+        component.second.dirty = false;
+    }
+}
+
 void SkeletonDocument::toSnapshot(SkeletonSnapshot *snapshot, const std::set<QUuid> &limitNodeIds) const
 {
     std::set<QUuid> limitPartIds;
@@ -638,6 +665,7 @@ void SkeletonDocument::toSnapshot(SkeletonSnapshot *snapshot, const std::set<QUu
         part["xMirrored"] = partIt.second.xMirrored ? "true" : "false";
         part["zMirrored"] = partIt.second.zMirrored ? "true" : "false";
         part["rounded"] = partIt.second.rounded ? "true" : "false";
+        part["dirty"] = partIt.second.dirty ? "true" : "false";
         if (partIt.second.hasColor)
             part["color"] = partIt.second.color.name();
         if (partIt.second.deformThicknessAdjusted())
@@ -995,12 +1023,15 @@ void SkeletonDocument::generateMesh()
     
     qDebug() << "MeshLoader generating..";
     
+    settleOrigin();
+    
     m_isResultMeshObsolete = false;
     
     QThread *thread = new QThread;
     
     SkeletonSnapshot *snapshot = new SkeletonSnapshot;
     toSnapshot(snapshot);
+    resetDirtyFlags();
     m_meshGenerator = new MeshGenerator(snapshot, thread);
     if (nullptr != m_sharedContextWidget)
         m_meshGenerator->setSharedContextWidget(m_sharedContextWidget);
@@ -1226,6 +1257,7 @@ void SkeletonDocument::setComponentInverseState(QUuid componentId, bool inverse)
     if (component->second.inverse == inverse)
         return;
     component->second.inverse = inverse;
+    component->second.dirty = true;
     emit componentInverseStateChanged(componentId);
     emit skeletonChanged();
 }
@@ -1240,6 +1272,7 @@ void SkeletonDocument::setPartSubdivState(QUuid partId, bool subdived)
     if (part->second.subdived == subdived)
         return;
     part->second.subdived = subdived;
+    part->second.dirty = true;
     emit partSubdivStateChanged(partId);
     emit skeletonChanged();
 }
@@ -1254,6 +1287,7 @@ void SkeletonDocument::setPartDisableState(QUuid partId, bool disabled)
     if (part->second.disabled == disabled)
         return;
     part->second.disabled = disabled;
+    part->second.dirty = true;
     emit partDisableStateChanged(partId);
     emit skeletonChanged();
 }
@@ -1292,6 +1326,7 @@ void SkeletonDocument::moveComponentUp(QUuid componentId)
     QUuid parentId = findComponentParentId(componentId);
     
     parent->moveChildUp(componentId);
+    parent->dirty = true;
     emit componentChildrenChanged(parentId);
     emit skeletonChanged();
 }
@@ -1305,6 +1340,7 @@ void SkeletonDocument::moveComponentDown(QUuid componentId)
     QUuid parentId = findComponentParentId(componentId);
     
     parent->moveChildDown(componentId);
+    parent->dirty = true;
     emit componentChildrenChanged(parentId);
     emit skeletonChanged();
 }
@@ -1318,6 +1354,7 @@ void SkeletonDocument::moveComponentToTop(QUuid componentId)
     QUuid parentId = findComponentParentId(componentId);
     
     parent->moveChildToTop(componentId);
+    parent->dirty = true;
     emit componentChildrenChanged(parentId);
     emit skeletonChanged();
 }
@@ -1331,6 +1368,7 @@ void SkeletonDocument::moveComponentToBottom(QUuid componentId)
     QUuid parentId = findComponentParentId(componentId);
     
     parent->moveChildToBottom(componentId);
+    parent->dirty = true;
     emit componentChildrenChanged(parentId);
     emit skeletonChanged();
 }
@@ -1501,6 +1539,7 @@ void SkeletonDocument::removeComponentRecursively(QUuid componentId)
         if (parentComponent == componentMap.end()) {
             qDebug() << "Component not found:" << parentId;
         }
+        parentComponent->second.dirty = true;
         parentComponent->second.removeChild(componentId);
     } else {
         rootComponent.removeChild(componentId);
@@ -1572,6 +1611,7 @@ void SkeletonDocument::moveComponent(QUuid componentId, QUuid toParentId)
     } else {
         auto oldParent = componentMap.find(component->second.parentId);
         if (oldParent != componentMap.end()) {
+            oldParent->second.dirty = true;
             oldParent->second.removeChild(componentId);
             emit componentChildrenChanged(oldParent->second.id);
         }
@@ -1585,6 +1625,7 @@ void SkeletonDocument::moveComponent(QUuid componentId, QUuid toParentId)
     } else {
         auto newParent = componentMap.find(toParentId);
         if (newParent != componentMap.end()) {
+            newParent->second.dirty = true;
             newParent->second.addChild(componentId);
             emit componentChildrenChanged(newParent->second.id);
         }
@@ -1619,6 +1660,7 @@ void SkeletonDocument::setPartXmirrorState(QUuid partId, bool mirrored)
     if (part->second.xMirrored == mirrored)
         return;
     part->second.xMirrored = mirrored;
+    part->second.dirty = true;
     settleOrigin();
     emit partXmirrorStateChanged(partId);
     emit skeletonChanged();
@@ -1634,6 +1676,7 @@ void SkeletonDocument::setPartZmirrorState(QUuid partId, bool mirrored)
     if (part->second.zMirrored == mirrored)
         return;
     part->second.zMirrored = mirrored;
+    part->second.dirty = true;
     settleOrigin();
     emit partZmirrorStateChanged(partId);
     emit skeletonChanged();
@@ -1647,6 +1690,7 @@ void SkeletonDocument::setPartDeformThickness(QUuid partId, float thickness)
         return;
     }
     part->second.setDeformThickness(thickness);
+    part->second.dirty = true;
     emit partDeformThicknessChanged(partId);
     emit skeletonChanged();
 }
@@ -1659,6 +1703,7 @@ void SkeletonDocument::setPartDeformWidth(QUuid partId, float width)
         return;
     }
     part->second.setDeformWidth(width);
+    part->second.dirty = true;
     emit partDeformWidthChanged(partId);
     emit skeletonChanged();
 }
@@ -1673,6 +1718,7 @@ void SkeletonDocument::setPartRoundState(QUuid partId, bool rounded)
     if (part->second.rounded == rounded)
         return;
     part->second.rounded = rounded;
+    part->second.dirty = true;
     emit partRoundStateChanged(partId);
     emit skeletonChanged();
 }
@@ -1688,6 +1734,7 @@ void SkeletonDocument::setPartColorState(QUuid partId, bool hasColor, QColor col
         return;
     part->second.hasColor = hasColor;
     part->second.color = color;
+    part->second.dirty = true;
     emit partColorStateChanged(partId);
     emit skeletonChanged();
 }

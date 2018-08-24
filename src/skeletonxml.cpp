@@ -68,6 +68,8 @@ void saveSkeletonToXmlStream(SkeletonSnapshot *snapshot, QXmlStreamWriter *write
             std::map<QString, QString>::iterator partAttributeIterator;
             writer->writeStartElement("part");
             for (partAttributeIterator = partIterator->second.begin(); partAttributeIterator != partIterator->second.end(); partAttributeIterator++) {
+                if (partAttributeIterator->first == "dirty")
+                    continue;
                 writer->writeAttribute(partAttributeIterator->first, partAttributeIterator->second);
             }
             writer->writeEndElement();
