@@ -7,10 +7,7 @@ SkeletonPartTreeWidget::SkeletonPartTreeWidget(const SkeletonDocument *document,
     QTreeWidget(parent),
     m_document(document)
 {
-    //setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
-    
-    setSelectionMode(QAbstractItemView::NoSelection);
     setFocusPolicy(Qt::NoFocus);
     
     QPalette palette = this->palette();
@@ -42,6 +39,32 @@ SkeletonPartTreeWidget::SkeletonPartTreeWidget(const SkeletonDocument *document,
     connect(this, &QTreeWidget::itemChanged, this, &SkeletonPartTreeWidget::groupChanged);
     connect(this, &QTreeWidget::itemExpanded, this, &SkeletonPartTreeWidget::groupExpanded);
     connect(this, &QTreeWidget::itemCollapsed, this, &SkeletonPartTreeWidget::groupCollapsed);
+    connect(this, &QTreeWidget::currentItemChanged, this, &SkeletonPartTreeWidget::currentGroupChanged);
+}
+
+void SkeletonPartTreeWidget::currentGroupChanged(QTreeWidgetItem *current, QTreeWidgetItem *previous)
+{
+    if (nullptr != current) {
+        auto componentId = QUuid(current->data(0, Qt::UserRole).toString());
+        const SkeletonComponent *component = m_document->findComponent(componentId);
+        if (nullptr != component) {
+            emit currentComponentChanged(componentId);
+            return;
+        }
+    }
+    emit currentComponentChanged(QUuid());
+}
+
+void SkeletonPartTreeWidget::mousePressEvent(QMouseEvent *event)
+{
+    QModelIndex item = indexAt(event->pos());
+    if (item.isValid()) {
+        QTreeView::mousePressEvent(event);
+    } else {
+        clearSelection();
+        QTreeView::mousePressEvent(event);
+        emit currentComponentChanged(QUuid());
+    }
 }
 
 void SkeletonPartTreeWidget::showContextMenu(const QPoint &pos)
@@ -332,6 +355,7 @@ void SkeletonPartTreeWidget::addComponentChildrenToItem(QUuid componentId, QTree
             QTreeWidgetItem *item = new QTreeWidgetItem();
             parentItem->addChild(item);
             item->setData(0, Qt::UserRole, QVariant(component->id.toString()));
+            item->setFlags(item->flags() & ~(Qt::ItemIsEditable | Qt::ItemIsEnabled | Qt::ItemIsSelectable));
             QUuid partId = component->linkToPartId;
             SkeletonPartWidget *widget = new SkeletonPartWidget(m_document, partId);
             item->setSizeHint(0, SkeletonPartWidget::preferredSize());

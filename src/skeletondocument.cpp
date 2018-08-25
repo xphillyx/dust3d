@@ -304,7 +304,7 @@ const SkeletonEdge *SkeletonDocument::findEdgeByNodes(QUuid firstNodeId, QUuid s
 
 bool SkeletonDocument::originSettled() const
 {
-    return originX > 0 && originY > 0 && originZ > 0;
+    return !qFuzzyIsNull(originX) && !qFuzzyIsNull(originY) && !qFuzzyIsNull(originZ);
 }
 
 void SkeletonDocument::addEdge(QUuid fromNodeId, QUuid toNodeId)
@@ -479,19 +479,8 @@ void SkeletonDocument::moveOriginBy(float x, float y, float z)
         originY += y;
     if (!zlocked)
         originZ += z;
-    reviseOrigin();
     emit originChanged();
     emit skeletonChanged();
-}
-
-void SkeletonDocument::reviseOrigin()
-{
-    if (originX < 0.001)
-        originX = 0.001;
-    if (originY < 0.001)
-        originY = 0.001;
-    if (originZ < 0.001)
-        originZ = 0.001;
 }
 
 void SkeletonDocument::setNodeOrigin(QUuid nodeId, float x, float y, float z)
@@ -928,9 +917,9 @@ void SkeletonDocument::addFromSnapshot(const SkeletonSnapshot &snapshot)
 
 void SkeletonDocument::reset()
 {
-    originX = 0;
-    originY = 0;
-    originZ = 0;
+    originX = 0.0;
+    originY = 0.0;
+    originZ = 0.0;
     nodeMap.clear();
     edgeMap.clear();
     partMap.clear();
@@ -1508,26 +1497,27 @@ void SkeletonDocument::removePartDontCareComponent(QUuid partId)
 
 void SkeletonDocument::addPartToComponent(QUuid partId, QUuid componentId)
 {
-    SkeletonComponent component(QUuid::createUuid());
+    SkeletonComponent child(QUuid::createUuid());
     
     if (!componentId.isNull()) {
         auto parentComponent = componentMap.find(componentId);
         if (parentComponent == componentMap.end()) {
-            qDebug() << "Component not found:" << componentId;
-            return;
+            componentId = QUuid();
+            rootComponent.addChild(child.id);
+        } else {
+            parentComponent->second.addChild(child.id);
         }
-        parentComponent->second.addChild(component.id);
     } else {
-        rootComponent.addChild(component.id);
+        rootComponent.addChild(child.id);
     }
     
-    partMap[partId].componentId = component.id;
-    component.linkToPartId = partId;
-    component.parentId = componentId;
-    componentMap[component.id] = component;
+    partMap[partId].componentId = child.id;
+    child.linkToPartId = partId;
+    child.parentId = componentId;
+    componentMap[child.id] = child;
     
     emit componentChildrenChanged(componentId);
-    emit componentAdded(component.id);
+    emit componentAdded(child.id);
 }
 
 void SkeletonDocument::removeComponent(QUuid componentId)
@@ -1665,7 +1655,6 @@ void SkeletonDocument::settleOrigin()
     originX = mainProfile.x() + mainProfile.width() / 2;
     originY = mainProfile.y() + mainProfile.height() / 2;
     originZ = sideProfile.x() + sideProfile.width() / 2;
-    reviseOrigin();
     markAllDirty();
     emit originChanged();
 }

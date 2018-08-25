@@ -468,7 +468,6 @@ private:
     QUuid createNode(float x, float y, float z, float radius, QUuid fromNodeId);
     void settleOrigin();
     void checkExportReadyState();
-    void reviseOrigin();
     void removePartDontCareComponent(QUuid partId);
     void addPartToComponent(QUuid partId, QUuid componentId);
     bool isDescendantComponent(QUuid componentId, QUuid suspiciousId);

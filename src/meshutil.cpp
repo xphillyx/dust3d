@@ -310,6 +310,8 @@ void deleteCombinableMesh(void *mesh)
 
 void *cloneCombinableMesh(void *mesh)
 {
+    if (nullptr == mesh)
+        return nullptr;
     return (void *)new ExactMesh(*(ExactMesh *)mesh);
 }
 

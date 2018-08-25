@@ -316,18 +316,6 @@ SkeletonDocumentWindow::SkeletonDocumentWindow() :
 
     m_alignToMenu = new QMenu(tr("Align To"));
 
-    m_alignToGlobalCenterAction = new QAction(tr("Global Center"), this);
-    connect(m_alignToGlobalCenterAction, &QAction::triggered, m_graphicsWidget, &SkeletonGraphicsWidget::alignSelectedToGlobalCenter);
-    m_alignToMenu->addAction(m_alignToGlobalCenterAction);
-
-    m_alignToGlobalVerticalCenterAction = new QAction(tr("Global Vertical Center"), this);
-    connect(m_alignToGlobalVerticalCenterAction, &QAction::triggered, m_graphicsWidget, &SkeletonGraphicsWidget::alignSelectedToGlobalVerticalCenter);
-    m_alignToMenu->addAction(m_alignToGlobalVerticalCenterAction);
-
-    m_alignToGlobalHorizontalCenterAction = new QAction(tr("Global Horizontal Center"), this);
-    connect(m_alignToGlobalHorizontalCenterAction, &QAction::triggered, m_graphicsWidget, &SkeletonGraphicsWidget::alignSelectedToGlobalHorizontalCenter);
-    m_alignToMenu->addAction(m_alignToGlobalHorizontalCenterAction);
-
     m_alignToLocalCenterAction = new QAction(tr("Local Center"), this);
     connect(m_alignToLocalCenterAction, &QAction::triggered, m_graphicsWidget, &SkeletonGraphicsWidget::alignSelectedToLocalCenter);
     m_alignToMenu->addAction(m_alignToLocalCenterAction);
@@ -339,6 +327,18 @@ SkeletonDocumentWindow::SkeletonDocumentWindow() :
     m_alignToLocalHorizontalCenterAction = new QAction(tr("Local Horizontal Center"), this);
     connect(m_alignToLocalHorizontalCenterAction, &QAction::triggered, m_graphicsWidget, &SkeletonGraphicsWidget::alignSelectedToLocalHorizontalCenter);
     m_alignToMenu->addAction(m_alignToLocalHorizontalCenterAction);
+    
+    m_alignToGlobalCenterAction = new QAction(tr("Global Center"), this);
+    connect(m_alignToGlobalCenterAction, &QAction::triggered, m_graphicsWidget, &SkeletonGraphicsWidget::alignSelectedToGlobalCenter);
+    m_alignToMenu->addAction(m_alignToGlobalCenterAction);
+
+    m_alignToGlobalVerticalCenterAction = new QAction(tr("Global Vertical Center"), this);
+    connect(m_alignToGlobalVerticalCenterAction, &QAction::triggered, m_graphicsWidget, &SkeletonGraphicsWidget::alignSelectedToGlobalVerticalCenter);
+    m_alignToMenu->addAction(m_alignToGlobalVerticalCenterAction);
+
+    m_alignToGlobalHorizontalCenterAction = new QAction(tr("Global Horizontal Center"), this);
+    connect(m_alignToGlobalHorizontalCenterAction, &QAction::triggered, m_graphicsWidget, &SkeletonGraphicsWidget::alignSelectedToGlobalHorizontalCenter);
+    m_alignToMenu->addAction(m_alignToGlobalHorizontalCenterAction);
 
     m_editMenu->addMenu(m_alignToMenu);
 

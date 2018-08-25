@@ -2,6 +2,7 @@
 #define SKELETON_PART_TREE_WIDGET_H
 #include <QTreeWidget>
 #include <QUuid>
+#include <QMouseEvent>
 #include "skeletondocument.h"
 
 class SkeletonPartTreeWidget : public QTreeWidget
@@ -58,10 +59,12 @@ public slots:
     void groupChanged(QTreeWidgetItem *item, int column);
     void groupExpanded(QTreeWidgetItem *item);
     void groupCollapsed(QTreeWidgetItem *item);
+    void currentGroupChanged(QTreeWidgetItem *current, QTreeWidgetItem *previous);
     void removeAllContent();
     void showContextMenu(const QPoint &pos);
 protected:
     virtual QSize sizeHint() const;
+    virtual void mousePressEvent(QMouseEvent *event);
 private:
     void addComponentChildrenToItem(QUuid componentId, QTreeWidgetItem *parentItem);
 private:
