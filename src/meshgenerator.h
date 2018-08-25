@@ -12,21 +12,14 @@
 #include "modelofflinerender.h"
 #include "meshresultcontext.h"
 
-struct GeneratedPartCache
+class GeneratedCacheContext
 {
-    std::vector<BmeshVertex> bmeshVertices;
-    void *triangulatedMesh = nullptr;
-};
-
-struct GeneratedComponentCache
-{
-    void *triangulatedMesh = nullptr;
-};
-
-struct GeneratedCacheContext
-{
-    std::map<QUuid, GeneratedPartCache> partCaches;
-    std::map<QUuid, GeneratedComponentCache> componentCaches;
+public:
+    ~GeneratedCacheContext();
+    std::map<QString, std::vector<BmeshVertex>> partBmeshVertices;
+    std::map<QString, std::vector<BmeshNode>> partBmeshNodes;
+    std::map<QString, void *> componentCombinableMeshs;
+    void updateComponentCombinableMesh(QString componentId, void *mesh);
 };
 
 class MeshGenerator : public QObject
@@ -36,7 +29,7 @@ public:
     MeshGenerator(SkeletonSnapshot *snapshot, QThread *thread);
     ~MeshGenerator();
     void setSharedContextWidget(QOpenGLWidget *widget);
-    void addPreviewRequirement();
+    //void addPreviewRequirement();
     void addPartPreviewRequirement(const QString &partId);
     void setGeneratedCacheContext(GeneratedCacheContext *cacheContext);
     MeshLoader *takeResultMesh();
@@ -52,9 +45,7 @@ private:
     MeshLoader *m_mesh;
     QImage *m_preview;
     std::map<QString, QImage *> m_partPreviewMap;
-    bool m_requirePreview;
     std::set<QString> m_requirePartPreviewMap;
-    ModelOfflineRender *m_previewRender;
     std::map<QString, ModelOfflineRender *> m_partPreviewRenderMap;
     QThread *m_thread;
     MeshResultContext *m_meshResultContext;
@@ -66,12 +57,17 @@ private:
     float m_mainProfileMiddleY;
     std::map<QString, std::set<QString>> m_partNodeIds;
     std::map<QString, std::set<QString>> m_partEdgeIds;
+    std::set<QString> m_dirtyComponentIds;
+    std::set<QString> m_dirtyPartIds;
 private:
     static bool m_enableDebug;
 private:
-    void loadVertexSourcesToMeshResultContext(void *meshliteContext, int meshId, QUuid partId, const std::map<int, QUuid> &bmeshToNodeIdMap);
+    void loadVertexSources(void *meshliteContext, int meshId, QUuid partId, const std::map<int, QUuid> &bmeshToNodeIdMap, std::vector<BmeshVertex> &bmeshVertices);
     void loadGeneratedPositionsToMeshResultContext(void *meshliteContext, int triangulatedMeshId);
     void collectParts();
+    void checkDirtyFlags();
+    bool checkIsComponentDirty(QString componentId);
+    bool checkIsPartDirty(QString partId);
     void *combineComponentMesh(QString componentId, bool *inverse);
     void *combinePartMesh(QString partId);
 };

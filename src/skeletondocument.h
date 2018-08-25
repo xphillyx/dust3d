@@ -407,6 +407,7 @@ public slots:
     void setEditMode(SkeletonDocumentEditMode mode);
     void uiReady();
     void generateMesh();
+    void regenerateMesh();
     void meshReady();
     void generateTexture();
     void textureReady();
@@ -474,6 +475,7 @@ private:
     void removeComponentRecursively(QUuid componentId);
     void collectComponentDescendantComponents(QUuid componentId, std::vector<QUuid> &componentIds);
     void resetDirtyFlags();
+    void markAllDirty();
 private: // need initialize
     bool m_isResultMeshObsolete;
     MeshGenerator *m_meshGenerator;
@@ -495,6 +497,7 @@ private:
     static unsigned long m_maxSnapshot;
     std::deque<SkeletonHistoryItem> m_undoItems;
     std::deque<SkeletonHistoryItem> m_redoItems;
+    GeneratedCacheContext m_generatedCacheContext;
 };
 
 #endif

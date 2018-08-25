@@ -633,6 +633,13 @@ void SkeletonDocument::resetDirtyFlags()
     }
 }
 
+void SkeletonDocument::markAllDirty()
+{
+    for (auto &part: partMap) {
+        part.second.dirty = true;
+    }
+}
+
 void SkeletonDocument::toSnapshot(SkeletonSnapshot *snapshot, const std::set<QUuid> &limitNodeIds) const
 {
     std::set<QUuid> limitPartIds;
@@ -715,6 +722,7 @@ void SkeletonDocument::toSnapshot(SkeletonSnapshot *snapshot, const std::set<QUu
             component["name"] = componentIt.second.name;
         component["expanded"] = componentIt.second.expanded ? "true" : "false";
         component["inverse"] = componentIt.second.inverse ? "true" : "false";
+        component["dirty"] = componentIt.second.dirty ? "true" : "false";
         QStringList childIdList;
         for (const auto &childId: componentIt.second.childrenIds) {
             childIdList.append(childId.toString());
@@ -866,6 +874,8 @@ void SkeletonDocument::addFromSnapshot(const SkeletonSnapshot &snapshot)
     const auto &rootComponentChildren = snapshot.rootComponent.find("children");
     if (rootComponentChildren != snapshot.rootComponent.end()) {
         for (const auto &childId: rootComponentChildren->second.split(",")) {
+            if (childId.isEmpty())
+                continue;
             QUuid componentId = oldNewIdMap[QUuid(childId)];
             if (componentMap.find(componentId) == componentMap.end())
                 continue;
@@ -878,6 +888,8 @@ void SkeletonDocument::addFromSnapshot(const SkeletonSnapshot &snapshot)
         if (componentMap.find(componentId) == componentMap.end())
             continue;
         for (const auto &childId: valueOfKeyInMapOrEmpty(componentKv.second, "children").split(",")) {
+            if (childId.isEmpty())
+                continue;
             QUuid childComponentId = oldNewIdMap[QUuid(childId)];
             if (componentMap.find(childComponentId) == componentMap.end())
                 continue;
@@ -1014,6 +1026,12 @@ void SkeletonDocument::batchChangeEnd()
     }
 }
 
+void SkeletonDocument::regenerateMesh()
+{
+    markAllDirty();
+    generateMesh();
+}
+
 void SkeletonDocument::generateMesh()
 {
     if (nullptr != m_meshGenerator || m_batchChangeRefCount > 0) {
@@ -1033,6 +1051,7 @@ void SkeletonDocument::generateMesh()
     toSnapshot(snapshot);
     resetDirtyFlags();
     m_meshGenerator = new MeshGenerator(snapshot, thread);
+    m_meshGenerator->setGeneratedCacheContext(&m_generatedCacheContext);
     if (nullptr != m_sharedContextWidget)
         m_meshGenerator->setSharedContextWidget(m_sharedContextWidget);
     m_meshGenerator->moveToThread(thread);
@@ -1647,6 +1666,7 @@ void SkeletonDocument::settleOrigin()
     originY = mainProfile.y() + mainProfile.height() / 2;
     originZ = sideProfile.x() + sideProfile.width() / 2;
     reviseOrigin();
+    markAllDirty();
     emit originChanged();
 }
 

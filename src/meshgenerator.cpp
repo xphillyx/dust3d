@@ -1,5 +1,6 @@
 #include <vector>
 #include <QGuiApplication>
+#include <QElapsedTimer>
 #include "meshgenerator.h"
 #include "dust3dutil.h"
 #include "skeletondocument.h"
@@ -11,12 +12,25 @@
 
 bool MeshGenerator::m_enableDebug = false;
 
+GeneratedCacheContext::~GeneratedCacheContext()
+{
+    for (auto &cache: componentCombinableMeshs) {
+        deleteCombinableMesh(cache.second);
+    }
+}
+
+void GeneratedCacheContext::updateComponentCombinableMesh(QString componentId, void *mesh)
+{
+    auto &cache = componentCombinableMeshs[componentId];
+    if (nullptr != cache)
+        deleteCombinableMesh(cache);
+    cache = cloneCombinableMesh(mesh);
+}
+
 MeshGenerator::MeshGenerator(SkeletonSnapshot *snapshot, QThread *thread) :
     m_snapshot(snapshot),
     m_mesh(nullptr),
     m_preview(nullptr),
-    m_requirePreview(false),
-    m_previewRender(nullptr),
     m_thread(thread),
     m_meshResultContext(nullptr),
     m_sharedContextWidget(nullptr),
@@ -35,22 +49,12 @@ MeshGenerator::~MeshGenerator()
     for (const auto &render: m_partPreviewRenderMap) {
         delete render.second;
     }
-    delete m_previewRender;
     delete m_meshResultContext;
 }
 
 void MeshGenerator::setGeneratedCacheContext(GeneratedCacheContext *cacheContext)
 {
     m_cacheContext = cacheContext;
-}
-
-void MeshGenerator::addPreviewRequirement()
-{
-    m_requirePreview = true;
-    if (nullptr == m_previewRender) {
-        m_previewRender = new ModelOfflineRender(m_sharedContextWidget);
-        m_previewRender->setRenderThread(m_thread);
-    }
 }
 
 void MeshGenerator::addPartPreviewRequirement(const QString &partId)
@@ -97,7 +101,7 @@ MeshResultContext *MeshGenerator::takeMeshResultContext()
     return meshResultContext;
 }
 
-void MeshGenerator::loadVertexSourcesToMeshResultContext(void *meshliteContext, int meshId, QUuid partId, const std::map<int, QUuid> &bmeshToNodeIdMap)
+void MeshGenerator::loadVertexSources(void *meshliteContext, int meshId, QUuid partId, const std::map<int, QUuid> &bmeshToNodeIdMap, std::vector<BmeshVertex> &bmeshVertices)
 {
     int vertexCount = meshlite_get_vertex_count(meshliteContext, meshId);
     int positionBufferLen = vertexCount * 3;
@@ -113,7 +117,7 @@ void MeshGenerator::loadVertexSourcesToMeshResultContext(void *meshliteContext, 
         if (findNodeId != bmeshToNodeIdMap.end())
             vertex.nodeId = findNodeId->second;
         vertex.position = QVector3D(positionBuffer[positionIndex + 0], positionBuffer[positionIndex + 1], positionBuffer[positionIndex + 2]);
-        m_meshResultContext->bmeshVertices.push_back(vertex);
+        bmeshVertices.push_back(vertex);
     }
     delete[] positionBuffer;
     delete[] sourceBuffer;
@@ -169,6 +173,16 @@ void MeshGenerator::collectParts()
     }
 }
 
+bool MeshGenerator::checkIsPartDirty(QString partId)
+{
+    auto findPart = m_snapshot->parts.find(partId);
+    if (findPart == m_snapshot->parts.end()) {
+        qDebug() << "Find part failed:" << partId;
+        return false;
+    }
+    return isTrueValueString(valueOfKeyInMapOrEmpty(findPart->second, "dirty"));
+}
+
 void *MeshGenerator::combinePartMesh(QString partId)
 {
     auto findPart = m_snapshot->parts.find(partId);
@@ -176,6 +190,8 @@ void *MeshGenerator::combinePartMesh(QString partId)
         qDebug() << "Find part failed:" << partId;
         return nullptr;
     }
+    QUuid partIdNotAsString = QUuid(partId);
+    
     auto &part = findPart->second;
     bool isDisabled = isTrueValueString(valueOfKeyInMapOrEmpty(part, "disabled"));
     bool xMirrored = isTrueValueString(valueOfKeyInMapOrEmpty(part, "xMirrored"));
@@ -199,11 +215,16 @@ void *MeshGenerator::combinePartMesh(QString partId)
         meshlite_bmesh_enable_debug(m_meshliteContext, bmeshId, 1);
     
     QString mirroredPartId;
-    if (xMirrored)
-        mirroredPartId = QUuid().createUuid().toString();
+    QUuid mirroredPartIdNotAsString;
+    if (xMirrored) {
+        mirroredPartIdNotAsString = QUuid().createUuid();
+        mirroredPartId = mirroredPartIdNotAsString.toString();
+    }
     
     std::map<QString, int> nodeToBmeshIdMap;
     std::map<int, QUuid> bmeshToNodeIdMap;
+    auto &cacheBmeshNodes = m_cacheContext->partBmeshNodes[partId];
+    auto &cacheBmeshVertices = m_cacheContext->partBmeshVertices[partId];
     for (const auto &nodeId: m_partNodeIds[partId]) {
         auto findNode = m_snapshot->nodes.find(nodeId);
         if (findNode == m_snapshot->nodes.end()) {
@@ -227,12 +248,12 @@ void *MeshGenerator::combinePartMesh(QString partId)
         bmeshNode.radius = radius;
         bmeshNode.nodeId = QUuid(nodeId);
         bmeshNode.color = partColor;
-        m_meshResultContext->bmeshNodes.push_back(bmeshNode);
+        cacheBmeshNodes.push_back(bmeshNode);
         
         if (xMirrored) {
             bmeshNode.partId = mirroredPartId;
             bmeshNode.origin.setX(-x);
-            m_meshResultContext->bmeshNodes.push_back(bmeshNode);
+            cacheBmeshNodes.push_back(bmeshNode);
         }
     }
     
@@ -266,14 +287,14 @@ void *MeshGenerator::combinePartMesh(QString partId)
     void *resultMesh = nullptr;
     if (!bmeshToNodeIdMap.empty()) {
         meshId = meshlite_bmesh_generate_mesh(m_meshliteContext, bmeshId);
-        loadVertexSourcesToMeshResultContext(m_meshliteContext, meshId, QUuid(partId), bmeshToNodeIdMap);
+        loadVertexSources(m_meshliteContext, meshId, partIdNotAsString, bmeshToNodeIdMap, cacheBmeshVertices);
         resultMesh = convertToCombinableMesh(m_meshliteContext, meshlite_triangulate(m_meshliteContext, meshId));
     }
     
     if (nullptr != resultMesh) {
         if (xMirrored) {
             int xMirroredMeshId = meshlite_mirror_in_x(m_meshliteContext, meshId, 0);
-            loadVertexSourcesToMeshResultContext(m_meshliteContext, xMirroredMeshId, QUuid(mirroredPartId), bmeshToNodeIdMap);
+            loadVertexSources(m_meshliteContext, xMirroredMeshId, mirroredPartIdNotAsString, bmeshToNodeIdMap, cacheBmeshVertices);
             void *mirroredMesh = convertToCombinableMesh(m_meshliteContext, meshlite_triangulate(m_meshliteContext, xMirroredMeshId));
             if (nullptr != mirroredMesh) {
                 void *newResultMesh = unionCombinableMeshs(resultMesh, mirroredMesh);
@@ -310,9 +331,9 @@ void *MeshGenerator::combinePartMesh(QString partId)
     return resultMesh;
 }
 
-void *MeshGenerator::combineComponentMesh(QString componentId, bool *inverse)
+bool MeshGenerator::checkIsComponentDirty(QString componentId)
 {
-    *inverse = false;
+    bool isDirty = false;
     
     const std::map<QString, QString> *component = &m_snapshot->rootComponent;
     if (componentId != QUuid().toString()) {
@@ -324,8 +345,61 @@ void *MeshGenerator::combineComponentMesh(QString componentId, bool *inverse)
         component = &findComponent->second;
     }
     
+    if (isTrueValueString(valueOfKeyInMapOrEmpty(*component, "dirty"))) {
+        isDirty = true;
+    }
+    
+    QString linkDataType = valueOfKeyInMapOrEmpty(*component, "linkDataType");
+    if ("partId" == linkDataType) {
+        QString partId = valueOfKeyInMapOrEmpty(*component, "linkData");
+        if (checkIsPartDirty(partId)) {
+            m_dirtyPartIds.insert(partId);
+            isDirty = true;
+        }
+    }
+    
+    for (const auto &childId: valueOfKeyInMapOrEmpty(*component, "children").split(",")) {
+        if (childId.isEmpty())
+            continue;
+        if (checkIsComponentDirty(childId)) {
+            isDirty = true;
+        }
+    }
+    
+    if (isDirty)
+        m_dirtyComponentIds.insert(componentId);
+    
+    return isDirty;
+}
+
+void *MeshGenerator::combineComponentMesh(QString componentId, bool *inverse)
+{
+    QUuid componentIdNotAsString;
+    
+    *inverse = false;
+    
+    const std::map<QString, QString> *component = &m_snapshot->rootComponent;
+    if (componentId != QUuid().toString()) {
+        componentIdNotAsString = QUuid(componentId);
+        auto findComponent = m_snapshot->components.find(componentId);
+        if (findComponent == m_snapshot->components.end()) {
+            qDebug() << "Component not found:" << componentId;
+            return nullptr;
+        }
+        component = &findComponent->second;
+    }
+    
     if (isTrueValueString(valueOfKeyInMapOrEmpty(*component, "inverse")))
         *inverse = true;
+    
+    if (m_dirtyComponentIds.find(componentId) == m_dirtyComponentIds.end()) {
+        auto findCachedMesh = m_cacheContext->componentCombinableMeshs.find(componentId);
+        if (findCachedMesh != m_cacheContext->componentCombinableMeshs.end() &&
+                nullptr != findCachedMesh->second) {
+            qDebug() << "Component mesh cache used:" << componentId;
+            return cloneCombinableMesh(findCachedMesh->second);
+        }
+    }
     
     QString linkDataType = valueOfKeyInMapOrEmpty(*component, "linkDataType");
     if ("partId" == linkDataType) {
@@ -336,6 +410,8 @@ void *MeshGenerator::combineComponentMesh(QString componentId, bool *inverse)
     void *resultMesh = nullptr;
     
     for (const auto &childId: valueOfKeyInMapOrEmpty(*component, "children").split(",")) {
+        if (childId.isEmpty())
+            continue;
         bool childInverse = false;
         void *childCombinedMesh = combineComponentMesh(childId, &childInverse);
         if (nullptr == childCombinedMesh)
@@ -356,6 +432,10 @@ void *MeshGenerator::combineComponentMesh(QString componentId, bool *inverse)
         }
     }
     
+    if (!componentIdNotAsString.isNull()) {
+        m_cacheContext->updateComponentCombinableMesh(componentId, resultMesh);
+    }
+    
     return resultMesh;
 }
 
@@ -363,13 +443,45 @@ void MeshGenerator::process()
 {
     if (nullptr == m_snapshot)
         return;
-    
+    QElapsedTimer countTimeConsumed;
+    countTimeConsumed.start();
+
     m_meshliteContext = meshlite_create_context();
     
     initMeshUtils();
     m_meshResultContext = new MeshResultContext;
     
+    bool needDeleteCacheContext = false;
+    if (nullptr == m_cacheContext) {
+        m_cacheContext = new GeneratedCacheContext;
+        needDeleteCacheContext = true;
+    } else {
+        for (auto it = m_cacheContext->partBmeshNodes.begin(); it != m_cacheContext->partBmeshNodes.end(); ) {
+            if (m_snapshot->parts.find(it->first) == m_snapshot->parts.end()) {
+                it = m_cacheContext->partBmeshNodes.erase(it);
+                continue;
+            }
+            it++;
+        }
+        for (auto it = m_cacheContext->partBmeshVertices.begin(); it != m_cacheContext->partBmeshVertices.end(); ) {
+            if (m_snapshot->parts.find(it->first) == m_snapshot->parts.end()) {
+                it = m_cacheContext->partBmeshVertices.erase(it);
+                continue;
+            }
+            it++;
+        }
+        for (auto it = m_cacheContext->componentCombinableMeshs.begin(); it != m_cacheContext->componentCombinableMeshs.end(); ) {
+            if (m_snapshot->components.find(it->first) == m_snapshot->components.end()) {
+                deleteCombinableMesh(it->second);
+                it = m_cacheContext->componentCombinableMeshs.erase(it);
+                continue;
+            }
+            it++;
+        }
+    }
+    
     collectParts();
+    checkDirtyFlags();
     
     m_mainProfileMiddleX = valueOfKeyInMapOrEmpty(m_snapshot->canvas, "originX").toFloat();
     m_mainProfileMiddleY = valueOfKeyInMapOrEmpty(m_snapshot->canvas, "originY").toFloat();
@@ -384,6 +496,16 @@ void MeshGenerator::process()
         deleteCombinableMesh(combinedMesh);
     }
     
+    for (const auto &bmeshVertices: m_cacheContext->partBmeshVertices) {
+        m_meshResultContext->bmeshVertices.insert(m_meshResultContext->bmeshVertices.end(),
+            bmeshVertices.second.begin(), bmeshVertices.second.end());
+    }
+    
+    for (const auto &bmeshNodes: m_cacheContext->partBmeshNodes) {
+        m_meshResultContext->bmeshNodes.insert(m_meshResultContext->bmeshNodes.end(),
+            bmeshNodes.second.begin(), bmeshNodes.second.end());
+    }
+    
     if (resultMeshId > 0) {
         resultMeshId = meshlite_combine_coplanar_faces(m_meshliteContext, resultMeshId);
         if (resultMeshId > 0)
@@ -396,9 +518,20 @@ void MeshGenerator::process()
         m_mesh = new MeshLoader(m_meshliteContext, resultMeshId, triangulatedFinalMeshId, Theme::white, &m_meshResultContext->triangleColors());
     }
     
+    if (needDeleteCacheContext) {
+        delete m_cacheContext;
+        m_cacheContext = nullptr;
+    }
+    
     meshlite_destroy_context(m_meshliteContext);
+    
+    qDebug() << "The mesh generation took" << countTimeConsumed.elapsed() << "milliseconds";
+    
     this->moveToThread(QGuiApplication::instance()->thread());
     emit finished();
 }
 
-
+void MeshGenerator::checkDirtyFlags()
+{
+    checkIsComponentDirty(QUuid().toString());
+}

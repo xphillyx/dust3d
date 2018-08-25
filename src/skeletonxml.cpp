@@ -17,10 +17,14 @@ static void saveSkeletonComponent(SkeletonSnapshot *snapshot, QXmlStreamWriter *
             children = componentAttributeIterator->second;
             continue;
         }
+        if ("dirty" == componentAttributeIterator->first)
+            continue;
         writer->writeAttribute(componentAttributeIterator->first, componentAttributeIterator->second);
     }
     if (!children.isEmpty()) {
         for (const auto &childId: children.split(",")) {
+            if (childId.isEmpty())
+                continue;
             saveSkeletonComponent(snapshot, writer, childId);
         }
     }
@@ -68,7 +72,7 @@ void saveSkeletonToXmlStream(SkeletonSnapshot *snapshot, QXmlStreamWriter *write
             std::map<QString, QString>::iterator partAttributeIterator;
             writer->writeStartElement("part");
             for (partAttributeIterator = partIterator->second.begin(); partAttributeIterator != partIterator->second.end(); partAttributeIterator++) {
-                if (partAttributeIterator->first == "dirty")
+                if ("dirty" == partAttributeIterator->first)
                     continue;
                 writer->writeAttribute(partAttributeIterator->first, partAttributeIterator->second);
             }
@@ -80,6 +84,8 @@ void saveSkeletonToXmlStream(SkeletonSnapshot *snapshot, QXmlStreamWriter *write
         if (childrenIds != snapshot->rootComponent.end()) {
             writer->writeStartElement("components");
             for (const auto &componentId: childrenIds->second.split(",")) {
+                if (componentId.isEmpty())
+                    continue;
                 saveSkeletonComponent(snapshot, writer, componentId);
             }
             writer->writeEndElement();
