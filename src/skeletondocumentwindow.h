@@ -23,6 +23,7 @@ public:
     ~SkeletonDocumentWindow();
     static SkeletonDocumentWindow *createDocumentWindow();
     static void showAcknowlegements();
+    static void showContributors();
     static void showAbout();
 protected:
     void showEvent(QShowEvent *event);
@@ -44,6 +45,7 @@ public slots:
     void about();
     void reportIssues();
     void seeAcknowlegements();
+    void seeContributors();
     void seeReferenceGuide();
     void documentChanged();
     void updateXlockButtonState();
@@ -117,6 +119,7 @@ private:
     QAction *m_viewSourceAction;
     QAction *m_aboutAction;
     QAction *m_reportIssuesAction;
+    QAction *m_seeContributorsAction;
     QAction *m_seeAcknowlegementsAction;
     QAction *m_seeReferenceGuideAction;
 

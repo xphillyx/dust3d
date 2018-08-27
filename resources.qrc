@@ -7,5 +7,7 @@
     <file>resources/tree-branch-open.png</file>
     <file>resources/tree-vline.png</file>
     <file>ACKNOWLEDGEMENTS.html</file>
+    <file>AUTHORS</file>
+    <file>CONTRIBUTORS</file>
 </qresource>
 </RCC>

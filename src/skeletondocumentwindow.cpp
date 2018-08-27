@@ -17,7 +17,6 @@
 #include <QDockWidget>
 #include "skeletondocumentwindow.h"
 #include "skeletongraphicswidget.h"
-#include "skeletonpartlistwidget.h"
 #include "theme.h"
 #include "ds3file.h"
 #include "skeletonsnapshot.h"
@@ -41,6 +40,7 @@ LogBrowser *g_logBrowser = nullptr;
 std::set<SkeletonDocumentWindow *> g_documentWindows;
 QTextBrowser *g_acknowlegementsWidget = nullptr;
 AboutWidget *g_aboutWidget = nullptr;
+QTextBrowser *g_contributorsWidget = nullptr;
 
 void outputMessage(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
@@ -62,6 +62,23 @@ void SkeletonDocumentWindow::showAcknowlegements()
     g_acknowlegementsWidget->show();
     g_acknowlegementsWidget->activateWindow();
     g_acknowlegementsWidget->raise();
+}
+
+void SkeletonDocumentWindow::showContributors()
+{
+    if (!g_contributorsWidget) {
+        g_contributorsWidget = new QTextBrowser;
+        g_contributorsWidget->setWindowTitle(APP_NAME);
+        g_contributorsWidget->setMinimumSize(QSize(400, 300));
+        QFile authors(":/AUTHORS");
+        authors.open(QFile::ReadOnly | QFile::Text);
+        QFile contributors(":/CONTRIBUTORS");
+        contributors.open(QFile::ReadOnly | QFile::Text);
+        g_contributorsWidget->setHtml("<h1>AUTHORS</h1><pre>" + authors.readAll() + "</pre><h1>CONTRIBUTORS</h1><pre>" + contributors.readAll() + "</pre>");
+    }
+    g_contributorsWidget->show();
+    g_contributorsWidget->activateWindow();
+    g_contributorsWidget->raise();
 }
 
 void SkeletonDocumentWindow::showAbout()
@@ -441,6 +458,12 @@ SkeletonDocumentWindow::SkeletonDocumentWindow() :
     m_reportIssuesAction = new QAction(tr("Report Issues"), this);
     connect(m_reportIssuesAction, &QAction::triggered, this, &SkeletonDocumentWindow::reportIssues);
     m_helpMenu->addAction(m_reportIssuesAction);
+    
+    m_helpMenu->addSeparator();
+
+    m_seeContributorsAction = new QAction(tr("Contributors"), this);
+    connect(m_seeContributorsAction, &QAction::triggered, this, &SkeletonDocumentWindow::seeContributors);
+    m_helpMenu->addAction(m_seeContributorsAction);
 
     m_seeAcknowlegementsAction = new QAction(tr("Acknowlegements"), this);
     connect(m_seeAcknowlegementsAction, &QAction::triggered, this, &SkeletonDocumentWindow::seeAcknowlegements);
@@ -744,6 +767,11 @@ void SkeletonDocumentWindow::seeReferenceGuide()
 void SkeletonDocumentWindow::seeAcknowlegements()
 {
     SkeletonDocumentWindow::showAcknowlegements();
+}
+
+void SkeletonDocumentWindow::seeContributors()
+{
+    SkeletonDocumentWindow::showContributors();
 }
 
 void SkeletonDocumentWindow::initLockButton(QPushButton *button)
