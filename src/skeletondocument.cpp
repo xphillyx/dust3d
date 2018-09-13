@@ -27,6 +27,7 @@ SkeletonDocument::SkeletonDocument() :
     textureBorderImage(nullptr),
     textureAmbientOcclusionImage(nullptr),
     textureColorImage(nullptr),
+    rigType(RigType::None),
     // private
     m_isResultMeshObsolete(false),
     m_meshGenerator(nullptr),
@@ -44,7 +45,10 @@ SkeletonDocument::SkeletonDocument() :
     m_ambientOcclusionBakedImageUpdateVersion(0),
     m_sharedContextWidget(nullptr),
     m_allPositionRelatedLocksEnabled(true),
-    m_smoothNormal(true)
+    m_smoothNormal(true),
+    m_rigGenerator(nullptr),
+    m_resultRigWeightMesh(nullptr),
+    m_isRigObsolete(false)
 {
 }
 
@@ -57,6 +61,7 @@ SkeletonDocument::~SkeletonDocument()
     delete textureBorderImage;
     delete textureAmbientOcclusionImage;
     delete m_resultTextureMesh;
+    delete m_resultRigWeightMesh;
 }
 
 void SkeletonDocument::uiReady()
@@ -555,6 +560,25 @@ void SkeletonDocument::switchNodeXZ(QUuid nodeId)
     emit skeletonChanged();
 }
 
+void SkeletonDocument::setNodeBoneMark(QUuid nodeId, SkeletonBoneMark mark)
+{
+    auto it = nodeMap.find(nodeId);
+    if (it == nodeMap.end()) {
+        qDebug() << "Find node failed:" << nodeId;
+        return;
+    }
+    if (isPartReadonly(it->second.partId))
+        return;
+    if (it->second.boneMark == mark)
+        return;
+    it->second.boneMark = mark;
+    auto part = partMap.find(it->second.partId);
+    if (part != partMap.end())
+        part->second.dirty = true;
+    emit nodeBoneMarkChanged(nodeId);
+    emit skeletonChanged();
+}
+
 void SkeletonDocument::updateTurnaround(const QImage &image)
 {
     turnaround = image;
@@ -699,6 +723,8 @@ void SkeletonDocument::toSnapshot(SkeletonSnapshot *snapshot, const std::set<QUu
         node["y"] = QString::number(nodeIt.second.y);
         node["z"] = QString::number(nodeIt.second.z);
         node["partId"] = nodeIt.second.partId.toString();
+        if (nodeIt.second.boneMark != SkeletonBoneMark::None)
+            node["boneMark"] = SkeletonBoneMarkToString(nodeIt.second.boneMark);
         if (!nodeIt.second.name.isEmpty())
             node["name"] = nodeIt.second.name;
         snapshot->nodes[node["id"]] = node;
@@ -763,20 +789,31 @@ void SkeletonDocument::toSnapshot(SkeletonSnapshot *snapshot, const std::set<QUu
     canvas["originX"] = QString::number(originX);
     canvas["originY"] = QString::number(originY);
     canvas["originZ"] = QString::number(originZ);
+    canvas["rigType"] = RigTypeToString(rigType);
     snapshot->canvas = canvas;
 }
 
-void SkeletonDocument::addFromSnapshot(const SkeletonSnapshot &snapshot)
+void SkeletonDocument::addFromSnapshot(const SkeletonSnapshot &snapshot, bool fromPaste)
 {
-    const auto &originXit = snapshot.canvas.find("originX");
-    const auto &originYit = snapshot.canvas.find("originY");
-    const auto &originZit = snapshot.canvas.find("originZ");
-    if (originXit != snapshot.canvas.end() &&
-            originYit != snapshot.canvas.end() &&
-            originZit != snapshot.canvas.end()) {
-        originX = originXit->second.toFloat();
-        originY = originYit->second.toFloat();
-        originZ = originZit->second.toFloat();
+    bool isOriginChanged = false;
+    bool isRigTypeChanged = false;
+    if (!fromPaste) {
+        const auto &originXit = snapshot.canvas.find("originX");
+        const auto &originYit = snapshot.canvas.find("originY");
+        const auto &originZit = snapshot.canvas.find("originZ");
+        if (originXit != snapshot.canvas.end() &&
+                originYit != snapshot.canvas.end() &&
+                originZit != snapshot.canvas.end()) {
+            originX = originXit->second.toFloat();
+            originY = originYit->second.toFloat();
+            originZ = originZit->second.toFloat();
+            isOriginChanged = true;
+        }
+        const auto &rigTypeIt = snapshot.canvas.find("rigType");
+        if (rigTypeIt != snapshot.canvas.end()) {
+            rigType = RigTypeFromString(rigTypeIt->second.toUtf8().constData());
+            isRigTypeChanged = true;
+        }
     }
     
     std::set<QUuid> newAddedNodeIds;
@@ -830,6 +867,7 @@ void SkeletonDocument::addFromSnapshot(const SkeletonSnapshot &snapshot)
         node.y = valueOfKeyInMapOrEmpty(nodeKv.second, "y").toFloat();
         node.z = valueOfKeyInMapOrEmpty(nodeKv.second, "z").toFloat();
         node.partId = oldNewIdMap[QUuid(valueOfKeyInMapOrEmpty(nodeKv.second, "partId"))];
+        node.boneMark = SkeletonBoneMarkFromString(valueOfKeyInMapOrEmpty(nodeKv.second, "boneMark").toUtf8().constData());
         nodeMap[node.id] = node;
         newAddedNodeIds.insert(node.id);
     }
@@ -927,7 +965,10 @@ void SkeletonDocument::addFromSnapshot(const SkeletonSnapshot &snapshot)
     }
     
     emit componentChildrenChanged(QUuid());
-    emit originChanged();
+    if (isOriginChanged)
+        emit originChanged();
+    if (isRigTypeChanged)
+        emit rigTypeChanged();
     emit skeletonChanged();
     
     for (const auto &partIt : newAddedPartIds) {
@@ -948,6 +989,7 @@ void SkeletonDocument::reset()
     originX = 0.0;
     originY = 0.0;
     originZ = 0.0;
+    rigType = RigType::None;
     nodeMap.clear();
     edgeMap.clear();
     partMap.clear();
@@ -960,7 +1002,7 @@ void SkeletonDocument::reset()
 void SkeletonDocument::fromSnapshot(const SkeletonSnapshot &snapshot)
 {
     reset();
-    addFromSnapshot(snapshot);
+    addFromSnapshot(snapshot, false);
     emit uncheckAll();
 }
 
@@ -977,6 +1019,14 @@ MeshLoader *SkeletonDocument::takeResultTextureMesh()
     MeshLoader *resultTextureMesh = m_resultTextureMesh;
     m_resultTextureMesh = nullptr;
     return resultTextureMesh;
+}
+
+MeshLoader *SkeletonDocument::takeResultRigWeightMesh()
+{
+    if (nullptr == m_resultRigWeightMesh)
+        return nullptr;
+    MeshLoader *resultMesh = new MeshLoader(*m_resultRigWeightMesh);
+    return resultMesh;
 }
 
 void SkeletonDocument::meshReady()
@@ -1898,7 +1948,7 @@ void SkeletonDocument::paste()
         QXmlStreamReader xmlStreamReader(mimeData->text());
         SkeletonSnapshot snapshot;
         loadSkeletonFromXmlStream(&snapshot, xmlStreamReader);
-        addFromSnapshot(snapshot);
+        addFromSnapshot(snapshot, true);
     }
 }
 
@@ -2168,3 +2218,53 @@ void SkeletonDocument::unlockDescendantComponents(QUuid componentId)
     }
 }
 
+void SkeletonDocument::generateRig()
+{
+    if (nullptr != m_rigGenerator) {
+        m_isRigObsolete = true;
+        return;
+    }
+    
+    m_isRigObsolete = false;
+    
+    if (RigType::None == rigType || nullptr == m_currentMeshResultContext)
+        return;
+    
+    qDebug() << "Rig generating..";
+    
+    QThread *thread = new QThread;
+    m_rigGenerator = new RigGenerator(*m_currentMeshResultContext);
+    m_rigGenerator->moveToThread(thread);
+    connect(thread, &QThread::started, m_rigGenerator, &RigGenerator::process);
+    connect(m_rigGenerator, &RigGenerator::finished, this, &SkeletonDocument::rigReady);
+    connect(m_rigGenerator, &RigGenerator::finished, thread, &QThread::quit);
+    connect(thread, &QThread::finished, thread, &QThread::deleteLater);
+    thread->start();
+}
+
+void SkeletonDocument::rigReady()
+{
+    delete m_resultRigWeightMesh;
+    m_resultRigWeightMesh = m_rigGenerator->takeResultMesh();
+    
+    delete m_rigGenerator;
+    m_rigGenerator = nullptr;
+    
+    qDebug() << "Rig generation done";
+    
+    emit resultRigChanged();
+    
+    if (m_isRigObsolete) {
+        generateRig();
+    }
+}
+
+void SkeletonDocument::setRigType(RigType toRigType)
+{
+    if (rigType == toRigType)
+        return;
+    
+    rigType = toRigType;
+    emit rigTypeChanged();
+    emit rigChanged();
+}

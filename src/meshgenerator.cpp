@@ -221,12 +221,13 @@ void *MeshGenerator::combinePartMesh(QString partId)
     if (MeshGenerator::m_enableDebug)
         meshlite_bmesh_enable_debug(m_meshliteContext, bmeshId, 1);
     
-    //QString mirroredPartId;
-    //QUuid mirroredPartIdNotAsString;
-    //if (xMirrored) {
-    //    mirroredPartIdNotAsString = QUuid().createUuid();
-    //    mirroredPartId = mirroredPartIdNotAsString.toString();
-    //}
+    QString mirroredPartId;
+    QUuid mirroredPartIdNotAsString;
+    if (xMirrored) {
+        mirroredPartIdNotAsString = QUuid().createUuid();
+        mirroredPartId = mirroredPartIdNotAsString.toString();
+        m_cacheContext->partMirrorIdMap[mirroredPartId] = partId;
+    }
     
     std::map<QString, int> nodeToBmeshIdMap;
     std::map<int, QUuid> bmeshToNodeIdMap;
@@ -247,7 +248,9 @@ void *MeshGenerator::combinePartMesh(QString partId)
         float y = (m_mainProfileMiddleY - valueOfKeyInMapOrEmpty(node, "y").toFloat());
         float z = (m_sideProfileMiddleX - valueOfKeyInMapOrEmpty(node, "z").toFloat());
         int bmeshNodeId = meshlite_bmesh_add_node(m_meshliteContext, bmeshId, x, y, z, radius);
-
+        
+        SkeletonBoneMark boneMark = SkeletonBoneMarkFromString(valueOfKeyInMapOrEmpty(node, "boneMark").toUtf8().constData());
+        
         nodeToBmeshIdMap[nodeId] = bmeshNodeId;
         bmeshToNodeIdMap[bmeshNodeId] = nodeId;
         
@@ -257,12 +260,15 @@ void *MeshGenerator::combinePartMesh(QString partId)
         bmeshNode.radius = radius;
         bmeshNode.nodeId = QUuid(nodeId);
         bmeshNode.color = partColor;
+        bmeshNode.boneMark = boneMark;
+        //if (SkeletonBoneMark::None != boneMark)
+        //    bmeshNode.color = SkeletonBoneMarkToColor(boneMark);
         cacheBmeshNodes.push_back(bmeshNode);
-        //if (xMirrored) {
-        //    bmeshNode.partId = mirroredPartId;
-        //    bmeshNode.origin.setX(-x);
-        //    cacheBmeshNodes.push_back(bmeshNode);
-        //}
+        if (xMirrored) {
+            bmeshNode.partId = mirroredPartId;
+            bmeshNode.origin.setX(-x);
+            cacheBmeshNodes.push_back(bmeshNode);
+        }
     }
     
     for (const auto &edgeId: m_partEdgeIds[partId]) {
@@ -305,7 +311,7 @@ void *MeshGenerator::combinePartMesh(QString partId)
     if (nullptr != resultMesh) {
         if (xMirrored) {
             int xMirroredMeshId = meshlite_mirror_in_x(m_meshliteContext, meshId, 0);
-            loadVertexSources(m_meshliteContext, xMirroredMeshId, partIdNotAsString, bmeshToNodeIdMap, cacheBmeshVertices);
+            loadVertexSources(m_meshliteContext, xMirroredMeshId, mirroredPartIdNotAsString, bmeshToNodeIdMap, cacheBmeshVertices);
             void *mirroredMesh = nullptr;
             if (wrapped)
                 mirroredMesh = convertToCombinableConvexHullMesh(m_meshliteContext, xMirroredMeshId);
@@ -554,6 +560,14 @@ void MeshGenerator::process()
     } else {
         for (auto it = m_cacheContext->partBmeshNodes.begin(); it != m_cacheContext->partBmeshNodes.end(); ) {
             if (m_snapshot->parts.find(it->first) == m_snapshot->parts.end()) {
+                auto mirrorFrom = m_cacheContext->partMirrorIdMap.find(it->first);
+                if (mirrorFrom != m_cacheContext->partMirrorIdMap.end()) {
+                    if (m_snapshot->parts.find(mirrorFrom->second) != m_snapshot->parts.end()) {
+                        it++;
+                        continue;
+                    }
+                    m_cacheContext->partMirrorIdMap.erase(mirrorFrom);
+                }
                 it = m_cacheContext->partBmeshNodes.erase(it);
                 continue;
             }
@@ -617,14 +631,15 @@ void MeshGenerator::process()
             bmeshNodes.second.begin(), bmeshNodes.second.end());
     }
     
-    if (resultMeshId > 0) {
-        resultMeshId = meshlite_combine_coplanar_faces(m_meshliteContext, resultMeshId);
-        if (resultMeshId > 0)
-            resultMeshId = meshlite_fix_hole(m_meshliteContext, resultMeshId);
-    }
+    //if (resultMeshId > 0) {
+    //    resultMeshId = meshlite_combine_coplanar_faces(m_meshliteContext, resultMeshId);
+    //    if (resultMeshId > 0)
+    //        resultMeshId = meshlite_fix_hole(m_meshliteContext, resultMeshId);
+    //}
     
     if (resultMeshId > 0) {
-        int triangulatedFinalMeshId = meshlite_triangulate(m_meshliteContext, resultMeshId);
+        //int triangulatedFinalMeshId = meshlite_triangulate(m_meshliteContext, resultMeshId);
+        int triangulatedFinalMeshId = resultMeshId;
         loadGeneratedPositionsToMeshResultContext(m_meshliteContext, triangulatedFinalMeshId);
         m_mesh = new MeshLoader(m_meshliteContext, resultMeshId, triangulatedFinalMeshId, Theme::white, &m_meshResultContext->triangleColors(), m_smoothNormal);
     }

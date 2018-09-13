@@ -496,11 +496,21 @@ const std::vector<ResultRearrangedTriangle> &MeshResultContext::rearrangedTriang
     return m_rearrangedTriangles;
 }
 
+const std::map<int, int> &MeshResultContext::rearrangedVerticesToOldIndexMap()
+{
+    if (!m_resultRearrangedVerticesResolved) {
+        calculateResultRearrangedVertices(m_rearrangedVertices, m_rearrangedTriangles);
+        m_resultRearrangedVerticesResolved = true;
+    }
+    return m_rearrangedVerticesToOldIndexMap;
+}
+
 void MeshResultContext::calculateResultRearrangedVertices(std::vector<ResultRearrangedVertex> &rearrangedVertices, std::vector<ResultRearrangedTriangle> &rearrangedTriangles)
 {
     std::map<std::pair<QUuid, int>, int> oldVertexToNewMap;
     rearrangedVertices.clear();
     rearrangedTriangles.clear();
+    m_rearrangedVerticesToOldIndexMap.clear();
     for (auto x = 0u; x < triangles.size(); x++) {
         const auto &triangle = triangles[x];
         const auto &sourceNode = triangleSourceNodes()[x];
@@ -515,6 +525,7 @@ void MeshResultContext::calculateResultRearrangedVertices(std::vector<ResultRear
                 rearrangedVertex.originalIndex = triangle.indicies[i];
                 rearrangedVertex.position = vertices[triangle.indicies[i]].position;
                 int newIndex = rearrangedVertices.size();
+                m_rearrangedVerticesToOldIndexMap[newIndex] = key.second;
                 rearrangedVertices.push_back(rearrangedVertex);
                 oldVertexToNewMap.insert(std::make_pair(key, newIndex));
                 newTriangle.indicies[i] = newIndex;

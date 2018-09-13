@@ -22,6 +22,7 @@ public:
     std::map<QString, void *> componentCombinableMeshs;
     std::map<QString, std::vector<QVector3D>> componentPositions;
     std::map<QString, PositionMap<BmeshVertex>> componentVerticesSources;
+    std::map<QString, QString> partMirrorIdMap;
     void updateComponentCombinableMesh(QString componentId, void *mesh);
 };
 

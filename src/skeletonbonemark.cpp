@@ -1,0 +1,7 @@
+#include <QObject>
+#include "skeletonbonemark.h"
+
+IMPL_SkeletonBoneMarkToColor
+IMPL_SkeletonBoneMarkToString
+IMPL_SkeletonBoneMarkFromString
+IMPL_SkeletonBoneMarkToDispName

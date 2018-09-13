@@ -68,7 +68,7 @@ ExportPreviewWidget::ExportPreviewWidget(SkeletonDocument *document, QWidget *pa
     m_spinnerWidget->setNumberOfLines(12);
     m_spinnerWidget->hide();
     
-    setWindowTitle(APP_NAME);
+    setWindowTitle(tr("Export glTF") + tr(" - ") + APP_NAME);
     
     emit updateTexturePreview();
 }
