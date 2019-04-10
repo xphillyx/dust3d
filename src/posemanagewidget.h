@@ -18,6 +18,7 @@ protected:
 public slots:
     void showAddPoseDialog();
     void showPoseDialog(QUuid poseId);
+    void showCapturePoseDialog();
 private:
     const Document *m_document = nullptr;
     PoseListWidget *m_poseListWidget = nullptr;

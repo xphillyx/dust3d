@@ -5,6 +5,7 @@
 #include "theme.h"
 #include "poseeditwidget.h"
 #include "infolabel.h"
+#include "posecapturewidget.h"
 
 PoseManageWidget::PoseManageWidget(const Document *document, QWidget *parent) :
     QWidget(parent),
@@ -15,8 +16,15 @@ PoseManageWidget::PoseManageWidget(const Document *document, QWidget *parent) :
     
     connect(addPoseButton, &QPushButton::clicked, this, &PoseManageWidget::showAddPoseDialog);
     
+    QPushButton *capturePoseButton = new QPushButton(Theme::awesome()->icon(fa::videocamera), tr(""));
+    capturePoseButton->hide();
+    
+    connect(capturePoseButton, &QPushButton::clicked, this, &PoseManageWidget::showCapturePoseDialog);
+    
     QHBoxLayout *toolsLayout = new QHBoxLayout;
+    toolsLayout->addWidget(capturePoseButton);
     toolsLayout->addWidget(addPoseButton);
+    toolsLayout->setStretch(1, 1);
     
     m_poseListWidget = new PoseListWidget(document);
     connect(m_poseListWidget, &PoseListWidget::modifyPose, this, &PoseManageWidget::showPoseDialog);
@@ -30,15 +38,18 @@ PoseManageWidget::PoseManageWidget(const Document *document, QWidget *parent) :
                 infoLabel->setText("");
                 infoLabel->hide();
                 addPoseButton->show();
+                capturePoseButton->show();
             } else {
                 infoLabel->setText(tr("Pose editor doesn't support this rig type yet: ") + RigTypeToDispName(m_document->rigType));
                 infoLabel->show();
                 addPoseButton->hide();
+                capturePoseButton->hide();
             }
         } else {
             infoLabel->setText(tr("Missing Rig"));
             infoLabel->show();
             addPoseButton->hide();
+            capturePoseButton->hide();
         }
     };
     
@@ -66,6 +77,17 @@ QSize PoseManageWidget::sizeHint() const
 void PoseManageWidget::showAddPoseDialog()
 {
     showPoseDialog(QUuid());
+}
+
+void PoseManageWidget::showCapturePoseDialog()
+{
+    PoseCaptureWidget *poseCaptureWidget = new PoseCaptureWidget();
+    poseCaptureWidget->setAttribute(Qt::WA_DeleteOnClose);
+    poseCaptureWidget->show();
+    connect(poseCaptureWidget, &QDialog::destroyed, [=]() {
+        emit unregisterDialog((QWidget *)poseCaptureWidget);
+    });
+    emit registerDialog((QWidget *)poseCaptureWidget);
 }
 
 void PoseManageWidget::showPoseDialog(QUuid poseId)

@@ -1,6 +1,6 @@
-QT += core widgets opengl network
-CONFIG += release
-DEFINES += NDEBUG
+QT += core widgets opengl network webengine
+CONFIG += debug
+#DEFINES += NDEBUG
 RESOURCES += resources.qrc
 
 macx {
@@ -301,6 +301,15 @@ HEADERS += src/remoteioserver.h
 SOURCES += src/remoteioconnection.cpp
 HEADERS += src/remoteioconnection.h
 
+SOURCES += src/imagecapture.cpp
+HEADERS += src/imagecapture.h
+
+SOURCES += src/imagepreviewwidget.cpp
+HEADERS += src/imagepreviewwidget.h
+
+SOURCES += src/posecapturewidget.cpp
+HEADERS += src/posecapturewidget.h
+
 SOURCES += src/main.cpp
 
 HEADERS += src/version.h
@@ -432,6 +441,9 @@ macx {
 	GMP_LIBDIR = /usr/local/opt/gmp/lib
 	MPFR_INCLUDEDIR = /usr/local/opt/mpfr/include
 	MPFR_LIBDIR = /usr/local/opt/mpfr/lib
+
+	INCLUDEPATH += /usr/local/opt/opencv/include
+	LIBS += -L/usr/local/opt/opencv/lib -lopencv_videoio -lopencv_core -lopencv_imgproc
 }
 
 unix:!macx {
