@@ -13,18 +13,23 @@ PoseManageWidget::PoseManageWidget(const Document *document, QWidget *parent) :
 {
     QPushButton *addPoseButton = new QPushButton(Theme::awesome()->icon(fa::plus), tr("Add Pose..."));
     addPoseButton->hide();
-    
     connect(addPoseButton, &QPushButton::clicked, this, &PoseManageWidget::showAddPoseDialog);
     
+#if USE_MOCAP
     QPushButton *capturePoseButton = new QPushButton(Theme::awesome()->icon(fa::videocamera), tr(""));
     capturePoseButton->hide();
-    
     connect(capturePoseButton, &QPushButton::clicked, this, &PoseManageWidget::showCapturePoseDialog);
-    
+#endif
+
+#if USE_MOCAP
     QHBoxLayout *toolsLayout = new QHBoxLayout;
     toolsLayout->addWidget(capturePoseButton);
     toolsLayout->addWidget(addPoseButton);
     toolsLayout->setStretch(1, 1);
+#else
+    QHBoxLayout *toolsLayout = new QHBoxLayout;
+    toolsLayout->addWidget(addPoseButton);
+#endif
     
     m_poseListWidget = new PoseListWidget(document);
     connect(m_poseListWidget, &PoseListWidget::modifyPose, this, &PoseManageWidget::showPoseDialog);
@@ -79,6 +84,7 @@ void PoseManageWidget::showAddPoseDialog()
     showPoseDialog(QUuid());
 }
 
+#if USE_MOCAP
 void PoseManageWidget::showCapturePoseDialog()
 {
     PoseCaptureWidget *poseCaptureWidget = new PoseCaptureWidget();
@@ -89,6 +95,7 @@ void PoseManageWidget::showCapturePoseDialog()
     });
     emit registerDialog((QWidget *)poseCaptureWidget);
 }
+#endif
 
 void PoseManageWidget::showPoseDialog(QUuid poseId)
 {

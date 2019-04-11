@@ -15,9 +15,12 @@ int main(int argc, char ** argv)
 {
     QApplication app(argc, argv);
     
+#if !defined(__APPLE__)
+    // QWebEngineView force to use default format on MacOS
     QSurfaceFormat format = QSurfaceFormat::defaultFormat();
     format.setProfile(QSurfaceFormat::OpenGLContextProfile::CompatibilityProfile);
     QSurfaceFormat::setDefaultFormat(format);
+#endif
     
     // QuantumCD/Qt 5 Dark Fusion Palette
     // https://gist.github.com/QuantumCD/6245215

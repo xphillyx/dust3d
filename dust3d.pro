@@ -1,6 +1,6 @@
-QT += core widgets opengl network webengine
-CONFIG += debug
-#DEFINES += NDEBUG
+QT += core widgets opengl network webenginewidgets
+CONFIG += release
+DEFINES += NDEBUG
 RESOURCES += resources.qrc
 
 macx {
@@ -444,6 +444,8 @@ macx {
 
 	INCLUDEPATH += /usr/local/opt/opencv/include
 	LIBS += -L/usr/local/opt/opencv/lib -lopencv_videoio -lopencv_core -lopencv_imgproc
+
+	DEFINES += USE_MOCAP
 }
 
 unix:!macx {

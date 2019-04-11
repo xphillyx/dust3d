@@ -18,7 +18,9 @@ protected:
 public slots:
     void showAddPoseDialog();
     void showPoseDialog(QUuid poseId);
+#if USE_MOCAP
     void showCapturePoseDialog();
+#endif
 private:
     const Document *m_document = nullptr;
     PoseListWidget *m_poseListWidget = nullptr;
