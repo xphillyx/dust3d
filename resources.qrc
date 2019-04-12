@@ -15,6 +15,8 @@
     <file>shaders/pbr-qt.frag</file>
     <file>shaders/pbr-joey.frag</file>
     <file>scripts/motioncapture.html</file>
+    <file>scripts/tfjs.js</file>
+    <file>scripts/posenet.js</file>
     <file>ACKNOWLEDGEMENTS.html</file>
     <file>AUTHORS</file>
     <file>CONTRIBUTORS</file>

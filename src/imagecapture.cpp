@@ -3,8 +3,10 @@
 #include <QImage>
 #include "imagecapture.h"
 
-ImageCapture::ImageCapture()
+ImageCapture::ImageCapture(int scaleToWidth)
 {
+    if (scaleToWidth > 0)
+        m_scaleToWidth = scaleToWidth;
     m_cond.reset(new QWaitCondition);
     m_mutex.reset(new QMutex);
 }
@@ -51,7 +53,7 @@ void ImageCapture::start()
                 cv::resize(*frame, *frame, cv::Size(scaleToWidth, scaleToHeight));
             }
         };
-        scaleFrameToWidth(frame.data(), 640);
+        scaleFrameToWidth(frame.data(), m_scaleToWidth);
         
         cv::cvtColor(*frame, *frame, CV_BGR2RGB);
 

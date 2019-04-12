@@ -1,6 +1,7 @@
 #include <QVBoxLayout>
 #include <QThread>
 #include <QBuffer>
+#include <QDebug>
 #include "posecapturewidget.h"
 
 #if USE_MOCAP
@@ -12,6 +13,10 @@ PoseCaptureWidget::PoseCaptureWidget(QWidget *parent) :
     
     m_webView = new QWebEngineView;
     m_webView->setUrl(QUrl("qrc:/scripts/motioncapture.html"));
+    connect(m_webView->page(), &QWebEnginePage::loadFinished, this, [&](bool ok) {
+        Q_UNUSED(ok);
+        m_webLoaded = true;
+    });
     
     m_rawCapturePreviewWidget = new ImagePreviewWidget;
     
@@ -51,6 +56,9 @@ void PoseCaptureWidget::startCapture()
 
 void PoseCaptureWidget::updateCapturedImage(const QImage &image)
 {
+    if (!m_webLoaded)
+        return;
+    
     QByteArray bateArray;
     QBuffer buffer(&bateArray);
     buffer.open(QIODevice::WriteOnly);

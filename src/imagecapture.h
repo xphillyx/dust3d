@@ -9,7 +9,7 @@ class ImageCapture : public QObject
 {
     Q_OBJECT
 public:
-    ImageCapture();
+    ImageCapture(int scaleToWidth=0);
     
 signals:
     void stopped();
@@ -23,6 +23,7 @@ private:
     QScopedPointer<QWaitCondition> m_cond;
     QScopedPointer<QMutex> m_mutex;
     bool m_stopped = false;
+    int m_scaleToWidth = 320;
 };
 
 #endif

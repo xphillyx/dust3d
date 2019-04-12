@@ -2,7 +2,11 @@
 <html>
 <head>
 <style>
+html {
+    height: 100%;
+}
 body {
+    min-height: 100%;
     margin: auto;
 }
 canvas {
@@ -10,12 +14,19 @@ canvas {
     height: 100%;
 }
 </style>
+<script src="qrc:/scripts/tfjs.js"></script>
+<script src="qrc:/scripts/posenet.js"></script>
 </head>
 <body>
 <canvas id="output" />
 <script>
+navigator.getUserMedia = navigator.getUserMedia ||
+navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+
 var canvas = document.getElementById("output");
 var context = canvas.getContext("2d");
+
+//const net = await posenet.load(1.0);
 
 var image = new Image();
 image.onload = function() 

@@ -43,18 +43,24 @@ PoseManageWidget::PoseManageWidget(const Document *document, QWidget *parent) :
                 infoLabel->setText("");
                 infoLabel->hide();
                 addPoseButton->show();
+#if USE_MOCAP
                 capturePoseButton->show();
+#endif
             } else {
                 infoLabel->setText(tr("Pose editor doesn't support this rig type yet: ") + RigTypeToDispName(m_document->rigType));
                 infoLabel->show();
                 addPoseButton->hide();
+#if USE_MOCAP
                 capturePoseButton->hide();
+#endif
             }
         } else {
             infoLabel->setText(tr("Missing Rig"));
             infoLabel->show();
             addPoseButton->hide();
+#if USE_MOCAP
             capturePoseButton->hide();
+#endif
         }
     };
     

@@ -23,6 +23,7 @@ private:
     ImagePreviewWidget *m_rawCapturePreviewWidget = nullptr;
     ImageCapture *m_imageCapture = nullptr;
     QWebEngineView *m_webView = nullptr;
+    bool m_webLoaded = false;
 };
 
 #endif
