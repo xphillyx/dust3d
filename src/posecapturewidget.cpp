@@ -2,6 +2,7 @@
 #include <QThread>
 #include <QBuffer>
 #include <QDebug>
+#include <string>
 #include "posecapturewidget.h"
 
 #if USE_MOCAP
@@ -9,14 +10,25 @@
 PoseCaptureWidget::PoseCaptureWidget(QWidget *parent) :
     QDialog(parent)
 {
+    class WebEnginePage : public QWebEnginePage
+    {
+    public:
+        WebEnginePage(QObject *parent = 0) : QWebEnginePage(parent) {}
+        virtual void javaScriptConsoleMessage(JavaScriptConsoleMessageLevel level, const QString &message, int lineNumber, const QString &sourceID)
+        {
+            qDebug() << "Page console" << "level:" << level << "message:" << message << "line:" << lineNumber << "source:" << sourceID;
+        }
+    };
+
     QVBoxLayout *mainLayout = new QVBoxLayout;
     
     m_webView = new QWebEngineView;
-    m_webView->setUrl(QUrl("qrc:/scripts/motioncapture.html"));
+    m_webView->setPage(new WebEnginePage(m_webView));
     connect(m_webView->page(), &QWebEnginePage::loadFinished, this, [&](bool ok) {
         Q_UNUSED(ok);
         m_webLoaded = true;
     });
+    m_webView->setUrl(QUrl("qrc:/scripts/motioncapture.html"));
     
     m_rawCapturePreviewWidget = new ImagePreviewWidget;
     

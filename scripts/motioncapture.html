@@ -25,12 +25,23 @@ navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
 
 var canvas = document.getElementById("output");
 var context = canvas.getContext("2d");
-
-//const net = await posenet.load(1.0);
+var net = undefined;
+posenet.load(1.0).then(function(n){
+    console.log("posenet loaded");
+    net = n;
+});
 
 var image = new Image();
 image.onload = function() 
 {
+    var imageScaleFactor = 0.5;
+    var outputStride = 16;
+    var flipHorizontal = true;
+    if (undefined != net) {
+        net.estimateSinglePose(image, imageScaleFactor, flipHorizontal, outputStride).then(pose => {
+            console.log(JSON.stringify(pose));
+        });
+    }
     context.drawImage(image, 0, 0);
 };
 
