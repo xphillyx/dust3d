@@ -18,18 +18,20 @@ canvas {
 <script src="qrc:/scripts/posenet.js"></script>
 </head>
 <body>
-<canvas id="output" />
+<!-- <canvas id="output" /> -->
 <script>
 navigator.getUserMedia = navigator.getUserMedia ||
 navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
 
-var canvas = document.getElementById("output");
-var context = canvas.getContext("2d");
+//var canvas = document.getElementById("output");
+//var context = canvas.getContext("2d");
 var net = undefined;
 posenet.load(1.0).then(function(n){
     console.log("posenet loaded");
     net = n;
 });
+
+var poses = [];
 
 var image = new Image();
 image.onload = function() 
@@ -39,15 +41,18 @@ image.onload = function()
     var flipHorizontal = true;
     if (undefined != net) {
         net.estimateSinglePose(image, imageScaleFactor, flipHorizontal, outputStride).then(pose => {
-            console.log(JSON.stringify(pose));
+            poses.push(pose);
         });
     }
-    context.drawImage(image, 0, 0);
+    //context.drawImage(image, 0, 0);
 };
 
 function updateImage(content) 
 {
     image.src = content;
+    var returnPoses = poses.slice(0);
+    poses = [];
+    return JSON.stringify(returnPoses);
 }
 </script>
 </body>

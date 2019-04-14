@@ -3,6 +3,10 @@
 #include <QBuffer>
 #include <QDebug>
 #include <string>
+#include <QJsonDocument>
+#include <QJsonArray>
+#include <QJsonObject>
+#include <QVector3D>
 #include "posecapturewidget.h"
 
 #if USE_MOCAP
@@ -23,6 +27,7 @@ PoseCaptureWidget::PoseCaptureWidget(QWidget *parent) :
     QVBoxLayout *mainLayout = new QVBoxLayout;
     
     m_webView = new QWebEngineView;
+    m_webView->hide();
     m_webView->setPage(new WebEnginePage(m_webView));
     connect(m_webView->page(), &QWebEnginePage::loadFinished, this, [&](bool ok) {
         Q_UNUSED(ok);
@@ -31,6 +36,8 @@ PoseCaptureWidget::PoseCaptureWidget(QWidget *parent) :
     m_webView->setUrl(QUrl("qrc:/scripts/motioncapture.html"));
     
     m_rawCapturePreviewWidget = new ImagePreviewWidget;
+    
+    QObject::connect(this, &PoseCaptureWidget::poseKeypointsDetected, m_rawCapturePreviewWidget, &ImagePreviewWidget::setKeypoints);
     
     mainLayout->addWidget(m_rawCapturePreviewWidget);
     mainLayout->addWidget(m_webView);
@@ -66,6 +73,8 @@ void PoseCaptureWidget::startCapture()
     thread->start();
 }
 
+#define MIN_POSE_CONFIDENCE 0.7
+
 void PoseCaptureWidget::updateCapturedImage(const QImage &image)
 {
     if (!m_webLoaded)
@@ -76,8 +85,40 @@ void PoseCaptureWidget::updateCapturedImage(const QImage &image)
     buffer.open(QIODevice::WriteOnly);
     image.save(&buffer, "BMP");
     m_webView->page()->runJavaScript(QString("updateImage(\"data:image/bmp;base64,%1\")").arg(QString::fromLatin1(bateArray.toBase64())),
-            [](const QVariant &result) {
-            //qDebug() << result.toString();
+            [&](const QVariant &result) {
+        auto json = QJsonDocument::fromJson(result.toString().toUtf8());
+        if (!json.isArray())
+            return;
+        QJsonArray array = json.array();
+        if (array.isEmpty())
+            return;
+        for (int i = 0; i < array.size(); ++i) {
+            QJsonObject object = array[i].toObject();
+            auto map = object.toVariantMap();
+            const auto &keypoints = map["keypoints"];
+            if (QMetaType::QVariantList != keypoints.userType())
+                continue;
+            std::map<QString, QVector3D> keypointPositions;
+            for (const auto &keypoint: keypoints.value<QSequentialIterable>()) {
+                QVariantMap properties = qvariant_cast<QVariantMap>(keypoint);
+                const auto &score = properties.value("score");
+                if (score.isNull() || score.toFloat() < MIN_POSE_CONFIDENCE)
+                    continue;
+                const auto &part = properties.value("part");
+                if (part.isNull())
+                    continue;
+                const auto &position = properties.value("position");
+                if (position.isNull())
+                    continue;
+                QVariantMap positionComponents = qvariant_cast<QVariantMap>(position);
+                keypointPositions[part.toString()] = QVector3D(positionComponents.value("x").toFloat(),
+                    positionComponents.value("y").toFloat(),
+                    0);
+            }
+            if (keypointPositions.empty())
+                continue;
+            emit poseKeypointsDetected(keypointPositions);
+        }
     });
 }
 

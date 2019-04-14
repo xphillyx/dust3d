@@ -2,6 +2,7 @@
 #define DUST3D_POSE_CAPTURE_WIDGET_H
 #include <QDialog>
 #include <QWebEngineView>
+#include <QVariantMap>
 #include "imagepreviewwidget.h"
 #include "imagecapture.h"
 
@@ -13,6 +14,9 @@ class PoseCaptureWidget : public QDialog
 public:
     PoseCaptureWidget(QWidget *parent=nullptr);
     ~PoseCaptureWidget();
+    
+signals:
+    void poseKeypointsDetected(const std::map<QString, QVector3D> &keypoints);
     
 private slots:
     void startCapture();
