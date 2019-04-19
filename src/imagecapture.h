@@ -5,6 +5,8 @@
 #include <QMutex>
 #include <QImage>
 
+#if USE_MOCAP
+
 class ImageCapture : public QObject
 {
     Q_OBJECT
@@ -23,7 +25,9 @@ private:
     QScopedPointer<QWaitCondition> m_cond;
     QScopedPointer<QMutex> m_mutex;
     bool m_stopped = false;
-    int m_scaleToWidth = 600;
+    int m_scaleToWidth = 400;
 };
+
+#endif
 
 #endif

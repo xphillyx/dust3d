@@ -9,6 +9,8 @@ macx {
 	RESOURCE_FILES.files = $$ICON
 	RESOURCE_FILES.path = Contents/Resources
 	QMAKE_BUNDLE_DATA += RESOURCE_FILES
+
+	DEFINES += USE_MOCAP
 }
 
 isEmpty(HUMAN_VERSION) {
@@ -310,6 +312,9 @@ HEADERS += src/imagepreviewwidget.h
 SOURCES += src/posecapturewidget.cpp
 HEADERS += src/posecapturewidget.h
 
+SOURCES += src/posecapture.cpp
+HEADERS += src/posecapture.h
+
 SOURCES += src/main.cpp
 
 HEADERS += src/version.h
@@ -444,8 +449,6 @@ macx {
 
 	INCLUDEPATH += /usr/local/opt/opencv/include
 	LIBS += -L/usr/local/opt/opencv/lib -lopencv_videoio -lopencv_core -lopencv_imgproc
-
-	DEFINES += USE_MOCAP
 }
 
 unix:!macx {

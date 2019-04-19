@@ -1,4 +1,5 @@
 #include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <QThread>
 #include <QBuffer>
 #include <QDebug>
@@ -7,7 +8,13 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QVector3D>
+#include <QApplication>
 #include "posecapturewidget.h"
+
+#define POSE_CAPTURE_FRAMES_PER_SECOND_MEASURE_INTVAL_SECONDS    3
+#define MAX_POSE_PARSE_FRAMES_PER_SECOND                         30
+#define MIN_POSE_CONFIDENCE                                      0.7
+#define MIN_POSE_FRAME_DURATION                                  (1000 / MAX_POSE_PARSE_FRAMES_PER_SECOND)
 
 #if USE_MOCAP
 
@@ -23,8 +30,10 @@ PoseCaptureWidget::PoseCaptureWidget(QWidget *parent) :
             qDebug() << "Page console" << "level:" << level << "message:" << message << "line:" << lineNumber << "source:" << sourceID;
         }
     };
+    
+    m_elapsedTimer.start();
 
-    QVBoxLayout *mainLayout = new QVBoxLayout;
+    QVBoxLayout *previewLayout = new QVBoxLayout;
     
     m_webView = new QWebEngineView;
     m_webView->hide();
@@ -38,20 +47,46 @@ PoseCaptureWidget::PoseCaptureWidget(QWidget *parent) :
     m_rawCapturePreviewWidget = new ImagePreviewWidget;
     
     QObject::connect(this, &PoseCaptureWidget::poseKeypointsDetected, m_rawCapturePreviewWidget, &ImagePreviewWidget::setKeypoints);
+    QObject::connect(this, &PoseCaptureWidget::poseKeypointsDetected, &m_poseCapture, &PoseCapture::updateKeypoints);
+    connect(&m_poseCapture, &PoseCapture::stateChanged, this, &PoseCaptureWidget::changeStateIndicator);
     
-    mainLayout->addWidget(m_rawCapturePreviewWidget);
-    mainLayout->addWidget(m_webView);
+    previewLayout->addWidget(m_rawCapturePreviewWidget);
+    previewLayout->addWidget(m_webView);
+    
+    QHBoxLayout *mainLayout = new QHBoxLayout;
+    mainLayout->addLayout(previewLayout);
     
     setLayout(mainLayout);
     
     setMinimumSize(640, 480);
     
     startCapture();
+    
+    m_framesPerSecondCheckTimer = new QTimer;
+    connect(m_framesPerSecondCheckTimer, &QTimer::timeout, this, &PoseCaptureWidget::checkFramesPerSecond);
+    m_framesPerSecondCheckTimer->start(POSE_CAPTURE_FRAMES_PER_SECOND_MEASURE_INTVAL_SECONDS * 1000);
+}
+
+void PoseCaptureWidget::checkFramesPerSecond()
+{
+    m_capturedFramesPerSecond = (m_capturedFrames - m_tillLastSecondCapturedFrames) / POSE_CAPTURE_FRAMES_PER_SECOND_MEASURE_INTVAL_SECONDS;
+    m_parsedFramesPerSecond = (m_parsedFrames - m_tillLastSecondParsedFrames) / POSE_CAPTURE_FRAMES_PER_SECOND_MEASURE_INTVAL_SECONDS;
+    qDebug() << "Capture fps:" << m_capturedFramesPerSecond << "parse fps:" << m_parsedFramesPerSecond;
+    m_tillLastSecondCapturedFrames = m_capturedFrames;
+    m_tillLastSecondParsedFrames = m_parsedFrames;
 }
 
 PoseCaptureWidget::~PoseCaptureWidget()
 {
     stopCapture();
+    delete m_framesPerSecondCheckTimer;
+}
+
+void PoseCaptureWidget::changeStateIndicator(PoseCapture::State state)
+{
+    qDebug() << "State changed:" << (int)state;
+    //QApplication::beep();
+    // TODO:
 }
 
 void PoseCaptureWidget::startCapture()
@@ -73,12 +108,17 @@ void PoseCaptureWidget::startCapture()
     thread->start();
 }
 
-#define MIN_POSE_CONFIDENCE 0.7
-
 void PoseCaptureWidget::updateCapturedImage(const QImage &image)
 {
+    ++m_capturedFrames;
+    
     if (!m_webLoaded)
         return;
+    
+    if (m_lastFrameTime + MIN_POSE_FRAME_DURATION > m_elapsedTimer.elapsed()) {
+        return;
+    }
+    m_lastFrameTime = m_elapsedTimer.elapsed();
     
     QByteArray bateArray;
     QBuffer buffer(&bateArray);
@@ -93,6 +133,7 @@ void PoseCaptureWidget::updateCapturedImage(const QImage &image)
         if (array.isEmpty())
             return;
         for (int i = 0; i < array.size(); ++i) {
+            ++m_parsedFrames;
             QJsonObject object = array[i].toObject();
             auto map = object.toVariantMap();
             const auto &keypoints = map["keypoints"];

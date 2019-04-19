@@ -1,7 +1,11 @@
+#if USE_MOCAP
 #include <opencv2/opencv.hpp>
+#endif
 #include <QDebug>
 #include <QImage>
 #include "imagecapture.h"
+
+#if USE_MOCAP
 
 ImageCapture::ImageCapture(int scaleToWidth)
 {
@@ -79,3 +83,6 @@ void ImageCapture::stop()
     m_stopped = true;
     m_cond->wakeAll();
 }
+
+#endif
+
