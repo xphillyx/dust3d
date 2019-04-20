@@ -1,5 +1,6 @@
 #include <QPainter>
 #include "imagepreviewwidget.h"
+#include "theme.h"
 
 ImagePreviewWidget::ImagePreviewWidget(QWidget *parent) :
     QWidget(parent)
@@ -45,6 +46,35 @@ void ImagePreviewWidget::paintEvent(QPaintEvent *event)
     drawPair("leftKnee", "leftAnkle");
     drawPair("rightHip", "rightKnee");
     drawPair("rightKnee", "rightAnkle");
+    
+    float fullWidth = (float)width();
+    float fullHeight = (float)height();
+    float halfWidth = fullWidth / 2;
+    float halfHeight = fullHeight / 2;
+    float radius = std::min(halfWidth / 7, halfHeight / 7);
+    float margin = radius / 2;
+    float arcBorderWidth = radius / 8;
+    QRectF countdownRect(margin, margin, radius + radius, radius + radius);
+    
+    auto drawArc = [&](int degrees, const QColor &color) {
+        QPainterPath arcPath;
+        arcPath.moveTo(margin + radius + radius, margin + radius);
+        arcPath.arcTo(countdownRect, 0, degrees);
+        
+        QPen arcPen;
+        arcPen.setCapStyle(Qt::FlatCap);
+        arcPen.setColor(color);
+        arcPen.setWidth(arcBorderWidth);
+        
+        painter.strokePath(arcPath, arcPen);
+    };
+    
+    drawArc(360, Theme::white);
+    drawArc(37, Theme::red);
+    
+    painter.setPen(QPen());
+    painter.setBrush(Qt::red);
+    painter.drawEllipse(margin, margin, radius + radius, radius + radius);
 }
 
 void ImagePreviewWidget::setImage(const QImage &image)
