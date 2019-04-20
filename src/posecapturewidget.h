@@ -23,6 +23,7 @@ signals:
     
 public slots:
     void changeStateIndicator(PoseCapture::State state);
+    void updateTrack(const PoseCapture::Track &track);
     
 private slots:
     void startCapture();

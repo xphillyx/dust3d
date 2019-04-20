@@ -49,7 +49,11 @@ PoseCaptureWidget::PoseCaptureWidget(QWidget *parent) :
     QObject::connect(this, &PoseCaptureWidget::poseKeypointsDetected, m_rawCapturePreviewWidget, &PoseCapturePreviewWidget::setKeypoints);
     QObject::connect(this, &PoseCaptureWidget::poseKeypointsDetected, &m_poseCapture, &PoseCapture::updateKeypoints);
     connect(&m_poseCapture, &PoseCapture::stateChanged, this, &PoseCaptureWidget::changeStateIndicator);
-    connect(&m_poseCapture, &PoseCapture::stateChanged, m_rawCapturePreviewWidget, &PoseCapturePreviewWidget::setState);
+    connect(&m_poseCapture, &PoseCapture::trackMerged, this, &PoseCaptureWidget::updateTrack);
+    connect(&m_poseCapture, &PoseCapture::stateChanged, this, [&](PoseCapture::State state) {
+        m_rawCapturePreviewWidget->setProfile(m_poseCapture.profile());
+        m_rawCapturePreviewWidget->setState(state);
+    });
     
     previewLayout->addWidget(m_rawCapturePreviewWidget);
     previewLayout->addWidget(m_webView);
@@ -86,6 +90,11 @@ PoseCaptureWidget::~PoseCaptureWidget()
 void PoseCaptureWidget::changeStateIndicator(PoseCapture::State state)
 {
     qDebug() << "State changed:" << (int)state;
+}
+
+void PoseCaptureWidget::updateTrack(const PoseCapture::Track &track)
+{
+    qDebug() << "Track merged, size:" << track.size();
 }
 
 void PoseCaptureWidget::startCapture()

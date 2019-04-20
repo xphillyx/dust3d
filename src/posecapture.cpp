@@ -1,5 +1,6 @@
 #include <QDebug>
 #include "posecapture.h"
+#include "util.h"
 
 #if USE_MOCAP
 
@@ -24,6 +25,11 @@ PoseCapture::State PoseCapture::state()
     return m_state;
 }
 
+PoseCapture::Profile PoseCapture::profile()
+{
+    return m_profile;
+}
+
 void PoseCapture::handlePreEnterTimeout()
 {
     qDebug() << "PreEnter timeout, state:" << (int)m_state;
@@ -44,9 +50,70 @@ void PoseCapture::handleCapturingTimeout()
 {
     qDebug() << "Capturing timeout, state:" << (int)m_state;
     if (m_state == State::Capturing) {
+        PoseCapture::Track resultTrack;
+        mergeProfileTracks(m_latestMainTrack, m_latestSideTrack, resultTrack);
         m_state = State::Idle;
         qDebug() << "State change to Idle";
         emit stateChanged(m_state);
+        emit trackMerged(resultTrack);
+    }
+}
+
+void PoseCapture::updateFromKeypointsToAnimalPoserParameters(const std::map<QString, QVector3D> &keypoints,
+        std::map<QString, std::map<QString, QString>> &parameters, const QString &paramName,
+        const QString &fromName, const QString &toName)
+{
+    auto findFromPosition = keypoints.find(fromName);
+    if (findFromPosition == keypoints.end())
+        return;
+    auto findToPosition = keypoints.find(toName);
+    if (findToPosition == keypoints.end())
+        return;
+    auto &newParameters = parameters[paramName];
+    newParameters["fromX"] = findFromPosition->second.x();
+    newParameters["fromY"] = -findFromPosition->second.y();
+    newParameters["fromZ"] = findFromPosition->second.z();
+    newParameters["toX"] = findToPosition->second.x();
+    newParameters["toY"] = -findToPosition->second.y();
+    newParameters["toZ"] = findToPosition->second.z();
+}
+
+void PoseCapture::keypointsToAnimalPoserParameters(const std::map<QString, QVector3D> &keypoints,
+        std::map<QString, std::map<QString, QString>> &parameters)
+{
+    updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
+        "LeftLimb2_Joint1", "leftShoulder", "leftElbow");
+    updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
+        "LeftLimb2_Joint2", "leftElbow", "leftWrist");
+    updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
+        "LeftLimb2_Joint3", "leftWrist", "leftWrist");
+    updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
+        "RightLimb2_Joint1", "rightShoulder", "rightElbow");
+    updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
+        "RightLimb2_Joint2", "rightElbow", "rightWrist");
+    updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
+        "RightLimb2_Joint3", "rightWrist", "rightWrist");
+}
+
+void PoseCapture::mergeProfileTracks(const Track &main, const Track &side, Track &result)
+{
+    int trackLength = main.size();
+    for (int mainIndex = 0; mainIndex < trackLength; ++mainIndex) {
+        int sideIndex = side.size() * mainIndex / trackLength;
+        if (sideIndex >= (int)side.size())
+            continue;
+        std::map<QString, std::map<QString, QString>> parameters;
+        for (auto &it: main[mainIndex]) {
+            auto &sideParameters = side[sideIndex];
+            auto findSide = sideParameters.find(it.first);
+            if (findSide == sideParameters.end())
+                continue;
+            parameters[it.first] = it.second;
+            auto &change = parameters[it.first];
+            change["fromZ"] = valueOfKeyInMapOrEmpty(findSide->second, "fromX");
+            change["toZ"] = valueOfKeyInMapOrEmpty(findSide->second, "toX");
+        }
+        result.push_back(parameters);
     }
 }
 
@@ -61,9 +128,23 @@ void PoseCapture::updateKeypoints(const std::map<QString, QVector3D> &keypoints)
             connect(m_preEnterTimer, &QTimer::timeout, this, &PoseCapture::handlePreEnterTimeout);
             m_preEnterTimer->start(PreEnterDuration);
             m_state = State::PreEnter;
+            m_profile = InvokePose::T == invokePose ? Profile::Main : Profile::Side;
+            if (m_profile == Profile::Main)
+                m_latestMainTrack.clear();
+            else
+                m_latestSideTrack.clear();
             qDebug() << "State change to PreEnter";
             emit stateChanged(m_state);
             return;
+        }
+    } else if (State::Capturing == m_state) {
+        std::map<QString, std::map<QString, QString>> parameters;
+        keypointsToAnimalPoserParameters(keypoints, parameters);
+        if (!parameters.empty()) {
+            if (m_profile == Profile::Main)
+                m_latestMainTrack.push_back(parameters);
+            else
+                m_latestSideTrack.push_back(parameters);
         }
     }
 }

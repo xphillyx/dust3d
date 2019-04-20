@@ -18,6 +18,7 @@ protected:
 public slots:
     void setImage(const QImage &image);
     void setKeypoints(const std::map<QString, QVector3D> &keypoints);
+    void setProfile(PoseCapture::Profile profile);
     void setState(PoseCapture::State state);
     
 private:
@@ -25,6 +26,7 @@ private:
     std::map<QString, QVector3D> m_keypoints;
     PoseCapture::State m_currentState = PoseCapture::State::Idle;
     QElapsedTimer m_stateProgressTimer;
+    PoseCapture::Profile m_currentProfile = PoseCapture::Profile::Main;
 };
 
 #endif

@@ -75,7 +75,7 @@ void PoseCapturePreviewWidget::paintEvent(QPaintEvent *event)
             if (degrees > 360)
                 degrees = 360;
             drawArc(360, Theme::white);
-            drawArc(degrees, Theme::red);
+            drawArc(degrees, PoseCapture::Profile::Main == m_currentProfile ? Theme::red : Theme::green);
         }
         break;
     case PoseCapture::State::Capturing:
@@ -84,7 +84,7 @@ void PoseCapturePreviewWidget::paintEvent(QPaintEvent *event)
             if (degrees > 360)
                 degrees = 360;
             degrees = degrees - 360;
-            drawArc(degrees, Theme::red);
+            drawArc(degrees, PoseCapture::Profile::Main == m_currentProfile ? Theme::red : Theme::green);
         }
         break;
     default:
@@ -113,4 +113,9 @@ void PoseCapturePreviewWidget::setState(PoseCapture::State state)
         m_stateProgressTimer.start();
     else
         m_stateProgressTimer.restart();
+}
+
+void PoseCapturePreviewWidget::setProfile(PoseCapture::Profile profile)
+{
+    m_currentProfile = profile;
 }
