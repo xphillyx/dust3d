@@ -1,13 +1,13 @@
 #include <QPainter>
-#include "imagepreviewwidget.h"
+#include "posecapturepreviewwidget.h"
 #include "theme.h"
 
-ImagePreviewWidget::ImagePreviewWidget(QWidget *parent) :
+PoseCapturePreviewWidget::PoseCapturePreviewWidget(QWidget *parent) :
     QWidget(parent)
 {
 }
 
-void ImagePreviewWidget::paintEvent(QPaintEvent *event)
+void PoseCapturePreviewWidget::paintEvent(QPaintEvent *event)
 {
     Q_UNUSED(event);
     if (m_image.width() <=0 || m_image.height() <= 0)
@@ -51,14 +51,13 @@ void ImagePreviewWidget::paintEvent(QPaintEvent *event)
     float fullHeight = (float)height();
     float halfWidth = fullWidth / 2;
     float halfHeight = fullHeight / 2;
-    float radius = std::min(halfWidth / 7, halfHeight / 7);
-    float margin = radius / 2;
+    float radius = std::min(halfWidth / 2, halfHeight / 2);
     float arcBorderWidth = radius / 8;
-    QRectF countdownRect(margin, margin, radius + radius, radius + radius);
+    QRectF countdownRect(halfWidth - radius, halfHeight - radius, radius + radius, radius + radius);
     
     auto drawArc = [&](int degrees, const QColor &color) {
         QPainterPath arcPath;
-        arcPath.moveTo(margin + radius + radius, margin + radius);
+        arcPath.moveTo(halfWidth + radius, halfHeight);
         arcPath.arcTo(countdownRect, 0, degrees);
         
         QPen arcPen;
@@ -69,22 +68,49 @@ void ImagePreviewWidget::paintEvent(QPaintEvent *event)
         painter.strokePath(arcPath, arcPen);
     };
     
-    drawArc(360, Theme::white);
-    drawArc(37, Theme::red);
-    
-    painter.setPen(QPen());
-    painter.setBrush(Qt::red);
-    painter.drawEllipse(margin, margin, radius + radius, radius + radius);
+    switch (m_currentState) {
+    case PoseCapture::State::PreEnter:
+        {
+            int degrees = 360 * m_stateProgressTimer.elapsed() / PoseCapture::PreEnterDuration;
+            if (degrees > 360)
+                degrees = 360;
+            drawArc(360, Theme::white);
+            drawArc(degrees, Theme::red);
+        }
+        break;
+    case PoseCapture::State::Capturing:
+        {
+            int degrees = 360 * m_stateProgressTimer.elapsed() / PoseCapture::CapturingDuration;
+            if (degrees > 360)
+                degrees = 360;
+            degrees = degrees - 360;
+            drawArc(degrees, Theme::red);
+        }
+        break;
+    default:
+        break;
+    }
 }
 
-void ImagePreviewWidget::setImage(const QImage &image)
+void PoseCapturePreviewWidget::setImage(const QImage &image)
 {
     m_image = image.copy();
     update();
 }
 
-void ImagePreviewWidget::setKeypoints(const std::map<QString, QVector3D> &keypoints)
+void PoseCapturePreviewWidget::setKeypoints(const std::map<QString, QVector3D> &keypoints)
 {
     m_keypoints = keypoints;
     update();
+}
+
+void PoseCapturePreviewWidget::setState(PoseCapture::State state)
+{
+    if (m_currentState == state)
+        return;
+    m_currentState = state;
+    if (!m_stateProgressTimer.isValid())
+        m_stateProgressTimer.start();
+    else
+        m_stateProgressTimer.restart();
 }

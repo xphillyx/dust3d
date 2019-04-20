@@ -5,7 +5,7 @@
 #include <QVariantMap>
 #include <QTimer>
 #include <QElapsedTimer>
-#include "imagepreviewwidget.h"
+#include "posecapturepreviewwidget.h"
 #include "imagecapture.h"
 #include "posecapture.h"
 
@@ -31,7 +31,7 @@ private slots:
     void checkFramesPerSecond();
     
 private:
-    ImagePreviewWidget *m_rawCapturePreviewWidget = nullptr;
+    PoseCapturePreviewWidget *m_rawCapturePreviewWidget = nullptr;
     ImageCapture *m_imageCapture = nullptr;
     QWebEngineView *m_webView = nullptr;
     bool m_webLoaded = false;

@@ -10,6 +10,9 @@ class PoseCapture : public QObject
 {
     Q_OBJECT
 public:
+    static const int PreEnterDuration;
+    static const int CapturingDuration;
+
     enum class State
     {
         Idle,
@@ -33,6 +36,10 @@ signals:
     
 public slots:
     void updateKeypoints(const std::map<QString, QVector3D> &keypoints);
+    
+private slots:
+    void handlePreEnterTimeout();
+    void handleCapturingTimeout();
     
 private:
     State m_state = State::Idle;

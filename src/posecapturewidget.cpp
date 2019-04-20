@@ -44,11 +44,12 @@ PoseCaptureWidget::PoseCaptureWidget(QWidget *parent) :
     });
     m_webView->setUrl(QUrl("qrc:/scripts/motioncapture.html"));
     
-    m_rawCapturePreviewWidget = new ImagePreviewWidget;
+    m_rawCapturePreviewWidget = new PoseCapturePreviewWidget;
     
-    QObject::connect(this, &PoseCaptureWidget::poseKeypointsDetected, m_rawCapturePreviewWidget, &ImagePreviewWidget::setKeypoints);
+    QObject::connect(this, &PoseCaptureWidget::poseKeypointsDetected, m_rawCapturePreviewWidget, &PoseCapturePreviewWidget::setKeypoints);
     QObject::connect(this, &PoseCaptureWidget::poseKeypointsDetected, &m_poseCapture, &PoseCapture::updateKeypoints);
     connect(&m_poseCapture, &PoseCapture::stateChanged, this, &PoseCaptureWidget::changeStateIndicator);
+    connect(&m_poseCapture, &PoseCapture::stateChanged, m_rawCapturePreviewWidget, &PoseCapturePreviewWidget::setState);
     
     previewLayout->addWidget(m_rawCapturePreviewWidget);
     previewLayout->addWidget(m_webView);
@@ -85,8 +86,6 @@ PoseCaptureWidget::~PoseCaptureWidget()
 void PoseCaptureWidget::changeStateIndicator(PoseCapture::State state)
 {
     qDebug() << "State changed:" << (int)state;
-    //QApplication::beep();
-    // TODO:
 }
 
 void PoseCaptureWidget::startCapture()
@@ -99,7 +98,7 @@ void PoseCaptureWidget::startCapture()
     QThread *thread = new QThread;
     m_imageCapture->moveToThread(thread);
     
-    QObject::connect(m_imageCapture, &ImageCapture::imageCaptured, m_rawCapturePreviewWidget, &ImagePreviewWidget::setImage);
+    QObject::connect(m_imageCapture, &ImageCapture::imageCaptured, m_rawCapturePreviewWidget, &PoseCapturePreviewWidget::setImage);
     QObject::connect(m_imageCapture, &ImageCapture::imageCaptured, this, &PoseCaptureWidget::updateCapturedImage);
     QObject::connect(thread, &QThread::started, m_imageCapture, &ImageCapture::start);
     QObject::connect(m_imageCapture, &ImageCapture::stopped, thread, &QThread::quit);

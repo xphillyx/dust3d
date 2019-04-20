@@ -306,8 +306,8 @@ HEADERS += src/remoteioconnection.h
 SOURCES += src/imagecapture.cpp
 HEADERS += src/imagecapture.h
 
-SOURCES += src/imagepreviewwidget.cpp
-HEADERS += src/imagepreviewwidget.h
+SOURCES += src/posecapturepreviewwidget.cpp
+HEADERS += src/posecapturepreviewwidget.h
 
 SOURCES += src/posecapturewidget.cpp
 HEADERS += src/posecapturewidget.h

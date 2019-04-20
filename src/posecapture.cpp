@@ -1,10 +1,12 @@
+#include <QDebug>
 #include "posecapture.h"
 
 #if USE_MOCAP
 
 #define SAME_DIRECTION_CHECK_DOT_THRESHOLD      0.96
-#define PREENTER_DURATION                       1000
-#define CAPTURING_DURATION                      3000
+
+const int PoseCapture::PreEnterDuration = 3000;
+const int PoseCapture::CapturingDuration = 5000;
 
 PoseCapture::PoseCapture(QObject *parent) :
     QObject(parent)
@@ -22,6 +24,32 @@ PoseCapture::State PoseCapture::state()
     return m_state;
 }
 
+void PoseCapture::handlePreEnterTimeout()
+{
+    qDebug() << "PreEnter timeout, state:" << (int)m_state;
+    if (m_state == State::PreEnter) {
+        delete m_capturingTimer;
+        m_capturingTimer = new QTimer;
+        m_capturingTimer->setSingleShot(true);
+        connect(m_capturingTimer, &QTimer::timeout, this, &PoseCapture::handleCapturingTimeout);
+        m_capturingTimer->start(CapturingDuration);
+        m_state = State::Capturing;
+        qDebug() << "State change to Capturing";
+        emit stateChanged(m_state);
+        return;
+    }
+}
+
+void PoseCapture::handleCapturingTimeout()
+{
+    qDebug() << "Capturing timeout, state:" << (int)m_state;
+    if (m_state == State::Capturing) {
+        m_state = State::Idle;
+        qDebug() << "State change to Idle";
+        emit stateChanged(m_state);
+    }
+}
+
 void PoseCapture::updateKeypoints(const std::map<QString, QVector3D> &keypoints)
 {
     if (State::Idle == m_state) {
@@ -30,25 +58,10 @@ void PoseCapture::updateKeypoints(const std::map<QString, QVector3D> &keypoints)
             delete m_preEnterTimer;
             m_preEnterTimer = new QTimer;
             m_preEnterTimer->setSingleShot(true);
-            connect(m_preEnterTimer, &QTimer::timeout, this, [&]() {
-                if (m_state == State::PreEnter) {
-                    delete m_capturingTimer;
-                    m_capturingTimer = new QTimer;
-                    m_capturingTimer->setSingleShot(true);
-                    connect(m_capturingTimer, &QTimer::timeout, this, [&]() {
-                        if (m_state == State::Capturing) {
-                            m_state = State::Idle;
-                            emit stateChanged(m_state);
-                        }
-                    });
-                    m_capturingTimer->start(CAPTURING_DURATION);
-                    m_state = State::Capturing;
-                    emit stateChanged(m_state);
-                    return;
-                }
-            });
-            m_preEnterTimer->start(PREENTER_DURATION);
+            connect(m_preEnterTimer, &QTimer::timeout, this, &PoseCapture::handlePreEnterTimeout);
+            m_preEnterTimer->start(PreEnterDuration);
             m_state = State::PreEnter;
+            qDebug() << "State change to PreEnter";
             emit stateChanged(m_state);
             return;
         }
@@ -62,9 +75,14 @@ PoseCapture::InvokePose PoseCapture::keypointsToInvokePose(const Keypoints &keyp
     if (isTpose)
         return InvokePose::T;
     
-    bool isSevenPose = isLimbStraightAndParallelWith(keypoints, "left", (QVector3D(0, 1, 0)).normalized()) &&
-        isLimbStraightAndParallelWith(keypoints, "right", (QVector3D(0, 1, 0)).normalized());
-    if (isSevenPose)
+    bool isRightHandSevenPose = (isLimbStraightAndParallelWith(keypoints, "left", (QVector3D(0, 1, 0)).normalized()) &&
+        isLimbStraightAndParallelWith(keypoints, "right", (QVector3D(-1, 0, 0)).normalized()));
+    if (isRightHandSevenPose)
+        return InvokePose::Seven;
+    
+    bool isLeftHandSevenPose = (isLimbStraightAndParallelWith(keypoints, "right", (QVector3D(0, 1, 0)).normalized()) &&
+        isLimbStraightAndParallelWith(keypoints, "left", (QVector3D(1, 0, 0)).normalized()));
+    if (isLeftHandSevenPose)
         return InvokePose::Seven;
     
     return InvokePose::Unknown;
