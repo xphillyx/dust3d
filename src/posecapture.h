@@ -68,6 +68,8 @@ private:
     QElapsedTimer m_elapsedTimer;
     qint64 m_stateBeginTime = 0;
     QTimer m_stateCheckTimer;
+    std::vector<Keypoints> m_capturedKeypoints;
+    std::vector<qint64> m_capturedKeypointsTimeline;
     
     InvokePose keypointsToInvokePose(const Keypoints &keypoints);
     bool isLimbStraightAndParallelWith(const Keypoints &keypoints,
@@ -84,7 +86,11 @@ private:
         const std::vector<qint64> &timeline,
         Track &resultTrack, std::vector<qint64> &resultTimeline);
     void cleanupCurrentTrack();
+    void commitCurrentTrack();
     void addFrameToCurrentTrack(qint64 timestamp, const std::map<QString, std::map<QString, QString>> &parameters);
+    void smoothKeypointsList(std::vector<Keypoints> &keypointsList);
+    void smoothQVector3DList(std::vector<QVector3D> &vectors);
+    void smoothList(std::vector<float> &numbers);
 };
 
 #endif

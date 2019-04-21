@@ -26,7 +26,7 @@ navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
 //var canvas = document.getElementById("output");
 //var context = canvas.getContext("2d");
 var net = undefined;
-posenet.load(1.0).then(function(n){
+posenet.load(1.01).then(function(n){
     console.log("posenet loaded");
     net = n;
 });
@@ -36,8 +36,8 @@ var poses = [];
 var image = new Image();
 image.onload = function() 
 {
-    var imageScaleFactor = 0.5;
-    var outputStride = 16;
+    var imageScaleFactor = 1.0;
+    var outputStride = 8;
     var flipHorizontal = true;
     if (undefined != net) {
         net.estimateSinglePose(image, imageScaleFactor, flipHorizontal, outputStride).then(pose => {

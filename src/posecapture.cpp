@@ -1,4 +1,5 @@
 #include <QDebug>
+#include <CppLowess/Lowess.h>
 #include "posecapture.h"
 #include "util.h"
 
@@ -47,6 +48,7 @@ void PoseCapture::handleCapturingTimeout()
 {
     qDebug() << "Capturing timeout, state:" << (int)m_state;
     if (m_state == State::Capturing) {
+        commitCurrentTrack();
         if (Profile::Main == m_profile) {
             m_latestMainTimeline = m_currentCapturingTimeline;
         }
@@ -97,6 +99,21 @@ void PoseCapture::keypointsToAnimalPoserParameters(const std::map<QString, QVect
         "RightLimb2_Joint2", "rightElbow", "rightWrist");
     updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
         "RightLimb2_Joint3", "rightWrist", "rightWrist");
+    
+    /*
+    updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
+        "LeftLimb1_Joint1", "leftHip", "leftKnee");
+    updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
+        "LeftLimb1_Joint2", "leftKnee", "leftAnkle");
+    updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
+        "LeftLimb1_Joint3", "leftAnkle", "leftAnkle");
+    updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
+        "RightLimb1_Joint1", "rightHip", "rightKnee");
+    updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
+        "RightLimb1_Joint2", "rightKnee", "rightAnkle");
+    updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
+        "RightLimb1_Joint3", "rightAnkle", "rightAnkle");
+    */
 }
 
 /*
@@ -123,12 +140,15 @@ void PoseCapture::mergeProfileTracks(const Track &main, const Track &rightHand, 
             bool inverse = false;
             if (it.first.startsWith("Left")) {
                 pickedSide = &leftHand;
-                inverse = true;
+                if (it.first.startsWith("LeftLimb2_"))
+                    inverse = true;
             } else if (it.first.startsWith("Right")) {
                 pickedSide = &rightHand;
             } else {
                 qDebug() << "Encounter unsupported name:" << it.first;
             }
+            if (it.first.startsWith("LeftLimb1_") || it.first.startsWith("RightLimb1_"))
+                inverse = true;
             if (nullptr != pickedSide) {
                 parameters[it.first] = it.second;
                 int sideIndex = pickedSide->size() * mainIndex / trackLength;
@@ -189,10 +209,83 @@ void PoseCapture::updateKeypoints(const std::map<QString, QVector3D> &keypoints)
             return;
         }
     } else if (State::Capturing == m_state) {
+        m_capturedKeypoints.push_back(keypoints);
+        m_capturedKeypointsTimeline.push_back(m_elapsedTimer.elapsed());
+    }
+}
+
+void PoseCapture::smoothQVector3DList(std::vector<QVector3D> &vectors)
+{
+    std::vector<float> xList(vectors.size());
+    std::vector<float> yList(vectors.size());
+    for (size_t i = 0; i < vectors.size(); ++i) {
+        xList[i] = vectors[i].x();
+        yList[i] = vectors[i].y();
+    }
+    smoothList(xList);
+    smoothList(yList);
+    for (size_t i = 0; i < vectors.size(); ++i) {
+        vectors[i].setX(xList[i]);
+        vectors[i].setY(yList[i]);
+    }
+}
+
+void PoseCapture::smoothList(std::vector<float> &numbers)
+{
+    // https://github.com/hroest/CppLowess/blob/master/src/tests/testLowess.cpp
+    CppLowess::TemplatedLowess<std::vector<double>, double> dlowess;
+    
+    std::vector<double> v_xval;
+    std::vector<double> v_yval;
+    for (size_t i = 0; i < numbers.size(); i++) {
+        v_xval.push_back(i);
+        v_yval.push_back(numbers[i]);
+    }
+
+    std::vector<double> out(numbers.size()), tmp1(numbers.size()), tmp2(numbers.size());
+    dlowess.lowess(v_xval, v_yval, 0.25, 0, 0.0, out, tmp1, tmp2);
+    for (size_t i = 0; i < numbers.size(); i++) {
+        numbers[i] = out[i];
+    }
+}
+
+void PoseCapture::smoothKeypointsList(std::vector<Keypoints> &keypointsList)
+{
+    std::map<QString, std::vector<QVector3D>> map;
+    std::map<std::pair<QString, size_t>, size_t> mapDataPoseIndices;
+    for (size_t i = 0; i < keypointsList.size(); ++i) {
+        auto &keypoints = keypointsList[i];
+        for (const auto &it: keypoints) {
+            mapDataPoseIndices[{it.first, i}] = map[it.first].size();
+            map[it.first].push_back(it.second);
+        }
+    }
+    
+    for (auto &it: map) {
+        smoothQVector3DList(it.second);
+    }
+    
+    for (size_t i = 0; i < keypointsList.size(); ++i) {
+        auto &keypoints = keypointsList[i];
+        for (auto &it: keypoints) {
+            it.second = map[it.first][mapDataPoseIndices[{it.first, i}]];
+        }
+    }
+}
+
+void PoseCapture::commitCurrentTrack()
+{
+    if (m_capturedKeypointsTimeline.size() != m_capturedKeypoints.size()) {
+        qDebug() << "Captured keypoints timeline length does not match with keypoints count";
+        return;
+    }
+    smoothKeypointsList(m_capturedKeypoints);
+    for (size_t i = 0; i < m_capturedKeypoints.size(); ++i) {
+        const auto &keypoints = m_capturedKeypoints[i];
         std::map<QString, std::map<QString, QString>> parameters;
         keypointsToAnimalPoserParameters(keypoints, parameters);
         if (!parameters.empty())
-            addFrameToCurrentTrack(m_elapsedTimer.elapsed(), parameters);
+            addFrameToCurrentTrack(m_capturedKeypointsTimeline[i], parameters);
     }
 }
 
@@ -212,6 +305,8 @@ void PoseCapture::cleanupCurrentTrack()
 {
     m_currentCapturingTrack->clear();
     m_currentCapturingTimeline.clear();
+    m_capturedKeypoints.clear();
+    m_capturedKeypointsTimeline.clear();
 }
 
 PoseCapture::InvokePose PoseCapture::keypointsToInvokePose(const Keypoints &keypoints)

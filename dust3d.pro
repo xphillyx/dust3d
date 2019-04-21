@@ -319,6 +319,10 @@ SOURCES += src/main.cpp
 
 HEADERS += src/version.h
 
+INCLUDEPATH += thirdparty/CppLowess/include
+
+HEADERS += thirdparty/CppLowess/include/CppLowess/Lowess.h
+
 INCLUDEPATH += thirdparty/nodemesh
 
 SOURCES += thirdparty/nodemesh/nodemesh/wrapper.cpp

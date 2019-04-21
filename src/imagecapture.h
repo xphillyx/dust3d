@@ -25,7 +25,7 @@ private:
     QScopedPointer<QWaitCondition> m_cond;
     QScopedPointer<QMutex> m_mutex;
     bool m_stopped = false;
-    int m_scaleToWidth = 600;
+    int m_scaleToWidth = 300;
 };
 
 #endif
