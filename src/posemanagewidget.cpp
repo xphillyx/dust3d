@@ -93,7 +93,7 @@ void PoseManageWidget::showAddPoseDialog()
 #if USE_MOCAP
 void PoseManageWidget::showCapturePoseDialog()
 {
-    PoseCaptureWidget *poseCaptureWidget = new PoseCaptureWidget();
+    PoseCaptureWidget *poseCaptureWidget = new PoseCaptureWidget(m_document);
     poseCaptureWidget->setAttribute(Qt::WA_DeleteOnClose);
     poseCaptureWidget->show();
     connect(poseCaptureWidget, &QDialog::destroyed, [=]() {

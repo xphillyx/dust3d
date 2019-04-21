@@ -5,9 +5,14 @@
 #include <QVariantMap>
 #include <QTimer>
 #include <QElapsedTimer>
+#include <QCloseEvent>
 #include "posecapturepreviewwidget.h"
 #include "imagecapture.h"
 #include "posecapture.h"
+#include "modelwidget.h"
+#include "motionsgenerator.h"
+#include "animationclipplayer.h"
+#include "document.h"
 
 #if USE_MOCAP
 
@@ -15,21 +20,31 @@ class PoseCaptureWidget : public QDialog
 {
     Q_OBJECT
 public:
-    PoseCaptureWidget(QWidget *parent=nullptr);
+    PoseCaptureWidget(const Document *document, QWidget *parent=nullptr);
     ~PoseCaptureWidget();
+    
+protected:
+    void closeEvent(QCloseEvent *event) override;
+    void reject() override;
     
 signals:
     void poseKeypointsDetected(const std::map<QString, QVector3D> &keypoints);
     
 public slots:
     void changeStateIndicator(PoseCapture::State state);
-    void updateTrack(const PoseCapture::Track &track);
+    void updateTrack(const PoseCapture::Track &track, const std::vector<qint64> timeline);
     
 private slots:
     void startCapture();
     void stopCapture();
     void updateCapturedImage(const QImage &image);
     void checkFramesPerSecond();
+    void generatePreviews();
+    void previewsReady();
+    void clearUnsaveState();
+    void setUnsavedState();
+    void updateTitle();
+    void save();
     
 private:
     PoseCapturePreviewWidget *m_rawCapturePreviewWidget = nullptr;
@@ -46,6 +61,15 @@ private:
     int64_t m_lastFrameTime = 0;
     QTimer *m_framesPerSecondCheckTimer = nullptr;
     QElapsedTimer m_elapsedTimer;
+    bool m_isPreviewsObsolete = false;
+    ModelWidget *m_previewWidget = nullptr;
+    MotionsGenerator *m_previewsGenerator = nullptr;
+    AnimationClipPlayer *m_clipPlayer = nullptr;
+    const Document *m_document = nullptr;
+    bool m_closed = false;
+    bool m_unsaved = false;
+    QUuid m_poseId;
+    std::vector<std::pair<std::map<QString, QString>, std::map<QString, std::map<QString, QString>>>> m_poseFrames;
 };
 
 #endif

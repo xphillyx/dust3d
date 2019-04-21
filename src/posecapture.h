@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QVector3D>
 #include <QTimer>
+#include <QElapsedTimer>
 
 #if USE_MOCAP
 
@@ -26,7 +27,8 @@ public:
     {
         Unknown,
         T,
-        Seven
+        Seven,
+        FlippedSeven
     };
     
     enum class Profile
@@ -42,7 +44,7 @@ public:
     
 signals:
     void stateChanged(State state);
-    void trackMerged(Track track);
+    void trackChanged(Track track, std::vector<qint64> timeline);
     
 public slots:
     void updateKeypoints(const std::map<QString, QVector3D> &keypoints);
@@ -50,15 +52,21 @@ public slots:
 private slots:
     void handlePreEnterTimeout();
     void handleCapturingTimeout();
+    void checkState();
     
 private:
     State m_state = State::Idle;
-    QTimer *m_preEnterTimer = nullptr;
-    QTimer *m_capturingTimer = nullptr;
     using Keypoints = std::map<QString, QVector3D>;
     Profile m_profile = Profile::Main;
     Track m_latestMainTrack;
-    Track m_latestSideTrack;
+    Track m_latestRightHandSideTrack;
+    Track m_latestLeftHandSideTrack;
+    Track *m_currentCapturingTrack = nullptr;
+    std::vector<qint64> m_currentCapturingTimeline;
+    std::vector<qint64> m_latestMainTimeline;
+    QElapsedTimer m_elapsedTimer;
+    qint64 m_stateBeginTime = 0;
+    QTimer m_stateCheckTimer;
     
     InvokePose keypointsToInvokePose(const Keypoints &keypoints);
     bool isLimbStraightAndParallelWith(const Keypoints &keypoints,
@@ -69,7 +77,11 @@ private:
         const QString &fromName, const QString &toName);
     void keypointsToAnimalPoserParameters(const std::map<QString, QVector3D> &keypoints,
         std::map<QString, std::map<QString, QString>> &parameters);
-    void mergeProfileTracks(const Track &main, const Track &side, Track &result);
+    void mergeProfileTracks(const Track &main, const Track &rightHand, const Track &leftHand,
+        const std::vector<qint64> &timeline,
+        Track &resultTrack, std::vector<qint64> &resultTimeline);
+    void cleanupCurrentTrack();
+    void addFrameToCurrentTrack(qint64 timestamp, const std::map<QString, std::map<QString, QString>> &parameters);
 };
 
 #endif
