@@ -41,6 +41,7 @@ public:
     ~PoseCapture();
     State state();
     Profile profile();
+    //bool isAllProfilesCaptured();
     
 signals:
     void stateChanged(State state);
@@ -70,6 +71,8 @@ private:
     
     InvokePose keypointsToInvokePose(const Keypoints &keypoints);
     bool isLimbStraightAndParallelWith(const Keypoints &keypoints,
+        const QString &namePrefix, const QVector3D &referenceDirection);
+    bool isLimbEndParallelWith(const Keypoints &keypoints,
         const QString &namePrefix, const QVector3D &referenceDirection);
     bool isTwoQVector3DParallel(const QVector3D &first, const QVector3D &second);
     void updateFromKeypointsToAnimalPoserParameters(const std::map<QString, QVector3D> &keypoints,

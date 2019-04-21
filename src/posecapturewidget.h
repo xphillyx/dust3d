@@ -69,6 +69,7 @@ private:
     bool m_closed = false;
     bool m_unsaved = false;
     QUuid m_poseId;
+    bool m_captureEnabled = true;
     std::vector<std::pair<std::map<QString, QString>, std::map<QString, std::map<QString, QString>>>> m_poseFrames;
 };
 

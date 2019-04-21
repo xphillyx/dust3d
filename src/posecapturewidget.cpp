@@ -86,17 +86,39 @@ PoseCaptureWidget::PoseCaptureWidget(const Document *document, QWidget *parent) 
     
     m_rawCapturePreviewWidget = new PoseCapturePreviewWidget;
     
+    QPushButton *startCaptureButton = new QPushButton(tr("Start Capture"));
+    startCaptureButton->hide();
+    connect(startCaptureButton, &QPushButton::clicked, this, [&, startCaptureButton]() {
+        startCaptureButton->hide();
+        m_rawCapturePreviewWidget->show();
+        m_captureEnabled = true;
+        startCapture();
+    });
+    
+    QHBoxLayout *startCaptureButtonLayout = new QHBoxLayout;
+    startCaptureButtonLayout->addStretch();
+    startCaptureButtonLayout->addWidget(startCaptureButton);
+    startCaptureButtonLayout->addStretch();
+    
     QObject::connect(this, &PoseCaptureWidget::poseKeypointsDetected, m_rawCapturePreviewWidget, &PoseCapturePreviewWidget::setKeypoints);
     QObject::connect(this, &PoseCaptureWidget::poseKeypointsDetected, &m_poseCapture, &PoseCapture::updateKeypoints);
     connect(&m_poseCapture, &PoseCapture::stateChanged, this, &PoseCaptureWidget::changeStateIndicator);
     connect(&m_poseCapture, &PoseCapture::trackChanged, this, &PoseCaptureWidget::updateTrack);
-    connect(&m_poseCapture, &PoseCapture::stateChanged, this, [&](PoseCapture::State state) {
+    connect(&m_poseCapture, &PoseCapture::stateChanged, this, [&, startCaptureButton](PoseCapture::State state) {
         m_rawCapturePreviewWidget->setProfile(m_poseCapture.profile());
         m_rawCapturePreviewWidget->setState(state);
+        if (PoseCapture::State::Idle == state) {
+            startCaptureButton->setText(tr("Continue Capture"));
+            startCaptureButton->show();
+            m_rawCapturePreviewWidget->hide();
+            m_captureEnabled = false;
+            stopCapture();
+        }
     });
     
     previewLayout->addWidget(m_rawCapturePreviewWidget);
     previewLayout->addWidget(m_webView);
+    previewLayout->addLayout(startCaptureButtonLayout);
     
     QHBoxLayout *topLayout = new QHBoxLayout;
     topLayout->addLayout(resultPreviewLayout);
@@ -356,6 +378,7 @@ void PoseCaptureWidget::stopCapture()
     
     auto imageCapture = m_imageCapture;
     m_imageCapture = nullptr;
+    // FIXME: imageCapture may already be released by "Video capture read failed"
     imageCapture->stop();
 }
 

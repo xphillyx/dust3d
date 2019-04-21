@@ -6,8 +6,8 @@
 
 #define SAME_DIRECTION_CHECK_DOT_THRESHOLD      0.96
 
-const int PoseCapture::PreEnterDuration = 1000;
-const int PoseCapture::CapturingDuration = 3000;
+const int PoseCapture::PreEnterDuration = 3000;
+const int PoseCapture::CapturingDuration = 5000;
 
 PoseCapture::PoseCapture(QObject *parent) :
     QObject(parent)
@@ -99,6 +99,15 @@ void PoseCapture::keypointsToAnimalPoserParameters(const std::map<QString, QVect
         "RightLimb2_Joint3", "rightWrist", "rightWrist");
 }
 
+/*
+bool PoseCapture::isAllProfilesCaptured()
+{
+    return !m_latestMainTrack.empty() &&
+        !m_latestLeftHandSideTrack.empty() &&
+        !m_latestRightHandSideTrack.empty();
+}
+*/
+
 void PoseCapture::mergeProfileTracks(const Track &main, const Track &rightHand, const Track &leftHand,
     const std::vector<qint64> &timeline,
     Track &resultTrack, std::vector<qint64> &resultTimeline)
@@ -111,8 +120,10 @@ void PoseCapture::mergeProfileTracks(const Track &main, const Track &rightHand, 
         std::map<QString, std::map<QString, QString>> parameters;
         for (auto &it: main[mainIndex]) {
             const Track *pickedSide = nullptr;
+            bool inverse = false;
             if (it.first.startsWith("Left")) {
                 pickedSide = &leftHand;
+                inverse = true;
             } else if (it.first.startsWith("Right")) {
                 pickedSide = &rightHand;
             } else {
@@ -128,8 +139,8 @@ void PoseCapture::mergeProfileTracks(const Track &main, const Track &rightHand, 
                 if (findSide == sideParameters.end())
                     continue;
                 auto &change = parameters[it.first];
-                change["fromZ"] = valueOfKeyInMapOrEmpty(findSide->second, "fromX");
-                change["toZ"] = valueOfKeyInMapOrEmpty(findSide->second, "toX");
+                change["fromZ"] = (inverse ? "-" : "") + valueOfKeyInMapOrEmpty(findSide->second, "fromX");
+                change["toZ"] = (inverse ? "-" : "") + valueOfKeyInMapOrEmpty(findSide->second, "toX");
             }
         }
         if (parameters.empty())
@@ -164,10 +175,13 @@ void PoseCapture::updateKeypoints(const std::map<QString, QVector3D> &keypoints)
             if (m_profile == Profile::Main) {
                 m_currentCapturingTrack = &m_latestMainTrack;
             } else {
-                if (InvokePose::Seven == invokePose)
-                    m_currentCapturingTrack = &m_latestLeftHandSideTrack;
-                else
+                if (InvokePose::Seven == invokePose) {
+                    qDebug() << "Invoke pose: Seven";
                     m_currentCapturingTrack = &m_latestRightHandSideTrack;
+                } else {
+                    qDebug() << "Invoke pose: FlippedSeven";
+                    m_currentCapturingTrack = &m_latestLeftHandSideTrack;
+                }
             }
             cleanupCurrentTrack();
             qDebug() << "State change to PreEnter";
@@ -208,12 +222,12 @@ PoseCapture::InvokePose PoseCapture::keypointsToInvokePose(const Keypoints &keyp
         return InvokePose::T;
     
     bool isRightHandSevenPose = (isLimbStraightAndParallelWith(keypoints, "left", (QVector3D(0, 1, 0)).normalized()) &&
-        isLimbStraightAndParallelWith(keypoints, "right", (QVector3D(-1, 0, 0)).normalized()));
+        isLimbEndParallelWith(keypoints, "right", (QVector3D(-1, 0, 0)).normalized()));
     if (isRightHandSevenPose)
         return InvokePose::FlippedSeven;
     
     bool isLeftHandSevenPose = (isLimbStraightAndParallelWith(keypoints, "right", (QVector3D(0, 1, 0)).normalized()) &&
-        isLimbStraightAndParallelWith(keypoints, "left", (QVector3D(1, 0, 0)).normalized()));
+        isLimbEndParallelWith(keypoints, "left", (QVector3D(1, 0, 0)).normalized()));
     if (isLeftHandSevenPose)
         return InvokePose::Seven;
     
@@ -223,6 +237,21 @@ PoseCapture::InvokePose PoseCapture::keypointsToInvokePose(const Keypoints &keyp
 bool PoseCapture::isTwoQVector3DParallel(const QVector3D &first, const QVector3D &second)
 {
     if (QVector3D::dotProduct(first, second) < SAME_DIRECTION_CHECK_DOT_THRESHOLD)
+        return false;
+    return true;
+}
+
+bool PoseCapture::isLimbEndParallelWith(const Keypoints &keypoints,
+        const QString &namePrefix, const QVector3D &referenceDirection)
+{
+    auto findElbow = keypoints.find(namePrefix + "Elbow");
+    if (findElbow == keypoints.end())
+        return false;
+    auto findWrist = keypoints.find(namePrefix + "Wrist");
+    if (findWrist == keypoints.end())
+        return false;
+    auto lowerLimb = (findWrist->second - findElbow->second).normalized();
+    if (!isTwoQVector3DParallel(lowerLimb, referenceDirection))
         return false;
     return true;
 }
