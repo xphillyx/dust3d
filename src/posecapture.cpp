@@ -6,8 +6,8 @@
 
 #define SAME_DIRECTION_CHECK_DOT_THRESHOLD      0.96
 
-const int PoseCapture::PreEnterDuration = 3000;
-const int PoseCapture::CapturingDuration = 5000;
+const int PoseCapture::PreEnterDuration = 1000;
+const int PoseCapture::CapturingDuration = 3000;
 
 PoseCapture::PoseCapture(QObject *parent) :
     QObject(parent)
@@ -74,12 +74,12 @@ void PoseCapture::updateFromKeypointsToAnimalPoserParameters(const std::map<QStr
     if (findToPosition == keypoints.end())
         return;
     auto &newParameters = parameters[paramName];
-    newParameters["fromX"] = findFromPosition->second.x();
-    newParameters["fromY"] = -findFromPosition->second.y();
-    newParameters["fromZ"] = findFromPosition->second.z();
-    newParameters["toX"] = findToPosition->second.x();
-    newParameters["toY"] = -findToPosition->second.y();
-    newParameters["toZ"] = findToPosition->second.z();
+    newParameters["fromX"] = QString::number(findFromPosition->second.x());
+    newParameters["fromY"] = QString::number(-findFromPosition->second.y());
+    newParameters["fromZ"] = QString::number(findFromPosition->second.z());
+    newParameters["toX"] = QString::number(findToPosition->second.x());
+    newParameters["toY"] = QString::number(-findToPosition->second.y());
+    newParameters["toZ"] = QString::number(findToPosition->second.z());
 }
 
 void PoseCapture::keypointsToAnimalPoserParameters(const std::map<QString, QVector3D> &keypoints,
@@ -128,8 +128,8 @@ void PoseCapture::mergeProfileTracks(const Track &main, const Track &rightHand, 
                 if (findSide == sideParameters.end())
                     continue;
                 auto &change = parameters[it.first];
-                //change["fromZ"] = valueOfKeyInMapOrEmpty(findSide->second, "fromX");
-                //change["toZ"] = valueOfKeyInMapOrEmpty(findSide->second, "toX");
+                change["fromZ"] = valueOfKeyInMapOrEmpty(findSide->second, "fromX");
+                change["toZ"] = valueOfKeyInMapOrEmpty(findSide->second, "toX");
             }
         }
         if (parameters.empty())
@@ -184,6 +184,12 @@ void PoseCapture::updateKeypoints(const std::map<QString, QVector3D> &keypoints)
 
 void PoseCapture::addFrameToCurrentTrack(qint64 timestamp, const std::map<QString, std::map<QString, QString>> &parameters)
 {
+    for (const auto &it: parameters) {
+        qDebug() << it.first;
+        for (const auto &subIt: it.second) {
+            qDebug() << subIt.first << subIt.second;
+        }
+    }
     m_currentCapturingTimeline.push_back(timestamp);
     m_currentCapturingTrack->push_back(parameters);
 }
@@ -204,7 +210,7 @@ PoseCapture::InvokePose PoseCapture::keypointsToInvokePose(const Keypoints &keyp
     bool isRightHandSevenPose = (isLimbStraightAndParallelWith(keypoints, "left", (QVector3D(0, 1, 0)).normalized()) &&
         isLimbStraightAndParallelWith(keypoints, "right", (QVector3D(-1, 0, 0)).normalized()));
     if (isRightHandSevenPose)
-        return InvokePose::Seven;
+        return InvokePose::FlippedSeven;
     
     bool isLeftHandSevenPose = (isLimbStraightAndParallelWith(keypoints, "right", (QVector3D(0, 1, 0)).normalized()) &&
         isLimbStraightAndParallelWith(keypoints, "left", (QVector3D(1, 0, 0)).normalized()));
