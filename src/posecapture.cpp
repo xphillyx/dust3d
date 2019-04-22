@@ -9,6 +9,8 @@
 
 const int PoseCapture::PreEnterDuration = 3000;
 const int PoseCapture::CapturingDuration = 10000;
+const int PoseCapture::TargetFrames = 24;
+const float PoseCapture::TargetSeconds = 1.0;
 
 PoseCapture::PoseCapture(QObject *parent) :
     QObject(parent)
@@ -44,15 +46,20 @@ void PoseCapture::handlePreEnterTimeout()
     }
 }
 
-void PoseCapture::halveTrack(PoseCapture::Track &resultTrack, std::vector<qint64> &resultTimeline)
+void PoseCapture::reduceFramesOfTrack(PoseCapture::Track &resultTrack, std::vector<qint64> &resultTimeline)
 {
+    if (resultTimeline.size() <= TargetFrames)
+        return;
     PoseCapture::Track originalTrack = resultTrack;
     std::vector<qint64> originalTimeline = resultTimeline;
     resultTrack.clear();
     resultTimeline.clear();
-    for (size_t i = 0; i < originalTrack.size(); i += 2) {
-        resultTrack.push_back(originalTrack[i]);
-        resultTimeline.push_back(originalTimeline[i]);
+    resultTrack.resize(TargetFrames);
+    resultTimeline.resize(TargetFrames);
+    for (size_t i = 0; i < TargetFrames; ++i) {
+        size_t sourceIndex = i * originalTrack.size() / TargetFrames;
+        resultTrack[i] = originalTrack[sourceIndex];
+        resultTimeline[i] = originalTimeline[sourceIndex];
     }
 }
 
@@ -69,9 +76,7 @@ void PoseCapture::handleCapturingTimeout()
             std::vector<qint64> resultTimeline;
             mergeProfileTracks(m_latestMainTrack, m_latestRightHandSideTrack, m_latestLeftHandSideTrack, m_latestMainTimeline,
                 resultTrack, resultTimeline);
-            while (resultTimeline.size() >= 48) {
-                halveTrack(resultTrack, resultTimeline);
-            }
+            reduceFramesOfTrack(resultTrack, resultTimeline);
             emit trackChanged(resultTrack, resultTimeline);
         }
         m_state = State::Idle;
@@ -157,18 +162,18 @@ void PoseCapture::keypointsToAnimalPoserParameters(const std::map<QString, QVect
     
     updateSpineKeypointsToAnimalPoseParameters(keypoints, parameters);
     
-    //updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
-    //    "LeftLimb1_Joint1", "leftHip", "leftKnee");
-    //updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
-    //    "LeftLimb1_Joint2", "leftKnee", "leftAnkle");
-    //updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
-    //    "LeftLimb1_Joint3", "leftAnkle", "leftAnkle");
-    //updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
-    //    "RightLimb1_Joint1", "rightHip", "rightKnee");
-    //updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
-    //    "RightLimb1_Joint2", "rightKnee", "rightAnkle");
-    //updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
-    //    "RightLimb1_Joint3", "rightAnkle", "rightAnkle");
+    updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
+        "LeftLimb1_Joint1", "leftHip", "leftKnee");
+    updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
+        "LeftLimb1_Joint2", "leftKnee", "leftAnkle");
+    updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
+        "LeftLimb1_Joint3", "leftAnkle", "leftAnkle");
+    updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
+        "RightLimb1_Joint1", "rightHip", "rightKnee");
+    updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
+        "RightLimb1_Joint2", "rightKnee", "rightAnkle");
+    updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
+        "RightLimb1_Joint3", "rightAnkle", "rightAnkle");
 }
 
 /*
@@ -269,7 +274,7 @@ void PoseCapture::updateKeypoints(const std::map<QString, QVector3D> &keypoints,
             std::map<QString, QVector3D> normalizedKeypoints = keypoints;
             for (auto &it: normalizedKeypoints) {
                 it.second.setX(it.second.x() / imageSize.width());
-                it.second.setY(it.second.y() / imageSize.height());
+                it.second.setY(it.second.y() / imageSize.height() - 0.5);
             }
             m_capturedKeypoints.push_back(normalizedKeypoints);
             m_capturedKeypointsTimeline.push_back(m_elapsedTimer.elapsed());

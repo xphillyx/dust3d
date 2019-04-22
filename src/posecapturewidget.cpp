@@ -317,7 +317,7 @@ void PoseCaptureWidget::updateTrack(const PoseCapture::Track &track, const std::
     m_poseFrames.clear();
     
     //float frameDuration = (float)((timeline[timeline.size() - 1] - timeline[0]) / timeline.size()) / 1000.0;
-    float frameDuration = (float)1.75 / timeline.size();
+    float frameDuration = (float)PoseCapture::TargetSeconds / timeline.size();
     qDebug() << "Track frame duration:" << QString::number(frameDuration);
     for (const auto &it: track) {
         std::pair<std::map<QString, QString>, std::map<QString, std::map<QString, QString>>> frame;

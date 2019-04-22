@@ -16,6 +16,8 @@ public:
     
     static const int PreEnterDuration;
     static const int CapturingDuration;
+    static const int TargetFrames;
+    static const float TargetSeconds;
 
     enum class State
     {
@@ -96,7 +98,7 @@ private:
     void smoothKeypointsList(std::vector<Keypoints> &keypointsList);
     void smoothQVector3DList(std::vector<QVector3D> &vectors);
     void smoothList(std::vector<float> &numbers);
-    void halveTrack(PoseCapture::Track &resultTrack, std::vector<qint64> &resultTimeline);
+    void reduceFramesOfTrack(PoseCapture::Track &resultTrack, std::vector<qint64> &resultTimeline);
 };
 
 #endif
