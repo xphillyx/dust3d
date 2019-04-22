@@ -72,7 +72,7 @@ void AnimalPoser::resolveTransform()
     }
     //float legHeightAfterTransform = std::abs(mostBottomYAfterTransform - firstSpineBonePositionAfterTransform.y());
     //float translateY = legHeightAfterTransform - legHeightBeforeTransform;
-    float translateY = mostBottomYAfterTransform - mostBottomYBeforeTransform;
+    float translateY = mostBottomYBeforeTransform - mostBottomYAfterTransform;
     
     //qDebug() << "Leg height changed, translateY:" << translateY << "legHeightBeforeTransform:" << legHeightBeforeTransform << "legHeightAfterTransform:" << legHeightAfterTransform << "firstSpineBonePositionAfterTransform:" << firstSpineBonePositionAfterTransform << "firstSpineBone.headPosition:" << firstSpineBone.headPosition;
     

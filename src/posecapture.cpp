@@ -8,8 +8,8 @@
 #define SAME_DIRECTION_CHECK_DOT_THRESHOLD      0.96
 
 const int PoseCapture::PreEnterDuration = 3000;
-const int PoseCapture::CapturingDuration = 10000;
-const int PoseCapture::TargetFrames = 24;
+const int PoseCapture::CapturingDuration = 3000;
+const int PoseCapture::TargetFrames = 1;
 const float PoseCapture::TargetSeconds = 1.0;
 
 PoseCapture::PoseCapture(QObject *parent) :
@@ -56,6 +56,11 @@ void PoseCapture::reduceFramesOfTrack(PoseCapture::Track &resultTrack, std::vect
     resultTimeline.clear();
     resultTrack.resize(TargetFrames);
     resultTimeline.resize(TargetFrames);
+    if (1 == TargetFrames) {
+        resultTrack[0] = originalTrack[originalTrack.size() - 1];
+        resultTimeline[0] = originalTimeline[originalTimeline.size() - 1];
+        return;
+    }
     for (size_t i = 0; i < TargetFrames; ++i) {
         size_t sourceIndex = i * originalTrack.size() / TargetFrames;
         resultTrack[i] = originalTrack[sourceIndex];
