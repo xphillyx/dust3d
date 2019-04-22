@@ -125,8 +125,27 @@ PoseCaptureWidget::PoseCaptureWidget(const Document *document, QWidget *parent) 
     topLayout->addLayout(previewLayout);
     topLayout->setStretch(1, 1);
     
-    QHBoxLayout *mainLayout = new QHBoxLayout;
+    QPushButton *saveButton = new QPushButton(tr("Save"));
+    connect(saveButton, &QPushButton::clicked, this, &PoseCaptureWidget::save);
+    saveButton->setDefault(true);
+    
+    m_nameEdit = new QLineEdit;
+    m_nameEdit->setFixedWidth(200);
+    connect(m_nameEdit, &QLineEdit::textChanged, this, [=]() {
+        setUnsaveState();
+    });
+    
+    QHBoxLayout *baseInfoLayout = new QHBoxLayout;
+    baseInfoLayout->addWidget(new QLabel(tr("Name")));
+    baseInfoLayout->addWidget(m_nameEdit);
+    baseInfoLayout->addSpacing(10);
+    baseInfoLayout->addStretch();
+    baseInfoLayout->addWidget(saveButton);
+    
+    QVBoxLayout *mainLayout = new QVBoxLayout;
     mainLayout->addLayout(topLayout);
+    mainLayout->addWidget(Theme::createHorizontalLineWidget());
+    mainLayout->addLayout(baseInfoLayout);
     
     setLayout(mainLayout);
     
@@ -137,6 +156,10 @@ PoseCaptureWidget::PoseCaptureWidget(const Document *document, QWidget *parent) 
     m_framesPerSecondCheckTimer = new QTimer;
     connect(m_framesPerSecondCheckTimer, &QTimer::timeout, this, &PoseCaptureWidget::checkFramesPerSecond);
     m_framesPerSecondCheckTimer->start(POSE_CAPTURE_FRAMES_PER_SECOND_MEASURE_INTVAL_SECONDS * 1000);
+    
+    connect(this, &PoseCaptureWidget::addPose, m_document, &Document::addPose);
+    connect(this, &PoseCaptureWidget::renamePose, m_document, &Document::renamePose);
+    connect(this, &PoseCaptureWidget::setPoseFrames, m_document, &Document::setPoseFrames);
     
     updateTitle();
 }
@@ -182,7 +205,13 @@ void PoseCaptureWidget::reject()
 
 void PoseCaptureWidget::save()
 {
-    // TODO:
+    if (m_poseId.isNull()) {
+        m_poseId = QUuid::createUuid();
+        emit addPose(m_poseId, m_nameEdit->text(), m_poseFrames, QUuid());
+    } else if (m_unsaved) {
+        emit renamePose(m_poseId, m_nameEdit->text());
+        emit setPoseFrames(m_poseId, m_poseFrames);
+    }
     clearUnsaveState();
 }
 
@@ -206,7 +235,7 @@ void PoseCaptureWidget::clearUnsaveState()
     updateTitle();
 }
 
-void PoseCaptureWidget::setUnsavedState()
+void PoseCaptureWidget::setUnsaveState()
 {
     m_unsaved = true;
     updateTitle();
@@ -283,9 +312,12 @@ void PoseCaptureWidget::updateTrack(const PoseCapture::Track &track, const std::
     if (track.empty() || timeline.empty())
         return;
     
+    qDebug() << track;
+    
     m_poseFrames.clear();
     
-    float frameDuration = (float)((timeline[timeline.size() - 1] - timeline[0]) / timeline.size()) / 1000.0;
+    //float frameDuration = (float)((timeline[timeline.size() - 1] - timeline[0]) / timeline.size()) / 1000.0;
+    float frameDuration = (float)1.75 / timeline.size();
     qDebug() << "Track frame duration:" << QString::number(frameDuration);
     for (const auto &it: track) {
         std::pair<std::map<QString, QString>, std::map<QString, std::map<QString, QString>>> frame;
@@ -311,7 +343,10 @@ void PoseCaptureWidget::startCapture()
     QObject::connect(m_imageCapture, &ImageCapture::imageCaptured, this, &PoseCaptureWidget::updateCapturedImage);
     QObject::connect(thread, &QThread::started, m_imageCapture, &ImageCapture::start);
     QObject::connect(m_imageCapture, &ImageCapture::stopped, thread, &QThread::quit);
-    QObject::connect(m_imageCapture, &ImageCapture::stopped, m_imageCapture, &QObject::deleteLater);
+    QObject::connect(m_imageCapture, &ImageCapture::stopped, this, [&]() {
+        m_imageCapture->deleteLater();
+        m_imageCapture = nullptr;
+    });
     QObject::connect(thread, &QThread::finished, thread, &QThread::deleteLater);
     thread->start();
 }
@@ -378,7 +413,6 @@ void PoseCaptureWidget::stopCapture()
     
     auto imageCapture = m_imageCapture;
     m_imageCapture = nullptr;
-    // FIXME: imageCapture may already be released by "Video capture read failed"
     imageCapture->stop();
 }
 

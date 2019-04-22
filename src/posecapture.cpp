@@ -8,7 +8,7 @@
 #define SAME_DIRECTION_CHECK_DOT_THRESHOLD      0.96
 
 const int PoseCapture::PreEnterDuration = 3000;
-const int PoseCapture::CapturingDuration = 5000;
+const int PoseCapture::CapturingDuration = 10000;
 
 PoseCapture::PoseCapture(QObject *parent) :
     QObject(parent)
@@ -65,6 +65,17 @@ void PoseCapture::handleCapturingTimeout()
     }
 }
 
+void PoseCapture::updateQVector3DsToAnimalPoserParameters(const QVector3D &from, const QVector3D &to,
+        std::map<QString, QString> &parameters)
+{
+    parameters["fromX"] = QString::number(from.x());
+    parameters["fromY"] = QString::number(-from.y());
+    parameters["fromZ"] = QString::number(from.z());
+    parameters["toX"] = QString::number(to.x());
+    parameters["toY"] = QString::number(-to.y());
+    parameters["toZ"] = QString::number(to.z());
+}
+
 void PoseCapture::updateFromKeypointsToAnimalPoserParameters(const std::map<QString, QVector3D> &keypoints,
         std::map<QString, std::map<QString, QString>> &parameters, const QString &paramName,
         const QString &fromName, const QString &toName)
@@ -75,13 +86,42 @@ void PoseCapture::updateFromKeypointsToAnimalPoserParameters(const std::map<QStr
     auto findToPosition = keypoints.find(toName);
     if (findToPosition == keypoints.end())
         return;
-    auto &newParameters = parameters[paramName];
-    newParameters["fromX"] = QString::number(findFromPosition->second.x());
-    newParameters["fromY"] = QString::number(-findFromPosition->second.y());
-    newParameters["fromZ"] = QString::number(findFromPosition->second.z());
-    newParameters["toX"] = QString::number(findToPosition->second.x());
-    newParameters["toY"] = QString::number(-findToPosition->second.y());
-    newParameters["toZ"] = QString::number(findToPosition->second.z());
+    updateQVector3DsToAnimalPoserParameters(findFromPosition->second, findToPosition->second,
+        parameters[paramName]);
+}
+
+void PoseCapture::updateSpineKeypointsToAnimalPoseParameters(const std::map<QString, QVector3D> &keypoints,
+        std::map<QString, std::map<QString, QString>> &parameters)
+{
+    auto leftShoulderPosition = keypoints.find("leftShoulder");
+    if (leftShoulderPosition == keypoints.end())
+        return;
+    
+    auto rightShoulderPosition = keypoints.find("rightShoulder");
+    if (rightShoulderPosition == keypoints.end())
+        return;
+    
+    auto leftHipPosition = keypoints.find("leftHip");
+    if (leftHipPosition == keypoints.end())
+        return;
+    
+    auto rightHipPosition = keypoints.find("rightHip");
+    if (rightHipPosition == keypoints.end())
+        return;
+    
+    auto middleBetweenHipsPosition = (leftHipPosition->second + rightHipPosition->second) / 2;
+    auto middleBetweenShouldersPosition = (leftShoulderPosition->second + rightShoulderPosition->second) / 2;
+    auto middleOfHipAndShoulderPosition = (middleBetweenHipsPosition + middleBetweenShouldersPosition) / 2;
+    updateQVector3DsToAnimalPoserParameters(middleBetweenHipsPosition, middleOfHipAndShoulderPosition,
+        parameters["Spine1"]);
+    updateQVector3DsToAnimalPoserParameters(middleOfHipAndShoulderPosition, middleBetweenShouldersPosition,
+        parameters["Spine2"]);
+    
+    auto nosePosition = keypoints.find("nose");
+    if (nosePosition == keypoints.end())
+        return;
+    updateQVector3DsToAnimalPoserParameters(middleBetweenShouldersPosition, nosePosition->second,
+        parameters["Spine3"]);
 }
 
 void PoseCapture::keypointsToAnimalPoserParameters(const std::map<QString, QVector3D> &keypoints,
@@ -100,20 +140,20 @@ void PoseCapture::keypointsToAnimalPoserParameters(const std::map<QString, QVect
     updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
         "RightLimb2_Joint3", "rightWrist", "rightWrist");
     
-    /*
-    updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
-        "LeftLimb1_Joint1", "leftHip", "leftKnee");
-    updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
-        "LeftLimb1_Joint2", "leftKnee", "leftAnkle");
-    updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
-        "LeftLimb1_Joint3", "leftAnkle", "leftAnkle");
-    updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
-        "RightLimb1_Joint1", "rightHip", "rightKnee");
-    updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
-        "RightLimb1_Joint2", "rightKnee", "rightAnkle");
-    updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
-        "RightLimb1_Joint3", "rightAnkle", "rightAnkle");
-    */
+    updateSpineKeypointsToAnimalPoseParameters(keypoints, parameters);
+    
+    //updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
+    //    "LeftLimb1_Joint1", "leftHip", "leftKnee");
+    //updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
+    //    "LeftLimb1_Joint2", "leftKnee", "leftAnkle");
+    //updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
+    //    "LeftLimb1_Joint3", "leftAnkle", "leftAnkle");
+    //updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
+    //    "RightLimb1_Joint1", "rightHip", "rightKnee");
+    //updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
+    //    "RightLimb1_Joint2", "rightKnee", "rightAnkle");
+    //updateFromKeypointsToAnimalPoserParameters(keypoints, parameters,
+    //    "RightLimb1_Joint3", "rightAnkle", "rightAnkle");
 }
 
 /*
@@ -145,7 +185,8 @@ void PoseCapture::mergeProfileTracks(const Track &main, const Track &rightHand, 
             } else if (it.first.startsWith("Right")) {
                 pickedSide = &rightHand;
             } else {
-                qDebug() << "Encounter unsupported name:" << it.first;
+                parameters[it.first] = it.second;
+                continue;
             }
             if (it.first.startsWith("LeftLimb1_") || it.first.startsWith("RightLimb1_"))
                 inverse = true;

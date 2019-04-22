@@ -6,6 +6,7 @@
 #include <QTimer>
 #include <QElapsedTimer>
 #include <QCloseEvent>
+#include <QLineEdit>
 #include "posecapturepreviewwidget.h"
 #include "imagecapture.h"
 #include "posecapture.h"
@@ -29,6 +30,9 @@ protected:
     
 signals:
     void poseKeypointsDetected(const std::map<QString, QVector3D> &keypoints);
+    void addPose(QUuid poseId, QString name, std::vector<std::pair<std::map<QString, QString>, std::map<QString, std::map<QString, QString>>>> frames, QUuid turnaroundImageId);
+    void setPoseFrames(QUuid poseId, std::vector<std::pair<std::map<QString, QString>, std::map<QString, std::map<QString, QString>>>> frames);
+    void renamePose(QUuid poseId, QString name);
     
 public slots:
     void changeStateIndicator(PoseCapture::State state);
@@ -42,7 +46,7 @@ private slots:
     void generatePreviews();
     void previewsReady();
     void clearUnsaveState();
-    void setUnsavedState();
+    void setUnsaveState();
     void updateTitle();
     void save();
     
@@ -70,6 +74,7 @@ private:
     bool m_unsaved = false;
     QUuid m_poseId;
     bool m_captureEnabled = true;
+    QLineEdit *m_nameEdit = nullptr;
     std::vector<std::pair<std::map<QString, QString>, std::map<QString, std::map<QString, QString>>>> m_poseFrames;
 };
 

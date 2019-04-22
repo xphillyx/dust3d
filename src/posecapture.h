@@ -80,8 +80,12 @@ private:
     void updateFromKeypointsToAnimalPoserParameters(const std::map<QString, QVector3D> &keypoints,
         std::map<QString, std::map<QString, QString>> &parameters, const QString &paramName,
         const QString &fromName, const QString &toName);
+    void updateSpineKeypointsToAnimalPoseParameters(const std::map<QString, QVector3D> &keypoints,
+        std::map<QString, std::map<QString, QString>> &parameters);
     void keypointsToAnimalPoserParameters(const std::map<QString, QVector3D> &keypoints,
         std::map<QString, std::map<QString, QString>> &parameters);
+    void updateQVector3DsToAnimalPoserParameters(const QVector3D &from, const QVector3D &to,
+        std::map<QString, QString> &parameters);
     void mergeProfileTracks(const Track &main, const Track &rightHand, const Track &leftHand,
         const std::vector<qint64> &timeline,
         Track &resultTrack, std::vector<qint64> &resultTimeline);

@@ -47,6 +47,18 @@ void PoseCapturePreviewWidget::paintEvent(QPaintEvent *event)
     drawPair("rightHip", "rightKnee");
     drawPair("rightKnee", "rightAnkle");
     
+    {
+        auto findLeftShoulder = m_keypoints.find("leftShoulder");
+        auto findRightShoulder = m_keypoints.find("rightShoulder");
+        auto findNose = m_keypoints.find("nose");
+        if (findLeftShoulder != m_keypoints.end() &&
+                findRightShoulder != m_keypoints.end() &&
+                findNose != m_keypoints.end()) {
+            auto middleOfShoulders = (findLeftShoulder->second + findRightShoulder->second) / 2;
+            drawLine(middleOfShoulders, findNose->second);
+        }
+    }
+    
     float fullWidth = (float)width();
     float fullHeight = (float)height();
     float halfWidth = fullWidth / 2;
@@ -101,6 +113,7 @@ void PoseCapturePreviewWidget::setImage(const QImage &image)
 void PoseCapturePreviewWidget::setKeypoints(const std::map<QString, QVector3D> &keypoints)
 {
     m_keypoints = keypoints;
+    
     update();
 }
 
