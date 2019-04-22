@@ -4,6 +4,7 @@
 #include <QVector3D>
 #include <QTimer>
 #include <QElapsedTimer>
+#include <QSizeF>
 
 #if USE_MOCAP
 
@@ -48,7 +49,7 @@ signals:
     void trackChanged(Track track, std::vector<qint64> timeline);
     
 public slots:
-    void updateKeypoints(const std::map<QString, QVector3D> &keypoints);
+    void updateKeypoints(const std::map<QString, QVector3D> &keypoints, const QSizeF &imageSize);
     
 private slots:
     void handlePreEnterTimeout();
@@ -95,6 +96,7 @@ private:
     void smoothKeypointsList(std::vector<Keypoints> &keypointsList);
     void smoothQVector3DList(std::vector<QVector3D> &vectors);
     void smoothList(std::vector<float> &numbers);
+    void halveTrack(PoseCapture::Track &resultTrack, std::vector<qint64> &resultTimeline);
 };
 
 #endif

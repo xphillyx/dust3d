@@ -44,6 +44,18 @@ void PoseCapture::handlePreEnterTimeout()
     }
 }
 
+void PoseCapture::halveTrack(PoseCapture::Track &resultTrack, std::vector<qint64> &resultTimeline)
+{
+    PoseCapture::Track originalTrack = resultTrack;
+    std::vector<qint64> originalTimeline = resultTimeline;
+    resultTrack.clear();
+    resultTimeline.clear();
+    for (size_t i = 0; i < originalTrack.size(); i += 2) {
+        resultTrack.push_back(originalTrack[i]);
+        resultTimeline.push_back(originalTimeline[i]);
+    }
+}
+
 void PoseCapture::handleCapturingTimeout()
 {
     qDebug() << "Capturing timeout, state:" << (int)m_state;
@@ -57,6 +69,9 @@ void PoseCapture::handleCapturingTimeout()
             std::vector<qint64> resultTimeline;
             mergeProfileTracks(m_latestMainTrack, m_latestRightHandSideTrack, m_latestLeftHandSideTrack, m_latestMainTimeline,
                 resultTrack, resultTimeline);
+            while (resultTimeline.size() >= 48) {
+                halveTrack(resultTrack, resultTimeline);
+            }
             emit trackChanged(resultTrack, resultTimeline);
         }
         m_state = State::Idle;
@@ -224,7 +239,7 @@ void PoseCapture::checkState()
     }
 }
 
-void PoseCapture::updateKeypoints(const std::map<QString, QVector3D> &keypoints)
+void PoseCapture::updateKeypoints(const std::map<QString, QVector3D> &keypoints, const QSizeF &imageSize)
 {
     checkState();
     if (State::Idle == m_state) {
@@ -250,8 +265,15 @@ void PoseCapture::updateKeypoints(const std::map<QString, QVector3D> &keypoints)
             return;
         }
     } else if (State::Capturing == m_state) {
-        m_capturedKeypoints.push_back(keypoints);
-        m_capturedKeypointsTimeline.push_back(m_elapsedTimer.elapsed());
+        if (imageSize.width() > 0 && imageSize.height() > 0) {
+            std::map<QString, QVector3D> normalizedKeypoints = keypoints;
+            for (auto &it: normalizedKeypoints) {
+                it.second.setX(it.second.x() / imageSize.width());
+                it.second.setY(it.second.y() / imageSize.height());
+            }
+            m_capturedKeypoints.push_back(normalizedKeypoints);
+            m_capturedKeypointsTimeline.push_back(m_elapsedTimer.elapsed());
+        }
     }
 }
 

@@ -401,7 +401,7 @@ void PoseCaptureWidget::updateCapturedImage(const QImage &image)
             }
             if (keypointPositions.empty())
                 continue;
-            emit poseKeypointsDetected(keypointPositions);
+            emit poseKeypointsDetected(keypointPositions, QSizeF(map["width"].toFloat(), map["height"].toFloat()));
         }
     });
 }

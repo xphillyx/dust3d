@@ -7,6 +7,7 @@
 #include <QElapsedTimer>
 #include <QCloseEvent>
 #include <QLineEdit>
+#include <QSizeF>
 #include "posecapturepreviewwidget.h"
 #include "imagecapture.h"
 #include "posecapture.h"
@@ -29,7 +30,8 @@ protected:
     void reject() override;
     
 signals:
-    void poseKeypointsDetected(const std::map<QString, QVector3D> &keypoints);
+    void poseKeypointsDetected(const std::map<QString, QVector3D> &keypoints,
+        const QSizeF &imageSize);
     void addPose(QUuid poseId, QString name, std::vector<std::pair<std::map<QString, QString>, std::map<QString, std::map<QString, QString>>>> frames, QUuid turnaroundImageId);
     void setPoseFrames(QUuid poseId, std::vector<std::pair<std::map<QString, QString>, std::map<QString, std::map<QString, QString>>>> frames);
     void renamePose(QUuid poseId, QString name);

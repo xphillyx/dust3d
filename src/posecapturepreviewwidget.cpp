@@ -110,7 +110,7 @@ void PoseCapturePreviewWidget::setImage(const QImage &image)
     update();
 }
 
-void PoseCapturePreviewWidget::setKeypoints(const std::map<QString, QVector3D> &keypoints)
+void PoseCapturePreviewWidget::setKeypoints(const std::map<QString, QVector3D> &keypoints, const QSizeF &imageSize)
 {
     m_keypoints = keypoints;
     

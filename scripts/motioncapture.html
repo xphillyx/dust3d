@@ -41,6 +41,8 @@ image.onload = function()
     var flipHorizontal = true;
     if (undefined != net) {
         net.estimateSinglePose(image, imageScaleFactor, flipHorizontal, outputStride).then(pose => {
+            pose["width"] = image.width;
+            pose["height"] = image.height;
             poses.push(pose);
         });
     }

@@ -4,6 +4,7 @@
 #include <QImage>
 #include <QVector3D>
 #include <QElapsedTimer>
+#include <QSizeF>
 #include "posecapture.h"
 
 class PoseCapturePreviewWidget : public QWidget
@@ -17,7 +18,7 @@ protected:
     
 public slots:
     void setImage(const QImage &image);
-    void setKeypoints(const std::map<QString, QVector3D> &keypoints);
+    void setKeypoints(const std::map<QString, QVector3D> &keypoints, const QSizeF &imageSize);
     void setProfile(PoseCapture::Profile profile);
     void setState(PoseCapture::State state);
     
