@@ -152,6 +152,8 @@ void MotionsGenerator::generateMotion(const QUuid &motionId, std::set<QUuid> &vi
     
     float interval = 1.0 / m_fps;
     float lastProgress = 0;
+    if (totalDuration < interval)
+        totalDuration = interval;
     for (float progress = 0; progress < totalDuration; ) {
         int clipIndex = findClipIndexByProgress(progress);
         if (-1 == clipIndex) {

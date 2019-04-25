@@ -11,6 +11,7 @@
 #include <QApplication>
 #include <QSlider>
 #include <QHBoxLayout>
+#include <QGridLayout>
 #include <QMessageBox>
 #include "version.h"
 #include "posecapturewidget.h"
@@ -59,6 +60,8 @@ PoseCaptureWidget::PoseCaptureWidget(const Document *document, QWidget *parent) 
         m_clipPlayer->setSpeedMode((AnimationClipPlayer::SpeedMode)value);
     });
     
+    m_sliderContainerWidget = new QWidget;
+    
     QHBoxLayout *sliderLayout = new QHBoxLayout;
     sliderLayout->addStretch();
     sliderLayout->addSpacing(50);
@@ -67,10 +70,102 @@ PoseCaptureWidget::PoseCaptureWidget(const Document *document, QWidget *parent) 
     sliderLayout->addWidget(new QLabel(tr("Fast")));
     sliderLayout->addSpacing(50);
     sliderLayout->addStretch();
+    m_sliderContainerWidget->setLayout(sliderLayout);
+    
+    m_sliderContainerWidget->hide();
+    
+    QSize poseImageSize(69, 69);
+    
+    QLabel *tposeLabel = new QLabel;
+    QImage tposeImage(":/resources/tpose.png");
+    qDebug() << "tposeImage size:" << tposeImage.size();
+    tposeLabel->setPixmap(QPixmap::fromImage(tposeImage.scaled(poseImageSize)));
+    
+    QLabel *tposeText = new QLabel;
+    tposeText->setAlignment(Qt::AlignCenter);
+    tposeText->setText(tr("(Treat the guide image as mirror)\nMake a T-Pose to capture front view"));
+    
+    QLabel *sevenPoseLabel = new QLabel;
+    QImage sevenPoseImage(":/resources/seven-pose.png");
+    qDebug() << "sevenPoseImage size:" << sevenPoseImage.size();
+    sevenPoseLabel->setPixmap(QPixmap::fromImage(sevenPoseImage.scaled(poseImageSize)));
+    
+    QLabel *sevenPoseText = new QLabel;
+    sevenPoseText->setAlignment(Qt::AlignCenter);
+    sevenPoseText->setText(tr("(Treat the guide image as mirror)\nMake a 7-Pose to capture right hand view"));
+    
+    QLabel *flippedSevenPoseLabel = new QLabel;
+    QImage flippedSevenPoseImage(":/resources/flipped-seven-pose.png");
+    qDebug() << "flippedSevenPoseImage size:" << flippedSevenPoseImage.size();
+    flippedSevenPoseLabel->setPixmap(QPixmap::fromImage(flippedSevenPoseImage.scaled(poseImageSize)));
+    
+    QLabel *flippedSevenPoseText = new QLabel;
+    flippedSevenPoseText->setAlignment(Qt::AlignCenter);
+    flippedSevenPoseText->setText(tr("(Treat the guide image as mirror)\nMake a flipped 7-Pose to capture left hand view"));
+    
+    QHBoxLayout *tposeImageLayout = new QHBoxLayout;
+    tposeImageLayout->addStretch();
+    tposeImageLayout->addWidget(tposeLabel);
+    tposeImageLayout->addStretch();
+    
+    QHBoxLayout *tposeTextLayout = new QHBoxLayout;
+    tposeTextLayout->addStretch();
+    tposeTextLayout->addWidget(tposeText);
+    tposeTextLayout->addStretch();
+    
+    QVBoxLayout *tposeLayout = new QVBoxLayout;
+    tposeLayout->addLayout(tposeImageLayout);
+    tposeLayout->addLayout(tposeTextLayout);
+    
+    m_tposeWidget = new QWidget;
+    m_tposeWidget->setLayout(tposeLayout);
+    
+    QHBoxLayout *sevenPoseImageLayout = new QHBoxLayout;
+    sevenPoseImageLayout->addStretch();
+    sevenPoseImageLayout->addWidget(sevenPoseLabel);
+    sevenPoseImageLayout->addStretch();
+    
+    QHBoxLayout *sevenPoseTextLayout = new QHBoxLayout;
+    sevenPoseTextLayout->addStretch();
+    sevenPoseTextLayout->addWidget(sevenPoseText);
+    sevenPoseTextLayout->addStretch();
+    
+    QVBoxLayout *sevenPoseLayout = new QVBoxLayout;
+    sevenPoseLayout->addLayout(sevenPoseImageLayout);
+    sevenPoseLayout->addLayout(sevenPoseTextLayout);
+    
+    m_sevenPoseWidget = new QWidget;
+    m_sevenPoseWidget->setLayout(sevenPoseLayout);
+    m_sevenPoseWidget->hide();
+    
+    QHBoxLayout *flippedSevenPoseImageLayout = new QHBoxLayout;
+    flippedSevenPoseImageLayout->addStretch();
+    flippedSevenPoseImageLayout->addWidget(flippedSevenPoseLabel);
+    flippedSevenPoseImageLayout->addStretch();
+    
+    QHBoxLayout *flippedSevenPoseTextLayout = new QHBoxLayout;
+    flippedSevenPoseTextLayout->addStretch();
+    flippedSevenPoseTextLayout->addWidget(flippedSevenPoseText);
+    flippedSevenPoseTextLayout->addStretch();
+    
+    QVBoxLayout *flippedSevenPoseLayout = new QVBoxLayout;
+    flippedSevenPoseLayout->addLayout(flippedSevenPoseImageLayout);
+    flippedSevenPoseLayout->addLayout(flippedSevenPoseTextLayout);
+    
+    m_flippedSevenPoseWidget = new QWidget;
+    m_flippedSevenPoseWidget->setLayout(flippedSevenPoseLayout);
+    m_flippedSevenPoseWidget->hide();
+    
+    QVBoxLayout *poseIndicateLayout = new QVBoxLayout;
+    poseIndicateLayout->addWidget(m_tposeWidget);
+    poseIndicateLayout->addWidget(m_sevenPoseWidget);
+    poseIndicateLayout->addWidget(m_flippedSevenPoseWidget);
     
     QVBoxLayout *resultPreviewLayout = new QVBoxLayout;
     resultPreviewLayout->addStretch();
-    resultPreviewLayout->addLayout(sliderLayout);
+    resultPreviewLayout->addLayout(poseIndicateLayout);
+    resultPreviewLayout->addStretch();
+    resultPreviewLayout->addWidget(m_sliderContainerWidget);
     resultPreviewLayout->addSpacing(20);
 
     QVBoxLayout *previewLayout = new QVBoxLayout;
@@ -108,11 +203,36 @@ PoseCaptureWidget::PoseCaptureWidget(const Document *document, QWidget *parent) 
         m_rawCapturePreviewWidget->setProfile(m_poseCapture.profile());
         m_rawCapturePreviewWidget->setState(state);
         if (PoseCapture::State::Idle == state) {
-            startCaptureButton->setText(tr("Continue Capture"));
-            startCaptureButton->show();
-            m_rawCapturePreviewWidget->hide();
-            m_captureEnabled = false;
-            stopCapture();
+            if (!m_poseCapture.isMainTrackCaptured()) {
+                m_tposeWidget->show();
+                m_sevenPoseWidget->hide();
+                m_flippedSevenPoseWidget->hide();
+                m_previewWidget->hide();
+                m_sliderContainerWidget->hide();
+            } else if (!m_poseCapture.isRightHandTrackCaptured()) {
+                m_tposeWidget->hide();
+                m_sevenPoseWidget->hide();
+                m_flippedSevenPoseWidget->show();
+                m_previewWidget->hide();
+                m_sliderContainerWidget->hide();
+            } else if (!m_poseCapture.isLeftHandTrackCaptured()) {
+                m_tposeWidget->hide();
+                m_sevenPoseWidget->show();
+                m_flippedSevenPoseWidget->hide();
+                m_previewWidget->hide();
+                m_sliderContainerWidget->hide();
+            } else {
+                stopCapture();
+                startCaptureButton->setText(tr("Continue Capture"));
+                startCaptureButton->show();
+                m_rawCapturePreviewWidget->hide();
+                m_captureEnabled = false;
+                m_tposeWidget->hide();
+                m_sevenPoseWidget->hide();
+                m_flippedSevenPoseWidget->hide();
+                m_previewWidget->show();
+                m_sliderContainerWidget->show();
+            }
         }
     });
     

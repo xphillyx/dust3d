@@ -44,7 +44,9 @@ public:
     ~PoseCapture();
     State state();
     Profile profile();
-    //bool isAllProfilesCaptured();
+    bool isMainTrackCaptured();
+    bool isRightHandTrackCaptured();
+    bool isLeftHandTrackCaptured();
     
 signals:
     void stateChanged(State state);

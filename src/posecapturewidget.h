@@ -78,6 +78,10 @@ private:
     bool m_captureEnabled = true;
     QLineEdit *m_nameEdit = nullptr;
     std::vector<std::pair<std::map<QString, QString>, std::map<QString, std::map<QString, QString>>>> m_poseFrames;
+    QWidget *m_tposeWidget = nullptr;
+    QWidget *m_sevenPoseWidget = nullptr;
+    QWidget *m_flippedSevenPoseWidget = nullptr;
+    QWidget *m_sliderContainerWidget = nullptr;
 };
 
 #endif

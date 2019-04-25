@@ -76,7 +76,9 @@ void PoseCapture::handleCapturingTimeout()
         if (Profile::Main == m_profile) {
             m_latestMainTimeline = m_currentCapturingTimeline;
         }
-        if (!m_latestMainTimeline.empty()) {
+        if (!m_latestMainTimeline.empty() &&
+                !m_latestLeftHandSideTrack.empty() &&
+                !m_latestRightHandSideTrack.empty()) {
             PoseCapture::Track resultTrack;
             std::vector<qint64> resultTimeline;
             mergeProfileTracks(m_latestMainTrack, m_latestRightHandSideTrack, m_latestLeftHandSideTrack, m_latestMainTimeline,
@@ -181,14 +183,20 @@ void PoseCapture::keypointsToAnimalPoserParameters(const std::map<QString, QVect
         "RightLimb1_Joint3", "rightAnkle", "rightAnkle");
 }
 
-/*
-bool PoseCapture::isAllProfilesCaptured()
+bool PoseCapture::isMainTrackCaptured()
 {
-    return !m_latestMainTrack.empty() &&
-        !m_latestLeftHandSideTrack.empty() &&
-        !m_latestRightHandSideTrack.empty();
+    return !m_latestMainTrack.empty();
 }
-*/
+
+bool PoseCapture::isRightHandTrackCaptured()
+{
+    return !m_latestRightHandSideTrack.empty();
+}
+
+bool PoseCapture::isLeftHandTrackCaptured()
+{
+    return !m_latestLeftHandSideTrack.empty();
+}
 
 void PoseCapture::mergeProfileTracks(const Track &main, const Track &rightHand, const Track &leftHand,
     const std::vector<qint64> &timeline,
