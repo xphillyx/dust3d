@@ -85,8 +85,11 @@ float MotionsGenerator::calculatePoseDuration(const QUuid &poseId)
     if (nullptr == pose)
         return 0;
     float totalDuration = 0;
-    for (const auto &frame: *pose) {
-        totalDuration += valueOfKeyInMapOrEmpty(frame.first, "duration").toFloat();
+    if (pose->size() > 1) {
+        // Pose with only one frame has zero duration
+        for (const auto &frame: *pose) {
+            totalDuration += valueOfKeyInMapOrEmpty(frame.first, "duration").toFloat();
+        }
     }
     return totalDuration;
 }

@@ -10,7 +10,7 @@
 const int PoseCapture::PreEnterDuration = 3000;
 const int PoseCapture::CapturingDuration = 3000;
 const int PoseCapture::TargetFrames = 1;
-const float PoseCapture::TargetSeconds = 1.0;
+const float PoseCapture::TargetSeconds = 0.0;
 
 PoseCapture::PoseCapture(QObject *parent) :
     QObject(parent)
