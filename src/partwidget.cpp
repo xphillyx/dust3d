@@ -18,6 +18,8 @@
 #include "skeletongraphicswidget.h"
 #include "shortcuts.h"
 #include "graphicscontainerwidget.h"
+#include "flowlayout.h"
+#include "cutfacelistwidget.h"
 
 PartWidget::PartWidget(const Document *document, QUuid partId) :
     m_document(document),
@@ -73,7 +75,7 @@ PartWidget::PartWidget(const Document *document, QUuid partId) :
     initButton(m_colorButton);
     
     m_cutRotationButton = new QPushButton;
-    m_cutRotationButton->setToolTip(tr("Cut rotation"));
+    m_cutRotationButton->setToolTip(tr("Cut face"));
     m_cutRotationButton->setSizePolicy(retainSizePolicy);
     initButton(m_cutRotationButton);
     
@@ -161,8 +163,10 @@ PartWidget::PartWidget(const Document *document, QUuid partId) :
     connect(this, &PartWidget::setPartChamferState, m_document, &Document::setPartChamferState);
     connect(this, &PartWidget::setPartCutRotation, m_document, &Document::setPartCutRotation);
     connect(this, &PartWidget::setPartCutFace, m_document, &Document::setPartCutFace);
+    connect(this, &PartWidget::setPartCutFaceLinkedId, m_document, &Document::setPartCutFaceLinkedId);
     connect(this, &PartWidget::setPartColorState, m_document, &Document::setPartColorState);
     connect(this, &PartWidget::setPartMaterialId, m_document, &Document::setPartMaterialId);
+    connect(this, &PartWidget::setPartColorSolubility, m_document, &Document::setPartColorSolubility);
     connect(this, &PartWidget::checkPart, m_document, &Document::checkPart);
     connect(this, &PartWidget::enableBackgroundBlur, m_document, &Document::enableBackgroundBlur);
     connect(this, &PartWidget::disableBackgroundBlur, m_document, &Document::disableBackgroundBlur);
@@ -372,8 +376,31 @@ void PartWidget::showColorSettingPopup(const QPoint &pos)
         }
     });
     
+    FloatNumberWidget *colorSolubilityWidget = new FloatNumberWidget;
+    colorSolubilityWidget->setItemName(tr("Solubility"));
+    colorSolubilityWidget->setRange(0.0, 1.0);
+    colorSolubilityWidget->setValue(part->colorSolubility);
+    
+    connect(colorSolubilityWidget, &FloatNumberWidget::valueChanged, [=](float value) {
+        emit setPartColorSolubility(m_partId, value);
+        emit groupOperationAdded();
+    });
+    
+    QPushButton *colorSolubilityEraser = new QPushButton(QChar(fa::eraser));
+    initToolButton(colorSolubilityEraser);
+    
+    connect(colorSolubilityEraser, &QPushButton::clicked, [=]() {
+        colorSolubilityWidget->setValue(0.0);
+        emit groupOperationAdded();
+    });
+    
+    QHBoxLayout *colorSolubilityLayout = new QHBoxLayout;
+    colorSolubilityLayout->addWidget(colorSolubilityEraser);
+    colorSolubilityLayout->addWidget(colorSolubilityWidget);
+    
     QVBoxLayout *mainLayout = new QVBoxLayout;
     mainLayout->addLayout(colorLayout);
+    mainLayout->addLayout(colorSolubilityLayout);
     
     if (m_document->materialIdList.empty()) {
         InfoLabel *infoLabel = new InfoLabel;
@@ -434,11 +461,16 @@ void PartWidget::showCutRotationSettingPopup(const QPoint &pos)
     rotationLayout->addWidget(rotationEraser);
     rotationLayout->addWidget(rotationWidget);
     
-    QHBoxLayout *facesLayout = new QHBoxLayout;
+    QHBoxLayout *standardFacesLayout = new QHBoxLayout;
     QPushButton *buttons[(int)CutFace::Count] = {0};
     
+    CutFaceListWidget *cutFaceListWidget = new CutFaceListWidget(m_document);
+    size_t cutFaceTypeCount = (size_t)CutFace::Count;
+    if (cutFaceListWidget->isEmpty())
+        cutFaceTypeCount = (size_t)CutFace::UserDefined;
+    
     auto updateCutFaceButtonState = [&](size_t index) {
-        for (size_t i = 0; i < (size_t)CutFace::Count; ++i) {
+        for (size_t i = 0; i < (size_t)cutFaceTypeCount; ++i) {
             auto button = buttons[i];
             if (i == index) {
                 button->setFlat(true);
@@ -448,8 +480,28 @@ void PartWidget::showCutRotationSettingPopup(const QPoint &pos)
                 button->setEnabled(true);
             }
         }
+        if (index != (int)CutFace::UserDefined)
+            cutFaceListWidget->selectCutFace(QUuid());
     };
-    for (size_t i = 0; i < (size_t)CutFace::Count; ++i) {
+    
+    cutFaceListWidget->enableMultipleSelection(false);
+    cutFaceListWidget->selectCutFace(part->cutFaceLinkedId);
+    connect(cutFaceListWidget, &CutFaceListWidget::currentSelectedCutFaceChanged, this, [=](QUuid partId) {
+        if (partId.isNull()) {
+            CutFace cutFace = CutFace::Quad;
+            updateCutFaceButtonState((int)cutFace);
+            emit setPartCutFace(m_partId, cutFace);
+            emit groupOperationAdded();
+        } else {
+            updateCutFaceButtonState((int)CutFace::UserDefined);
+            emit setPartCutFaceLinkedId(m_partId, partId);
+            emit groupOperationAdded();
+        }
+    });
+    if (cutFaceListWidget->isEmpty())
+        cutFaceListWidget->hide();
+    
+    for (size_t i = 0; i < (size_t)cutFaceTypeCount; ++i) {
         CutFace cutFace = (CutFace)i;
         QString iconFilename = ":/resources/" + CutFaceToString(cutFace).toLower() + ".png";
         QPixmap pixmap(iconFilename);
@@ -462,7 +514,7 @@ void PartWidget::showCutRotationSettingPopup(const QPoint &pos)
             emit setPartCutFace(m_partId, cutFace);
             emit groupOperationAdded();
         });
-        facesLayout->addWidget(button);
+        standardFacesLayout->addWidget(button);
         buttons[i] = button;
     }
     updateCutFaceButtonState((size_t)part->cutFace);
@@ -470,7 +522,8 @@ void PartWidget::showCutRotationSettingPopup(const QPoint &pos)
     QVBoxLayout *popupLayout = new QVBoxLayout;
     popupLayout->addLayout(rotationLayout);
     popupLayout->addSpacing(10);
-    popupLayout->addLayout(facesLayout);
+    popupLayout->addLayout(standardFacesLayout);
+    popupLayout->addWidget(cutFaceListWidget);
     
     popup->setLayout(popupLayout);
     
@@ -683,7 +736,7 @@ void PartWidget::updateColorButton()
         qDebug() << "Part not found:" << m_partId;
         return;
     }
-    if (part->hasColor || part->materialAdjusted())
+    if (part->hasColor || part->materialAdjusted() || part->colorSolubilityAdjusted())
         updateButton(m_colorButton, QChar(fa::eyedropper), true);
     else
         updateButton(m_colorButton, QChar(fa::eyedropper), false);

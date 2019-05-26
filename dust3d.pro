@@ -14,10 +14,10 @@ macx {
 }
 
 isEmpty(HUMAN_VERSION) {
-	HUMAN_VERSION = "1.0.0-beta.17"
+	HUMAN_VERSION = "1.0.0-beta.18"
 }
 isEmpty(VERSION) {
-	VERSION = 1.0.0.17
+	VERSION = 1.0.0.18
 }
 
 HOMEPAGE_URL = "https://dust3d.org/"
@@ -296,6 +296,18 @@ HEADERS += src/cutdocument.h
 
 SOURCES += src/cutface.cpp
 HEADERS += src/cutface.h
+
+SOURCES += src/parttarget.cpp
+HEADERS += src/parttarget.h
+
+SOURCES += src/partbase.cpp
+HEADERS += src/partbase.h
+
+SOURCES += src/cutfacewidget.cpp
+HEADERS += src/cutfacewidget.h
+
+SOURCES += src/cutfacelistwidget.cpp
+HEADERS += src/cutfacelistwidget.h
 
 SOURCES += src/remoteioserver.cpp
 HEADERS += src/remoteioserver.h

@@ -831,6 +831,8 @@ DocumentWindow::DocumentWindow() :
     connect(partTreeWidget, &PartTreeWidget::setPartLockState, m_document, &Document::setPartLockState);
     connect(partTreeWidget, &PartTreeWidget::setPartVisibleState, m_document, &Document::setPartVisibleState);
     connect(partTreeWidget, &PartTreeWidget::setComponentCombineMode, m_document, &Document::setComponentCombineMode);
+    connect(partTreeWidget, &PartTreeWidget::setPartTarget, m_document, &Document::setPartTarget);
+    connect(partTreeWidget, &PartTreeWidget::setPartBase, m_document, &Document::setPartBase);
     connect(partTreeWidget, &PartTreeWidget::hideDescendantComponents, m_document, &Document::hideDescendantComponents);
     connect(partTreeWidget, &PartTreeWidget::showDescendantComponents, m_document, &Document::showDescendantComponents);
     connect(partTreeWidget, &PartTreeWidget::lockDescendantComponents, m_document, &Document::lockDescendantComponents);
@@ -858,6 +860,7 @@ DocumentWindow::DocumentWindow() :
     connect(m_document, &Document::partCutRotationChanged, partTreeWidget, &PartTreeWidget::partCutRotationChanged);
     connect(m_document, &Document::partCutFaceChanged, partTreeWidget, &PartTreeWidget::partCutFaceChanged);
     connect(m_document, &Document::partMaterialIdChanged, partTreeWidget, &PartTreeWidget::partMaterialIdChanged);
+    connect(m_document, &Document::partColorSolubilityChanged, partTreeWidget, &PartTreeWidget::partColorSolubilityChanged);
     connect(m_document, &Document::partRemoved, partTreeWidget, &PartTreeWidget::partRemoved);
     connect(m_document, &Document::cleanup, partTreeWidget, &PartTreeWidget::removeAllContent);
     connect(m_document, &Document::partChecked, partTreeWidget, &PartTreeWidget::partChecked);

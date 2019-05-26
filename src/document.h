@@ -396,6 +396,7 @@ signals:
     void partDisableStateChanged(QUuid partId);
     void partXmirrorStateChanged(QUuid partId);
     //void partZmirrorStateChanged(QUuid partId);
+    void partBaseChanged(QUuid partId);
     void partDeformThicknessChanged(QUuid partId);
     void partDeformWidthChanged(QUuid partId);
     void partRoundStateChanged(QUuid partId);
@@ -404,6 +405,8 @@ signals:
     void partCutFaceChanged(QUuid partId);
     void partMaterialIdChanged(QUuid partId);
     void partChamferStateChanged(QUuid partId);
+    void partTargetChanged(QUuid partId);
+    void partColorSolubilityChanged(QUuid partId);
     void componentCombineModeChanged(QUuid componentId);
     void cleanup();
     void originChanged();
@@ -552,14 +555,18 @@ public slots:
     void setPartDisableState(QUuid partId, bool disabled);
     void setPartXmirrorState(QUuid partId, bool mirrored);
     //void setPartZmirrorState(QUuid partId, bool mirrored);
+    void setPartBase(QUuid partId, PartBase base);
     void setPartDeformThickness(QUuid partId, float thickness);
     void setPartDeformWidth(QUuid partId, float width);
     void setPartRoundState(QUuid partId, bool rounded);
     void setPartColorState(QUuid partId, bool hasColor, QColor color);
     void setPartCutRotation(QUuid partId, float cutRotation);
     void setPartCutFace(QUuid partId, CutFace cutFace);
+    void setPartCutFaceLinkedId(QUuid partId, QUuid linkedId);
     void setPartMaterialId(QUuid partId, QUuid materialId);
     void setPartChamferState(QUuid partId, bool chamfered);
+    void setPartTarget(QUuid partId, PartTarget target);
+    void setPartColorSolubility(QUuid partId, float solubility);
     void setComponentCombineMode(QUuid componentId, CombineMode combineMode);
     void moveComponentUp(QUuid componentId);
     void moveComponentDown(QUuid componentId);
@@ -632,6 +639,7 @@ private:
     void resetDirtyFlags();
     void markAllDirty();
     void removeRigResults();
+    void updateLinkedPart(QUuid oldPartId, QUuid newPartId);
 private: // need initialize
     bool m_isResultMeshObsolete;
     MeshGenerator *m_meshGenerator;

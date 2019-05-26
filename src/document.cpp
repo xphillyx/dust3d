@@ -147,6 +147,7 @@ void Document::removeEdge(QUuid edgeId)
     QUuid oldPartId = oldPart->id;
     std::vector<std::vector<QUuid>> groups;
     splitPartByEdge(&groups, edgeId);
+    std::vector<std::pair<QUuid, size_t>> newPartNodeNumMap;
     for (auto groupIt = groups.begin(); groupIt != groups.end(); groupIt++) {
         const auto newUuid = QUuid::createUuid();
         SkeletonPart &part = partMap[newUuid];
@@ -171,6 +172,7 @@ void Document::removeEdge(QUuid edgeId)
             }
         }
         addPartToComponent(part.id, findComponentParentId(part.componentId));
+        newPartNodeNumMap.push_back({part.id, part.nodeIds.size()});
         emit partAdded(part.id);
     }
     for (auto nodeIdIt = edge->nodeIds.begin(); nodeIdIt != edge->nodeIds.end(); nodeIdIt++) {
@@ -185,6 +187,14 @@ void Document::removeEdge(QUuid edgeId)
     edgeMap.erase(edgeId);
     emit edgeRemoved(edgeId);
     removePart(oldPartId);
+    
+    if (!newPartNodeNumMap.empty()) {
+        std::sort(newPartNodeNumMap.begin(), newPartNodeNumMap.end(), [&](
+                const std::pair<QUuid, size_t> &first, const std::pair<QUuid, size_t> &second) {
+            return first.second > second.second;
+        });
+        updateLinkedPart(oldPartId, newPartNodeNumMap[0].first);
+    }
     
     emit skeletonChanged();
 }
@@ -207,6 +217,7 @@ void Document::removeNode(QUuid nodeId)
     QUuid oldPartId = oldPart->id;
     std::vector<std::vector<QUuid>> groups;
     splitPartByNode(&groups, nodeId);
+    std::vector<std::pair<QUuid, size_t>> newPartNodeNumMap;
     for (auto groupIt = groups.begin(); groupIt != groups.end(); groupIt++) {
         const auto newUuid = QUuid::createUuid();
         SkeletonPart &part = partMap[newUuid];
@@ -231,6 +242,7 @@ void Document::removeNode(QUuid nodeId)
             }
         }
         addPartToComponent(part.id, findComponentParentId(part.componentId));
+        newPartNodeNumMap.push_back({part.id, part.nodeIds.size()});
         emit partAdded(part.id);
     }
     for (auto edgeIdIt = node->edgeIds.begin(); edgeIdIt != node->edgeIds.end(); edgeIdIt++) {
@@ -252,6 +264,14 @@ void Document::removeNode(QUuid nodeId)
     nodeMap.erase(nodeId);
     emit nodeRemoved(nodeId);
     removePart(oldPartId);
+    
+    if (!newPartNodeNumMap.empty()) {
+        std::sort(newPartNodeNumMap.begin(), newPartNodeNumMap.end(), [&](
+                const std::pair<QUuid, size_t> &first, const std::pair<QUuid, size_t> &second) {
+            return first.second > second.second;
+        });
+        updateLinkedPart(oldPartId, newPartNodeNumMap[0].first);
+    }
     
     emit skeletonChanged();
 }
@@ -543,10 +563,21 @@ void Document::addEdge(QUuid fromNodeId, QUuid toNodeId)
     emit edgeAdded(edge.id);
     
     if (toPartRemoved) {
+        updateLinkedPart(toPartId, fromNode->partId);
         removePart(toPartId);
     }
     
     emit skeletonChanged();
+}
+
+void Document::updateLinkedPart(QUuid oldPartId, QUuid newPartId)
+{
+    for (auto &partIt: partMap) {
+        if (partIt.second.cutFaceLinkedId == oldPartId) {
+            partIt.second.dirty = true;
+            partIt.second.setCutFaceLinkedId(newPartId);
+        }
+    }
 }
 
 const Component *Document::findComponent(QUuid componentId) const
@@ -862,16 +893,30 @@ void Document::toSnapshot(Snapshot *snapshot, const std::set<QUuid> &limitNodeId
             part["subdived"] = partIt.second.subdived ? "true" : "false";
             part["disabled"] = partIt.second.disabled ? "true" : "false";
             part["xMirrored"] = partIt.second.xMirrored ? "true" : "false";
-            part["zMirrored"] = partIt.second.zMirrored ? "true" : "false";
+            if (partIt.second.zMirrored)
+                part["zMirrored"] = partIt.second.zMirrored ? "true" : "false";
+            if (partIt.second.base != PartBase::XYZ)
+                part["base"] = PartBaseToString(partIt.second.base);
             part["rounded"] = partIt.second.rounded ? "true" : "false";
             part["chamfered"] = partIt.second.chamfered ? "true" : "false";
+            if (PartTarget::Model != partIt.second.target)
+                part["target"] = PartTargetToString(partIt.second.target);
             if (partIt.second.cutRotationAdjusted())
                 part["cutRotation"] = QString::number(partIt.second.cutRotation);
-            if (partIt.second.cutFaceAdjusted())
-                part["cutFace"] = CutFaceToString(partIt.second.cutFace);
+            if (partIt.second.cutFaceAdjusted()) {
+                if (CutFace::UserDefined == partIt.second.cutFace) {
+                    if (!partIt.second.cutFaceLinkedId.isNull()) {
+                        part["cutFace"] = partIt.second.cutFaceLinkedId.toString();
+                    }
+                } else {
+                    part["cutFace"] = CutFaceToString(partIt.second.cutFace);
+                }
+            }
             part["dirty"] = partIt.second.dirty ? "true" : "false";
             if (partIt.second.hasColor)
                 part["color"] = partIt.second.color.name();
+            if (partIt.second.colorSolubilityAdjusted())
+                part["colorSolubility"] = QString::number(partIt.second.colorSolubility);
             if (partIt.second.deformThicknessAdjusted())
                 part["deformThickness"] = QString::number(partIt.second.deformThickness);
             if (partIt.second.deformWidthAdjusted())
@@ -1110,6 +1155,7 @@ void Document::addFromSnapshot(const Snapshot &snapshot, bool fromPaste)
         materialIdList.push_back(newMaterialId);
         emit materialAdded(newMaterialId);
     }
+    std::map<QUuid, QUuid> cutFaceLinkedIdModifyMap;
     for (const auto &partKv: snapshot.parts) {
         const auto newUuid = QUuid::createUuid();
         SkeletonPart &part = partMap[newUuid];
@@ -1122,14 +1168,23 @@ void Document::addFromSnapshot(const Snapshot &snapshot, bool fromPaste)
         part.disabled = isTrueValueString(valueOfKeyInMapOrEmpty(partKv.second, "disabled"));
         part.xMirrored = isTrueValueString(valueOfKeyInMapOrEmpty(partKv.second, "xMirrored"));
         part.zMirrored = isTrueValueString(valueOfKeyInMapOrEmpty(partKv.second, "zMirrored"));
+        part.base = PartBaseFromString(valueOfKeyInMapOrEmpty(partKv.second, "base").toUtf8().constData());
         part.rounded = isTrueValueString(valueOfKeyInMapOrEmpty(partKv.second, "rounded"));
         part.chamfered = isTrueValueString(valueOfKeyInMapOrEmpty(partKv.second, "chamfered"));
+        part.target = PartTargetFromString(valueOfKeyInMapOrEmpty(partKv.second, "target").toUtf8().constData());
         const auto &cutRotationIt = partKv.second.find("cutRotation");
         if (cutRotationIt != partKv.second.end())
             part.setCutRotation(cutRotationIt->second.toFloat());
         const auto &cutFaceIt = partKv.second.find("cutFace");
-        if (cutFaceIt != partKv.second.end())
-            part.setCutFace(CutFaceFromString(cutFaceIt->second.toUtf8().constData()));
+        if (cutFaceIt != partKv.second.end()) {
+            QUuid cutFaceLinkedId = QUuid(cutFaceIt->second);
+            if (cutFaceLinkedId.isNull()) {
+                part.setCutFace(CutFaceFromString(cutFaceIt->second.toUtf8().constData()));
+            } else {
+                part.setCutFaceLinkedId(cutFaceLinkedId);
+                cutFaceLinkedIdModifyMap.insert({part.id, cutFaceLinkedId});
+            }
+        }
         if (isTrueValueString(valueOfKeyInMapOrEmpty(partKv.second, "inverse")))
             inversePartIds.insert(part.id);
         const auto &colorIt = partKv.second.find("color");
@@ -1137,6 +1192,9 @@ void Document::addFromSnapshot(const Snapshot &snapshot, bool fromPaste)
             part.color = QColor(colorIt->second);
             part.hasColor = true;
         }
+        const auto &colorSolubilityIt = partKv.second.find("colorSolubility");
+        if (colorSolubilityIt != partKv.second.end())
+            part.colorSolubility = colorSolubilityIt->second.toFloat();
         const auto &deformThicknessIt = partKv.second.find("deformThickness");
         if (deformThicknessIt != partKv.second.end())
             part.setDeformThickness(deformThicknessIt->second.toFloat());
@@ -1147,6 +1205,14 @@ void Document::addFromSnapshot(const Snapshot &snapshot, bool fromPaste)
         if (materialIdIt != partKv.second.end())
             part.materialId = oldNewIdMap[QUuid(materialIdIt->second)];
         newAddedPartIds.insert(part.id);
+    }
+    for (const auto &it: cutFaceLinkedIdModifyMap) {
+        SkeletonPart &part = partMap[it.first];
+        auto findNewLinkedId = oldNewIdMap.find(it.second);
+        if (findNewLinkedId == oldNewIdMap.end())
+            part.setCutFaceLinkedId(QUuid());
+        else
+            part.setCutFaceLinkedId(findNewLinkedId->second);
     }
     for (const auto &nodeKv: snapshot.nodes) {
         if (nodeKv.second.find("radius") == nodeKv.second.end() ||
@@ -2162,6 +2228,21 @@ void Document::setPartDeformThickness(QUuid partId, float thickness)
     emit skeletonChanged();
 }
 
+void Document::setPartBase(QUuid partId, PartBase base)
+{
+    auto part = partMap.find(partId);
+    if (part == partMap.end()) {
+        qDebug() << "Part not found:" << partId;
+        return;
+    }
+    if (part->second.base == base)
+        return;
+    part->second.base = base;
+    part->second.dirty = true;
+    emit partBaseChanged(partId);
+    emit skeletonChanged();
+}
+
 void Document::setPartDeformWidth(QUuid partId, float width)
 {
     auto part = partMap.find(partId);
@@ -2220,6 +2301,36 @@ void Document::setPartChamferState(QUuid partId, bool chamfered)
     emit skeletonChanged();
 }
 
+void Document::setPartTarget(QUuid partId, PartTarget target)
+{
+    auto part = partMap.find(partId);
+    if (part == partMap.end()) {
+        qDebug() << "Part not found:" << partId;
+        return;
+    }
+    if (part->second.target == target)
+        return;
+    part->second.target = target;
+    part->second.dirty = true;
+    emit partTargetChanged(partId);
+    emit skeletonChanged();
+}
+
+void Document::setPartColorSolubility(QUuid partId, float solubility)
+{
+    auto part = partMap.find(partId);
+    if (part == partMap.end()) {
+        qDebug() << "Part not found:" << partId;
+        return;
+    }
+    if (qFuzzyCompare(part->second.colorSolubility, solubility))
+        return;
+    part->second.colorSolubility = solubility;
+    part->second.dirty = true;
+    emit partColorSolubilityChanged(partId);
+    emit skeletonChanged();
+}
+
 void Document::setPartCutRotation(QUuid partId, float cutRotation)
 {
     auto part = partMap.find(partId);
@@ -2245,6 +2356,22 @@ void Document::setPartCutFace(QUuid partId, CutFace cutFace)
     if (part->second.cutFace == cutFace)
         return;
     part->second.setCutFace(cutFace);
+    part->second.dirty = true;
+    emit partCutFaceChanged(partId);
+    emit skeletonChanged();
+}
+
+void Document::setPartCutFaceLinkedId(QUuid partId, QUuid linkedId)
+{
+    auto part = partMap.find(partId);
+    if (part == partMap.end()) {
+        qDebug() << "Part not found:" << partId;
+        return;
+    }
+    if (part->second.cutFace == CutFace::UserDefined &&
+            part->second.cutFaceLinkedId == linkedId)
+        return;
+    part->second.setCutFaceLinkedId(linkedId);
     part->second.dirty = true;
     emit partCutFaceChanged(partId);
     emit skeletonChanged();

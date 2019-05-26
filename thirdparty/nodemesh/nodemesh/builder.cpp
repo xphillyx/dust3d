@@ -289,10 +289,45 @@ bool Builder::validateNormal(const QVector3D &normal)
     return true;
 }
 
-std::pair<QVector3D, bool> Builder::calculateBaseNormal(const std::vector<QVector3D> &directs,
-        const std::vector<QVector3D> &positions,
+void Builder::enableBaseNormalOnX(bool enabled)
+{
+    m_baseNormalOnX = enabled;
+}
+
+void Builder::enableBaseNormalOnY(bool enabled)
+{
+    m_baseNormalOnY = enabled;
+}
+
+void Builder::enableBaseNormalOnZ(bool enabled)
+{
+    m_baseNormalOnZ = enabled;
+}
+
+std::pair<QVector3D, bool> Builder::calculateBaseNormal(const std::vector<QVector3D> &inputDirects,
+        const std::vector<QVector3D> &inputPositions,
         const std::vector<float> &weights)
 {
+    std::vector<QVector3D> directs = inputDirects;
+    std::vector<QVector3D> positions = inputPositions;
+    if (!m_baseNormalOnX || !m_baseNormalOnY || !m_baseNormalOnZ) {
+        for (auto &it: directs) {
+            if (!m_baseNormalOnX)
+                it.setX(0);
+            if (!m_baseNormalOnY)
+                it.setY(0);
+            if (!m_baseNormalOnZ)
+                it.setZ(0);
+        }
+        for (auto &it: positions) {
+            if (!m_baseNormalOnX)
+                it.setX(0);
+            if (!m_baseNormalOnY)
+                it.setY(0);
+            if (!m_baseNormalOnZ)
+                it.setZ(0);
+        }
+    }
     auto calculateTwoPointsNormal = [&](size_t i0, size_t i1) -> std::pair<QVector3D, bool> {
         auto normal = QVector3D::crossProduct(directs[i0], directs[i1]).normalized();
         if (validateNormal(normal)) {
@@ -616,7 +651,6 @@ void Builder::makeCut(const QVector3D &position,
         const QVector3D &traverseDirection,
         std::vector<QVector3D> &resultCut)
 {
-    baseNormal = revisedBaseNormalAcordingToCutNormal(baseNormal, cutNormal);
     auto finalCutTemplate = cutTemplate;
     auto finalCutNormal = cutNormal;
     float degree = 0;
@@ -624,14 +658,9 @@ void Builder::makeCut(const QVector3D &position,
         degree = m_cutRotation * 180;
     }
     if (QVector3D::dotProduct(cutNormal, traverseDirection) <= 0) {
-        baseNormal = -baseNormal;
         finalCutNormal = -finalCutNormal;
         std::reverse(finalCutTemplate.begin(), finalCutTemplate.end());
-        degree = ((int)degree + 180) % 360;
-        //for (auto &it: finalCutTemplate) {
-        //    it.setX(-it.x());
-        //    it.setY(-it.y());
-        //}
+        std::rotate(finalCutTemplate.begin(), finalCutTemplate.begin() + finalCutTemplate.size() - 1, finalCutTemplate.end());
     }
     QVector3D u = QVector3D::crossProduct(finalCutNormal, baseNormal).normalized();
     QVector3D v = QVector3D::crossProduct(u, finalCutNormal).normalized();

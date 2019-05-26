@@ -10,6 +10,8 @@
 #include "theme.h"
 #include "meshloader.h"
 #include "cutface.h"
+#include "parttarget.h"
+#include "partbase.h"
 
 class SkeletonNode
 {
@@ -76,6 +78,7 @@ public:
     bool disabled;
     bool xMirrored;
     bool zMirrored;
+    PartBase base;
     float deformThickness;
     float deformWidth;
     bool rounded;
@@ -87,7 +90,10 @@ public:
     bool dirty;
     float cutRotation;
     CutFace cutFace;
+    QUuid cutFaceLinkedId;
     QUuid materialId;
+    PartTarget target;
+    float colorSolubility;
     SkeletonPart(const QUuid &withId=QUuid()) :
         visible(true),
         locked(false),
@@ -95,15 +101,18 @@ public:
         disabled(false),
         xMirrored(false),
         zMirrored(false),
+        base(PartBase::XYZ),
         deformThickness(1.0),
         deformWidth(1.0),
         rounded(false),
         chamfered(false),
-        color(Theme::white),
+        color(Qt::white),
         hasColor(false),
         dirty(true),
         cutRotation(0.0),
-        cutFace(CutFace::Quad)
+        cutFace(CutFace::Quad),
+        target(PartTarget::Model),
+        colorSolubility(0.0)
     {
         id = withId.isNull() ? QUuid::createUuid() : withId;
     }
@@ -134,6 +143,16 @@ public:
     void setCutFace(CutFace face)
     {
         cutFace = face;
+        cutFaceLinkedId = QUuid();
+    }
+    void setCutFaceLinkedId(const QUuid &linkedId)
+    {
+        if (linkedId.isNull()) {
+            setCutFace(CutFace::Quad);
+            return;
+        }
+        cutFace = CutFace::UserDefined;
+        cutFaceLinkedId = linkedId;
     }
     bool deformThicknessAdjusted() const
     {
@@ -146,6 +165,10 @@ public:
     bool deformAdjusted() const
     {
         return deformThicknessAdjusted() || deformWidthAdjusted();
+    }
+    bool colorSolubilityAdjusted() const
+    {
+        return fabs(colorSolubility - 0.0) >= 0.01;
     }
     bool cutRotationAdjusted() const
     {
@@ -175,6 +198,7 @@ public:
         disabled = other.disabled;
         xMirrored = other.xMirrored;
         zMirrored = other.zMirrored;
+        base = other.base;
         deformThickness = other.deformThickness;
         deformWidth = other.deformWidth;
         rounded = other.rounded;
@@ -183,9 +207,12 @@ public:
         hasColor = other.hasColor;
         cutRotation = other.cutRotation;
         cutFace = other.cutFace;
+        cutFaceLinkedId = other.cutFaceLinkedId;
         componentId = other.componentId;
         dirty = other.dirty;
         materialId = other.materialId;
+        target = other.target;
+        colorSolubility = other.colorSolubility;
     }
     void updatePreviewMesh(MeshLoader *previewMesh)
     {

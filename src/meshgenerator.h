@@ -87,6 +87,7 @@ private:
     void collectParts();
     bool checkIsComponentDirty(const QString &componentIdString);
     bool checkIsPartDirty(const QString &partIdString);
+    bool checkIsPartDependencyDirty(const QString &partIdString);
     void checkDirtyFlags();
     nodemesh::Combiner::Mesh *combinePartMesh(const QString &partIdString);
     nodemesh::Combiner::Mesh *combineComponentMesh(const QString &componentIdString, CombineMode *combineMode);
@@ -106,6 +107,7 @@ private:
         GeneratedComponent &componentCache);
     nodemesh::Combiner::Mesh *combineMultipleMeshes(const std::vector<std::pair<nodemesh::Combiner::Mesh *, CombineMode>> &multipleMeshes, bool recombine=true);
     QString componentColorName(const std::map<QString, QString> *component);
+    void collectUncombinedComponent(const QString &componentIdString);
 };
 
 #endif

@@ -6,6 +6,7 @@
 #include <QUuid>
 #include <QColor>
 #include <QVector2D>
+#include <QRectF>
 #include "bonemark.h"
 
 #define MAX_WEIGHT_NUM  4
@@ -17,6 +18,7 @@ struct OutcomeNode
     QVector3D origin;
     float radius = 0;
     QColor color;
+    float colorSolubility = 0;
     QUuid materialId;
     QUuid mirrorFromPartId;
     QUuid mirroredByPartId;
@@ -86,6 +88,18 @@ public:
         m_hasTriangleTangents = true;
     }
     
+    const std::map<QUuid, std::vector<QRectF>> *partUvRects() const
+    {
+        if (!m_hasPartUvRects)
+            return nullptr;
+        return &m_partUvRects;
+    }
+    void setPartUvRects(const std::map<QUuid, std::vector<QRectF>> &uvRects)
+    {
+        m_partUvRects = uvRects;
+        m_hasPartUvRects = true;
+    }
+    
 private:
     bool m_hasTriangleSourceNodes = false;
     std::vector<std::pair<QUuid, QUuid>> m_triangleSourceNodes;
@@ -98,6 +112,9 @@ private:
     
     bool m_hasTriangleTangents = false;
     std::vector<QVector3D> m_triangleTangents;
+    
+    bool m_hasPartUvRects = false;
+    std::map<QUuid, std::vector<QRectF>> m_partUvRects;
 };
 
 #endif
