@@ -220,6 +220,12 @@ nodemesh::Combiner::Mesh *MeshGenerator::combinePartMesh(const QString &partIdSt
                         endpointNodes.push_back({it.first, findNode->second});
                 }
             }
+            bool isRing = endpointNodes.empty();
+            if (endpointNodes.empty()) {
+                for (const auto &it: cutFaceNodeMap) {
+                    endpointNodes.push_back({it.first, it.second});
+                }
+            }
             if (!endpointNodes.empty()) {
                 std::sort(endpointNodes.begin(), endpointNodes.end(), [](
                         const std::pair<QString, std::tuple<float, float, float>> &first,
@@ -278,7 +284,7 @@ nodemesh::Combiner::Mesh *MeshGenerator::combinePartMesh(const QString &partIdSt
                 loopNodeLink(endPointNodeIdString);
             }
             // Fetch points from linked nodes
-            cutFacePointsFromNodes(cutTemplate, cutFaceNodes);
+            cutFacePointsFromNodes(cutTemplate, cutFaceNodes, isRing);
         }
     }
     if (cutTemplate.size() < 3) {
@@ -930,6 +936,11 @@ void MeshGenerator::setGeneratedCacheContext(GeneratedCacheContext *cacheContext
     m_cacheContext = cacheContext;
 }
 
+void MeshGenerator::setSmoothShadingThresholdAngleDegrees(float degrees)
+{
+    m_smoothShadingThresholdAngleDegrees = degrees;
+}
+
 void MeshGenerator::process()
 {
     generate();
@@ -1024,7 +1035,7 @@ void MeshGenerator::generate()
     // Recursively check uncombined components
     collectUncombinedComponent(QUuid().toString());
     
-    auto postprocessOutcome = [](Outcome *outcome) {
+    auto postprocessOutcome = [this](Outcome *outcome) {
         std::vector<QVector3D> combinedFacesNormals;
         for (const auto &face: outcome->triangles) {
             combinedFacesNormals.push_back(QVector3D::normal(
@@ -1125,7 +1136,7 @@ void MeshGenerator::generateSmoothTriangleVertexNormals(const std::vector<QVecto
     nodemesh::angleSmooth(vertices,
         triangles,
         triangleNormals,
-        60,
+        m_smoothShadingThresholdAngleDegrees,
         smoothNormals);
     triangleVertexNormals->resize(triangles.size(), {
         QVector3D(), QVector3D(), QVector3D()

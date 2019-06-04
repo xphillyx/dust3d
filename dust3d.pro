@@ -195,8 +195,8 @@ HEADERS += src/posepreviewsgenerator.h
 SOURCES += src/posewidget.cpp
 HEADERS += src/posewidget.h
 
-SOURCES += src/advancesettingwidget.cpp
-HEADERS += src/advancesettingwidget.h
+SOURCES += src/preferenceswidget.cpp
+HEADERS += src/preferenceswidget.h
 
 SOURCES += src/motioneditwidget.cpp
 HEADERS += src/motioneditwidget.h
@@ -326,6 +326,9 @@ HEADERS += src/posecapturewidget.h
 
 SOURCES += src/posecapture.cpp
 HEADERS += src/posecapture.h
+
+SOURCES += src/preferences.cpp
+HEADERS += src/preferences.h
 
 SOURCES += src/main.cpp
 

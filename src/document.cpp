@@ -47,7 +47,7 @@ Document::Document() :
     m_textureImageUpdateVersion(0),
     m_sharedContextWidget(nullptr),
     m_allPositionRelatedLocksEnabled(true),
-    m_smoothNormal(true),
+    m_smoothNormal(!Preferences::instance().flatShading()),
     m_rigGenerator(nullptr),
     m_resultRigWeightMesh(nullptr),
     m_resultRigBones(nullptr),
@@ -59,6 +59,25 @@ Document::Document() :
     m_materialPreviewsGenerator(nullptr),
     m_motionsGenerator(nullptr)
 {
+    connect(&Preferences::instance(), &Preferences::partColorChanged, this, &Document::applyPreferencePartColorChange);
+    connect(&Preferences::instance(), &Preferences::flatShadingChanged, this, &Document::applyPreferenceFlatShadingChange);
+}
+
+void Document::applyPreferencePartColorChange()
+{
+    for (auto &it: partMap) {
+        if (it.second.hasColor)
+            continue;
+        it.second.color = Preferences::instance().partColor();
+        it.second.dirty = true;
+    }
+    emit skeletonChanged();
+}
+
+void Document::applyPreferenceFlatShadingChange()
+{
+    m_smoothNormal = !Preferences::instance().flatShading();
+    regenerateMesh();
 }
 
 Document::~Document()
@@ -913,7 +932,7 @@ void Document::toSnapshot(Snapshot *snapshot, const std::set<QUuid> &limitNodeId
                 }
             }
             part["dirty"] = partIt.second.dirty ? "true" : "false";
-            if (partIt.second.hasColor)
+            //if (partIt.second.hasColor)
                 part["color"] = partIt.second.color.name();
             if (partIt.second.colorSolubilityAdjusted())
                 part["colorSolubility"] = QString::number(partIt.second.colorSolubility);
@@ -1558,6 +1577,9 @@ void Document::generateMesh()
     resetDirtyFlags();
     m_meshGenerator = new MeshGenerator(snapshot);
     m_meshGenerator->setGeneratedCacheContext(&m_generatedCacheContext);
+    if (!m_smoothNormal) {
+        m_meshGenerator->setSmoothShadingThresholdAngleDegrees(0);
+    }
     m_meshGenerator->moveToThread(thread);
     connect(thread, &QThread::started, m_meshGenerator, &MeshGenerator::process);
     connect(m_meshGenerator, &MeshGenerator::finished, this, &Document::meshReady);
