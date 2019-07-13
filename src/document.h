@@ -26,6 +26,7 @@
 #include "skeletondocument.h"
 #include "combinemode.h"
 #include "preferences.h"
+#include "scriptrunner.h"
 
 class MaterialPreviewsGenerator;
 class MotionsGenerator;
@@ -461,6 +462,9 @@ signals:
     void postProcessing();
     void textureGenerating();
     void textureChanged();
+    void scriptChanged();
+    void mergedVaraiblesChanged();
+    void scriptRunning();
 public: // need initialize
     QImage *textureGuideImage;
     QImage *textureImage;
@@ -525,6 +529,7 @@ public:
     const Outcome &currentRiggedOutcome() const;
     bool currentRigSucceed() const;
     bool isMeshGenerating() const;
+    const QString &script() const;
 public slots:
     void undo() override;
     void redo() override;
@@ -642,6 +647,11 @@ public slots:
     void renameMaterial(QUuid materialId, QString name);
     void applyPreferencePartColorChange();
     void applyPreferenceFlatShadingChange();
+    void updateScript(const QString &script);
+    void updateDefaultVariables(const std::map<QString, QString> &variables);
+    void runScript();
+    void scriptResultReady();
+    void updateVariable(const QString &name, const QString &value);
 private:
     void splitPartByNode(std::vector<std::vector<QUuid>> *groups, QUuid nodeId);
     void joinNodeAndNeiborsToGroup(std::vector<QUuid> *group, QUuid nodeId, std::set<QUuid> *visitMap, QUuid noUseEdgeId=QUuid());
@@ -691,6 +701,11 @@ private: // need initialize
     MotionsGenerator *m_motionsGenerator;
     quint64 m_meshGenerationId;
     quint64 m_nextMeshGenerationId;
+    QString m_script;
+    std::map<QString, QString> m_cachedVariables;
+    std::map<QString, QString> m_mergedVariables;
+    ScriptRunner *m_scriptRunner;
+    bool m_isScriptResultObsolete;
 private:
     static unsigned long m_maxSnapshot;
     std::deque<HistoryItem> m_undoItems;

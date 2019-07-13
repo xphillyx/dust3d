@@ -61,7 +61,9 @@ Document::Document() :
     m_materialPreviewsGenerator(nullptr),
     m_motionsGenerator(nullptr),
     m_meshGenerationId(0),
-    m_nextMeshGenerationId(1)
+    m_nextMeshGenerationId(1),
+    m_scriptRunner(nullptr),
+    m_isScriptResultObsolete(false)
 {
     connect(&Preferences::instance(), &Preferences::partColorChanged, this, &Document::applyPreferencePartColorChange);
     connect(&Preferences::instance(), &Preferences::flatShadingChanged, this, &Document::applyPreferenceFlatShadingChange);
@@ -3305,4 +3307,101 @@ void Document::copyNodes(std::set<QUuid> nodeIdSet) const
     saveSkeletonToXmlStream(&snapshot, &xmlStreamWriter);
     QClipboard *clipboard = QApplication::clipboard();
     clipboard->setText(snapshotXml);
+}
+
+void Document::updateScript(const QString &script)
+{
+    if (m_script == script)
+        return;
+    
+    m_script = script;
+    emit scriptChanged();
+}
+
+void Document::updateVariable(const QString &name, const QString &value)
+{
+    auto variable = m_cachedVariables.find(name);
+    if (variable == m_cachedVariables.end()) {
+        qDebug() << "Update a nonexist variable:" << name << "value:" << value;
+        return;
+    }
+    if (variable->second == value)
+        return;
+    variable->second = value;
+    m_mergedVariables[name] = value;
+    emit mergedVaraiblesChanged();
+}
+
+void Document::updateDefaultVariables(const std::map<QString, QString> &variables)
+{
+    bool updated = false;
+    for (const auto &it: variables) {
+        auto insertResult = m_cachedVariables.insert({it.first, it.second});
+        if (insertResult.second) {
+            m_mergedVariables[it.first] = it.second;
+            updated = true;
+        }
+    }
+    if (!updated) {
+        for (const auto &it: m_mergedVariables) {
+            if (variables.end() == variables.find(it.first)) {
+                m_mergedVariables.erase(it.first);
+                updated = true;
+            }
+        }
+    }
+    if (updated) {
+        emit mergedVaraiblesChanged();
+    }
+}
+
+void Document::runScript()
+{
+    if (nullptr != m_scriptRunner) {
+        m_isScriptResultObsolete = true;
+        return;
+    }
+    
+    m_isScriptResultObsolete = false;
+    
+    qDebug() << "Script running..";
+    
+    QThread *thread = new QThread;
+
+    m_scriptRunner = new ScriptRunner();
+    m_scriptRunner->moveToThread(thread);
+    m_scriptRunner->setScript(new QString(m_script));
+    m_scriptRunner->setVariables(new std::map<QString, QString>(m_mergedVariables));
+    connect(thread, &QThread::started, m_scriptRunner, &ScriptRunner::process);
+    connect(m_scriptRunner, &ScriptRunner::finished, this, &Document::scriptResultReady);
+    connect(m_scriptRunner, &ScriptRunner::finished, thread, &QThread::quit);
+    connect(thread, &QThread::finished, thread, &QThread::deleteLater);
+    emit scriptRunning();
+    thread->start();
+}
+
+void Document::scriptResultReady()
+{
+    Snapshot *snapshot = m_scriptRunner->takeResultSnapshot();
+    std::map<QString, QString> *defaultVariables = m_scriptRunner->takeDefaultVariables();
+    
+    if (nullptr != snapshot) {
+        fromSnapshot(*snapshot);
+        delete snapshot;
+        saveSnapshot();
+    }
+    
+    if (nullptr != defaultVariables) {
+        updateDefaultVariables(*defaultVariables);
+        delete defaultVariables;
+    }
+
+    delete m_scriptRunner;
+    m_scriptRunner = nullptr;
+    
+    qDebug() << "Script run done";
+
+    if (m_isScriptResultObsolete) {
+        runScript();
+    }
 }

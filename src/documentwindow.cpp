@@ -39,6 +39,7 @@
 #include "shortcuts.h"
 #include "floatnumberwidget.h"
 #include "cutfacelistwidget.h"
+#include "scriptwidget.h"
 
 int DocumentWindow::m_modelRenderWidgetInitialX = 16;
 int DocumentWindow::m_modelRenderWidgetInitialY = 16;
@@ -325,10 +326,17 @@ DocumentWindow::DocumentWindow() :
     connect(motionManageWidget, &MotionManageWidget::unregisterDialog, this, &DocumentWindow::unregisterDialog);
     addDockWidget(Qt::RightDockWidgetArea, motionDocker);
     
+    QDockWidget *scriptDocker = new QDockWidget(tr("Script"), this);
+    scriptDocker->setAllowedAreas(Qt::RightDockWidgetArea);
+    ScriptWidget *scriptWidget = new ScriptWidget(m_document, scriptDocker);
+    scriptDocker->setWidget(scriptWidget);
+    addDockWidget(Qt::RightDockWidgetArea, scriptDocker);
+    
     tabifyDockWidget(partTreeDocker, materialDocker);
     tabifyDockWidget(materialDocker, rigDocker);
     tabifyDockWidget(rigDocker, poseDocker);
     tabifyDockWidget(poseDocker, motionDocker);
+    tabifyDockWidget(motionDocker, scriptDocker);
     
     partTreeDocker->raise();
 
@@ -618,12 +626,6 @@ DocumentWindow::DocumentWindow() :
         m_modelRenderWidget->toggleWireframe();
     });
     m_viewMenu->addAction(m_toggleWireframeAction);
-    
-    //m_toggleSmoothNormalAction = new QAction(tr("Toggle Smooth"), this);
-    //connect(m_toggleSmoothNormalAction, &QAction::triggered, [=]() {
-    //    m_document->toggleSmoothNormal();
-    //});
-    //m_viewMenu->addAction(m_toggleSmoothNormalAction);
 
     connect(m_viewMenu, &QMenu::aboutToShow, [=]() {
         m_resetModelWidgetPosAction->setEnabled(!isModelSitInVisibleArea(m_modelRenderWidget));
@@ -665,6 +667,13 @@ DocumentWindow::DocumentWindow() :
         motionDocker->raise();
     });
     m_windowMenu->addAction(m_showMotionsAction);
+    
+    m_showScriptAction = new QAction(tr("Script"), this);
+    connect(m_showScriptAction, &QAction::triggered, [=]() {
+        scriptDocker->show();
+        scriptDocker->raise();
+    });
+    m_windowMenu->addAction(m_showScriptAction);
     
     QMenu *dialogsMenu = m_windowMenu->addMenu(tr("Dialogs"));
     connect(dialogsMenu, &QMenu::aboutToShow, [=]() {
@@ -988,6 +997,8 @@ DocumentWindow::DocumentWindow() :
         Q_UNUSED(materialId);
         m_document->generateMaterialPreviews();
     });
+    
+    connect(m_document, &Document::scriptChanged, m_document, &Document::runScript);
     
     initShortCuts(this, m_graphicsWidget);
 
