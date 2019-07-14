@@ -1576,6 +1576,9 @@ void Document::silentReset()
     motionIdList.clear();
     rootComponent = Component();
     removeRigResults();
+    m_script.clear();
+    m_mergedVariables.clear();
+    m_cachedVariables.clear();
 }
 
 void Document::reset()
@@ -3309,6 +3312,12 @@ void Document::copyNodes(std::set<QUuid> nodeIdSet) const
     clipboard->setText(snapshotXml);
 }
 
+void Document::initScript(const QString &script)
+{
+    m_script = script;
+    emit scriptModifiedFromExternal();
+}
+
 void Document::updateScript(const QString &script)
 {
     if (m_script == script)
@@ -3384,6 +3393,13 @@ void Document::scriptResultReady()
 {
     Snapshot *snapshot = m_scriptRunner->takeResultSnapshot();
     std::map<QString, QString> *defaultVariables = m_scriptRunner->takeDefaultVariables();
+    bool errorChanged = false;
+    
+    const QString &scriptError = m_scriptRunner->scriptError();
+    if (m_scriptError != scriptError) {
+        m_scriptError = scriptError;
+        errorChanged = true;
+    }
     
     if (nullptr != snapshot) {
         fromSnapshot(*snapshot);
@@ -3399,9 +3415,27 @@ void Document::scriptResultReady()
     delete m_scriptRunner;
     m_scriptRunner = nullptr;
     
+    if (errorChanged)
+        emit scriptErrorChanged();
+    
     qDebug() << "Script run done";
 
     if (m_isScriptResultObsolete) {
         runScript();
     }
+}
+
+const QString &Document::script() const
+{
+    return m_script;
+}
+
+const std::map<QString, QString> &Document::variables() const
+{
+    return m_mergedVariables;
+}
+
+const QString &Document::scriptError() const
+{
+    return m_scriptError;
 }

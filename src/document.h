@@ -463,8 +463,10 @@ signals:
     void textureGenerating();
     void textureChanged();
     void scriptChanged();
+    void scriptModifiedFromExternal();
     void mergedVaraiblesChanged();
     void scriptRunning();
+    void scriptErrorChanged();
 public: // need initialize
     QImage *textureGuideImage;
     QImage *textureImage;
@@ -530,6 +532,8 @@ public:
     bool currentRigSucceed() const;
     bool isMeshGenerating() const;
     const QString &script() const;
+    const std::map<QString, QString> &variables() const;
+    const QString &scriptError() const;
 public slots:
     void undo() override;
     void redo() override;
@@ -647,6 +651,7 @@ public slots:
     void renameMaterial(QUuid materialId, QString name);
     void applyPreferencePartColorChange();
     void applyPreferenceFlatShadingChange();
+    void initScript(const QString &script);
     void updateScript(const QString &script);
     void updateDefaultVariables(const std::map<QString, QString> &variables);
     void runScript();
@@ -706,6 +711,7 @@ private: // need initialize
     std::map<QString, QString> m_mergedVariables;
     ScriptRunner *m_scriptRunner;
     bool m_isScriptResultObsolete;
+    QString m_scriptError;
 private:
     static unsigned long m_maxSnapshot;
     std::deque<HistoryItem> m_undoItems;

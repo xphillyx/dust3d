@@ -384,6 +384,9 @@ HEADERS += src/scriptwidget.h
 SOURCES += src/scriptrunner.cpp
 HEADERS += src/scriptrunner.h
 
+SOURCES += src/variablesxml.cpp
+HEADERS += src/variablesxml.h
+
 SOURCES += src/main.cpp
 
 HEADERS += src/version.h

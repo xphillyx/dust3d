@@ -40,6 +40,7 @@
 #include "floatnumberwidget.h"
 #include "cutfacelistwidget.h"
 #include "scriptwidget.h"
+#include "variablesxml.h"
 
 int DocumentWindow::m_modelRenderWidgetInitialX = 16;
 int DocumentWindow::m_modelRenderWidgetInitialY = 16;
@@ -959,6 +960,7 @@ DocumentWindow::DocumentWindow() :
     connect(m_document, &Document::turnaroundChanged, this, &DocumentWindow::documentChanged);
     connect(m_document, &Document::optionsChanged, this, &DocumentWindow::documentChanged);
     connect(m_document, &Document::rigChanged, this, &DocumentWindow::documentChanged);
+    connect(m_document, &Document::scriptChanged, this, &DocumentWindow::documentChanged);
 
     connect(m_modelRenderWidget, &ModelWidget::customContextMenuRequested, [=](const QPoint &pos) {
         graphicsWidget->showContextMenu(graphicsWidget->mapFromGlobal(m_modelRenderWidget->mapToGlobal(pos)));
@@ -999,6 +1001,7 @@ DocumentWindow::DocumentWindow() :
     });
     
     connect(m_document, &Document::scriptChanged, m_document, &Document::runScript);
+    connect(m_document, &Document::scriptModifiedFromExternal, m_document, &Document::runScript);
     
     initShortCuts(this, m_graphicsWidget);
 
@@ -1224,6 +1227,20 @@ void DocumentWindow::saveTo(const QString &saveAsFilename)
         ds3Writer.add("canvas.png", "asset", &m_document->turnaroundPngByteArray);
     }
     
+    if (!m_document->script().isEmpty()) {
+        auto script = m_document->script().toUtf8();
+        ds3Writer.add("model.js", "script", &script);
+    }
+    
+    const auto &variables = m_document->variables();
+    if (!variables.empty()) {
+        QByteArray variablesXml;
+        QXmlStreamWriter variablesXmlStream(&variablesXml);
+        saveVariablesToXmlStream(variables, &variablesXmlStream);
+        if (variablesXml.size() > 0)
+            ds3Writer.add("variables.xml", "variable", &variablesXml);
+    }
+    
     std::set<QUuid> imageIds;
     for (const auto &material: snapshot.materials) {
         for (auto &layer: material.second) {
@@ -1375,6 +1392,22 @@ void DocumentWindow::open()
                 ds3Reader.loadItem(item.name, &data);
                 QImage image = QImage::fromData(data, "PNG");
                 m_document->updateTurnaround(image);
+            }
+        } else if (item.type == "script") {
+            if (item.name == "model.js") {
+                QByteArray script;
+                ds3Reader.loadItem(item.name, &script);
+                m_document->initScript(QString::fromUtf8(script.constData()));
+            }
+        } else if (item.type == "variable") {
+            if (item.name == "variables.xml") {
+                QByteArray data;
+                ds3Reader.loadItem(item.name, &data);
+                QXmlStreamReader stream(data);
+                std::map<QString, QString> variables;
+                loadVariablesFromXmlStream(&variables, stream);
+                for (const auto &it: variables)
+                    m_document->updateVariable(it.first, it.second);
             }
         }
     }

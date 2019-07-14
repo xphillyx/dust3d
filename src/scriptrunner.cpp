@@ -29,6 +29,14 @@ static JSValue jsCreateNode(JSContext *context, JSValueConst thisValue,
     return node;
 }
 
+static JSValue jsCreateVariable(JSContext *context, JSValueConst thisValue,
+    int argc, JSValueConst *argv)
+{
+    qDebug() << "jsCreateVariable";
+    JSValue node = JS_NewObject(context);
+    return node;
+}
+
 ScriptRunner::ScriptRunner()
 {
 }
@@ -67,6 +75,9 @@ void ScriptRunner::run()
         JS_SetPropertyStr(context,
             document, "createNode",
             JS_NewCFunction(context, jsCreateNode, "createNode", 1));
+        JS_SetPropertyStr(context,
+            document, "createVariable",
+            JS_NewCFunction(context, jsCreateNode, "createVariable", 1));
         JS_SetPropertyStr(context, globalObject, "document", document);
         JS_FreeValue(context, globalObject);
         
