@@ -14,7 +14,7 @@ ScriptWidget::ScriptWidget(const Document *document, QWidget *parent) :
     
     connect(m_document, &Document::cleanup, scriptEditWidget, &ScriptEditWidget::clear);
     connect(m_document, &Document::scriptModifiedFromExternal, this, [=]() {
-        scriptEditWidget->setText(document->script());
+        scriptEditWidget->setPlainText(document->script());
     });
     connect(m_document, &Document::scriptErrorChanged, this, &ScriptWidget::updateScriptError);
 

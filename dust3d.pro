@@ -372,9 +372,6 @@ HEADERS += src/shadervertex.h
 SOURCES += src/scripteditwidget.cpp
 HEADERS += src/scripteditwidget.h
 
-SOURCES += src/scripthighlighter.cpp
-HEADERS += src/scripthighlighter.h
-
 SOURCES += src/scriptvariableswidget.cpp
 HEADERS += src/scriptvariableswidget.h
 
