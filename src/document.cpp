@@ -1579,6 +1579,7 @@ void Document::silentReset()
     m_script.clear();
     m_mergedVariables.clear();
     m_cachedVariables.clear();
+    m_scriptError.clear();
 }
 
 void Document::reset()
@@ -1586,6 +1587,8 @@ void Document::reset()
     silentReset();
     emit cleanup();
     emit skeletonChanged();
+    emit scriptChanged();
+    emit scriptErrorChanged();
 }
 
 void Document::fromSnapshot(const Snapshot &snapshot)
@@ -3327,7 +3330,7 @@ void Document::updateScript(const QString &script)
     emit scriptChanged();
 }
 
-void Document::updateVariable(const QString &name, const QString &value)
+void Document::updateVariable(const QString &name, const std::map<QString, QString> &value)
 {
     auto variable = m_cachedVariables.find(name);
     if (variable == m_cachedVariables.end()) {
@@ -3341,7 +3344,7 @@ void Document::updateVariable(const QString &name, const QString &value)
     emit mergedVaraiblesChanged();
 }
 
-void Document::updateDefaultVariables(const std::map<QString, QString> &variables)
+void Document::updateDefaultVariables(const std::map<QString, std::map<QString, QString>> &variables)
 {
     bool updated = false;
     for (const auto &it: variables) {
@@ -3380,7 +3383,7 @@ void Document::runScript()
     m_scriptRunner = new ScriptRunner();
     m_scriptRunner->moveToThread(thread);
     m_scriptRunner->setScript(new QString(m_script));
-    m_scriptRunner->setVariables(new std::map<QString, QString>(m_mergedVariables));
+    m_scriptRunner->setVariables(new std::map<QString, std::map<QString, QString>>(m_mergedVariables));
     connect(thread, &QThread::started, m_scriptRunner, &ScriptRunner::process);
     connect(m_scriptRunner, &ScriptRunner::finished, this, &Document::scriptResultReady);
     connect(m_scriptRunner, &ScriptRunner::finished, thread, &QThread::quit);
@@ -3392,7 +3395,7 @@ void Document::runScript()
 void Document::scriptResultReady()
 {
     Snapshot *snapshot = m_scriptRunner->takeResultSnapshot();
-    std::map<QString, QString> *defaultVariables = m_scriptRunner->takeDefaultVariables();
+    std::map<QString, std::map<QString, QString>> *defaultVariables = m_scriptRunner->takeDefaultVariables();
     bool errorChanged = false;
     
     const QString &scriptError = m_scriptRunner->scriptError();
@@ -3430,7 +3433,7 @@ const QString &Document::script() const
     return m_script;
 }
 
-const std::map<QString, QString> &Document::variables() const
+const std::map<QString, std::map<QString, QString>> &Document::variables() const
 {
     return m_mergedVariables;
 }

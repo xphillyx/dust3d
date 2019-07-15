@@ -39,6 +39,7 @@
 ****************************************************************************/
 
 #include <QtWidgets>
+#include "theme.h"
 #include "scripteditwidget.h"
 
 
@@ -113,7 +114,7 @@ void ScriptEditWidget::highlightCurrentLine()
     if (!isReadOnly()) {
         QTextEdit::ExtraSelection selection;
 
-        QColor lineColor = QColor(Qt::yellow).lighter(160);
+        QColor lineColor = QColor(0x24, 0x24, 0x24).lighter(160);
 
         selection.format.setBackground(lineColor);
         selection.format.setProperty(QTextFormat::FullWidthSelection, true);
@@ -128,7 +129,7 @@ void ScriptEditWidget::highlightCurrentLine()
 void ScriptEditWidget::lineNumberAreaPaintEvent(QPaintEvent *event)
 {
     QPainter painter(m_lineNumberArea);
-    painter.fillRect(event->rect(), Qt::lightGray);
+    painter.fillRect(event->rect(), QColor(0x24, 0x24, 0x24));
 
 
     QTextBlock block = firstVisibleBlock();
@@ -139,7 +140,7 @@ void ScriptEditWidget::lineNumberAreaPaintEvent(QPaintEvent *event)
     while (block.isValid() && top <= event->rect().bottom()) {
         if (block.isVisible() && bottom >= event->rect().top()) {
             QString number = QString::number(blockNumber + 1);
-            painter.setPen(Qt::black);
+            painter.setPen(Theme::white);
             painter.drawText(0, top, m_lineNumberArea->width(), fontMetrics().height(),
                              Qt::AlignRight, number);
         }

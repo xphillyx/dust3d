@@ -1,7 +1,7 @@
 #include <QDebug>
 #include "variablesxml.h"
 
-void saveVariablesToXmlStream(const std::map<QString, QString> &variables, QXmlStreamWriter *writer)
+void saveVariablesToXmlStream(const std::map<QString, std::map<QString, QString>> &variables, QXmlStreamWriter *writer)
 {
     writer->setAutoFormatting(true);
     writer->writeStartDocument();
@@ -10,7 +10,11 @@ void saveVariablesToXmlStream(const std::map<QString, QString> &variables, QXmlS
         for (const auto &it: variables) {
             writer->writeStartElement("variable");
                 writer->writeAttribute("name", it.first);
-                writer->writeAttribute("value", it.second);
+                for (const auto &subIt: it.second) {
+                    if (subIt.first == "name")
+                        continue;
+                    writer->writeAttribute(subIt.first, subIt.second);
+                }
             writer->writeEndElement();
         }
     writer->writeEndElement();
@@ -18,7 +22,7 @@ void saveVariablesToXmlStream(const std::map<QString, QString> &variables, QXmlS
     writer->writeEndDocument();
 }
 
-void loadVariablesFromXmlStream(std::map<QString, QString> *variables, QXmlStreamReader &reader)
+void loadVariablesFromXmlStream(std::map<QString, std::map<QString, QString>> *variables, QXmlStreamReader &reader)
 {
     std::vector<QString> elementNameStack;
     while (!reader.atEnd()) {
@@ -41,17 +45,18 @@ void loadVariablesFromXmlStream(std::map<QString, QString> *variables, QXmlStrea
         if (reader.isStartElement()) {
             if (fullName == "variables.variable") {
                 QString variableName;
-                QString variableValue;
+                std::map<QString, QString> map;
                 foreach(const QXmlStreamAttribute &attr, reader.attributes()) {
                     auto attrNameString = attr.name().toString();
+                    auto attrValueString = attr.value().toString();
                     if ("name" == attrNameString) {
-                        variableName = attr.value().toString();
-                    } else if ("value" == attrNameString) {
-                        variableValue = attr.value().toString();
+                        variableName = attrValueString;
+                    } else {
+                        map[attrNameString] = attrValueString;
                     }
                 }
                 if (!variableName.isEmpty()) {
-                    (*variables)[variableName] = variableValue;
+                    (*variables)[variableName] = map;
                 }
             }
         }

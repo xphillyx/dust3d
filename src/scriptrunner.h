@@ -11,11 +11,11 @@ public:
     ~ScriptRunner();
     void run();
     void setScript(QString *script);
-    void setVariables(std::map<QString, QString> *variables);
+    void setVariables(std::map<QString, std::map<QString, QString>> *variables);
     Snapshot *takeResultSnapshot();
-    std::map<QString, QString> *takeDefaultVariables();
+    std::map<QString, std::map<QString, QString>> *takeDefaultVariables();
     const QString &scriptError();
-    static void mergeVaraibles(std::map<QString, QString> *target, const std::map<QString, QString> &source);
+    static void mergeVaraibles(std::map<QString, std::map<QString, QString>> *target, const std::map<QString, std::map<QString, QString>> &source);
 signals:
     void finished();
 public slots:
@@ -23,8 +23,8 @@ public slots:
 private:
     QString *m_script = nullptr;
     Snapshot *m_resultSnapshot = nullptr;
-    std::map<QString, QString> *m_defaultVariables = nullptr;
-    std::map<QString, QString> *m_variables = nullptr;
+    std::map<QString, std::map<QString, QString>> *m_defaultVariables = nullptr;
+    std::map<QString, std::map<QString, QString>> *m_variables = nullptr;
     QString m_scriptError;
 };
 

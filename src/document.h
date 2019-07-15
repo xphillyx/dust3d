@@ -532,7 +532,7 @@ public:
     bool currentRigSucceed() const;
     bool isMeshGenerating() const;
     const QString &script() const;
-    const std::map<QString, QString> &variables() const;
+    const std::map<QString, std::map<QString, QString>> &variables() const;
     const QString &scriptError() const;
 public slots:
     void undo() override;
@@ -653,10 +653,10 @@ public slots:
     void applyPreferenceFlatShadingChange();
     void initScript(const QString &script);
     void updateScript(const QString &script);
-    void updateDefaultVariables(const std::map<QString, QString> &variables);
+    void updateDefaultVariables(const std::map<QString, std::map<QString, QString>> &variables);
     void runScript();
     void scriptResultReady();
-    void updateVariable(const QString &name, const QString &value);
+    void updateVariable(const QString &name, const std::map<QString, QString> &value);
 private:
     void splitPartByNode(std::vector<std::vector<QUuid>> *groups, QUuid nodeId);
     void joinNodeAndNeiborsToGroup(std::vector<QUuid> *group, QUuid nodeId, std::set<QUuid> *visitMap, QUuid noUseEdgeId=QUuid());
@@ -707,8 +707,8 @@ private: // need initialize
     quint64 m_meshGenerationId;
     quint64 m_nextMeshGenerationId;
     QString m_script;
-    std::map<QString, QString> m_cachedVariables;
-    std::map<QString, QString> m_mergedVariables;
+    std::map<QString, std::map<QString, QString>> m_cachedVariables;
+    std::map<QString, std::map<QString, QString>> m_mergedVariables;
     ScriptRunner *m_scriptRunner;
     bool m_isScriptResultObsolete;
     QString m_scriptError;

@@ -128,7 +128,7 @@ void ScriptRunner::setScript(QString *script)
     m_script = script;
 }
 
-void ScriptRunner::setVariables(std::map<QString, QString> *variables)
+void ScriptRunner::setVariables(std::map<QString, std::map<QString, QString>> *variables)
 {
     m_variables = variables;
 }
@@ -140,14 +140,14 @@ Snapshot *ScriptRunner::takeResultSnapshot()
     return snapshot;
 }
 
-std::map<QString, QString> *ScriptRunner::takeDefaultVariables()
+std::map<QString, std::map<QString, QString>> *ScriptRunner::takeDefaultVariables()
 {
-    std::map<QString, QString> *defaultVariables = m_defaultVariables;
+    std::map<QString, std::map<QString, QString>> *defaultVariables = m_defaultVariables;
     m_defaultVariables = nullptr;
     return defaultVariables;
 }
 
-void ScriptRunner::mergeVaraibles(std::map<QString, QString> *target, const std::map<QString, QString> &source)
+void ScriptRunner::mergeVaraibles(std::map<QString, std::map<QString, QString>> *target, const std::map<QString, std::map<QString, QString>> &source)
 {
     for (const auto &it: source) {
         (*target)[it.first] = it.second;

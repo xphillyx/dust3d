@@ -1404,7 +1404,7 @@ void DocumentWindow::open()
                 QByteArray data;
                 ds3Reader.loadItem(item.name, &data);
                 QXmlStreamReader stream(data);
-                std::map<QString, QString> variables;
+                std::map<QString, std::map<QString, QString>> variables;
                 loadVariablesFromXmlStream(&variables, stream);
                 for (const auto &it: variables)
                     m_document->updateVariable(it.first, it.second);
