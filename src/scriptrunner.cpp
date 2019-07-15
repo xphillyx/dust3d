@@ -5,7 +5,7 @@ extern "C" {
 #include "quickjs.h"
 }
 
-static JSValue jsCreateComponent(JSContext *context, JSValueConst thisValue,
+static JSValue js_createComponent(JSContext *context, JSValueConst thisValue,
     int argc, JSValueConst *argv)
 {
     qDebug() << "jsCreateComponent";
@@ -13,7 +13,7 @@ static JSValue jsCreateComponent(JSContext *context, JSValueConst thisValue,
     return component;
 }
 
-static JSValue jsCreatePart(JSContext *context, JSValueConst thisValue,
+static JSValue js_createPart(JSContext *context, JSValueConst thisValue,
     int argc, JSValueConst *argv)
 {
     qDebug() << "jsCreatePart";
@@ -21,7 +21,7 @@ static JSValue jsCreatePart(JSContext *context, JSValueConst thisValue,
     return part;
 }
 
-static JSValue jsCreateNode(JSContext *context, JSValueConst thisValue,
+static JSValue js_createNode(JSContext *context, JSValueConst thisValue,
     int argc, JSValueConst *argv)
 {
     qDebug() << "jsCreateNode";
@@ -29,12 +29,33 @@ static JSValue jsCreateNode(JSContext *context, JSValueConst thisValue,
     return node;
 }
 
-static JSValue jsCreateVariable(JSContext *context, JSValueConst thisValue,
+static JSValue js_createVariable(JSContext *context, JSValueConst thisValue,
     int argc, JSValueConst *argv)
 {
-    qDebug() << "jsCreateVariable";
-    JSValue node = JS_NewObject(context);
-    return node;
+    ScriptRunner *runner = (ScriptRunner *)JS_GetContextOpaque(context);
+    
+    QString mergedValue;
+    
+    const char *name = nullptr;
+    const char *defaultValue = nullptr;
+    
+    name = JS_ToCString(context, argv[0]);
+    if (!name)
+        goto fail;
+    defaultValue = JS_ToCString(context, argv[1]);
+    if (!defaultValue)
+        goto fail;
+    
+    mergedValue = runner->createVariable(name, defaultValue);
+    JS_FreeCString(context, name);
+    JS_FreeCString(context, defaultValue);
+    
+    return JS_NewString(context, mergedValue.toUtf8().constData());
+    
+fail:
+    JS_FreeCString(context, name);
+    JS_FreeCString(context, defaultValue);
+    return JS_EXCEPTION;
 }
 
 ScriptRunner::ScriptRunner()
@@ -56,9 +77,13 @@ void ScriptRunner::run()
 {
     QElapsedTimer countTimeConsumed;
     countTimeConsumed.start();
+    
+    m_defaultVariables = new std::map<QString, std::map<QString, QString>>;
 
     JSRuntime *runtime = JS_NewRuntime();
     JSContext *context = JS_NewContext(runtime);
+    
+    JS_SetContextOpaque(context, this);
     
     if (nullptr != m_script &&
             !m_script->isEmpty()) {
@@ -66,18 +91,23 @@ void ScriptRunner::run()
         
         JSValue globalObject = JS_GetGlobalObject(context);
         JSValue document = JS_NewObject(context);
+        
         JS_SetPropertyStr(context,
             document, "createComponent",
-            JS_NewCFunction(context, jsCreateComponent, "createComponent", 1));
+            JS_NewCFunction(context, js_createComponent, "createComponent", 1));
+        
         JS_SetPropertyStr(context,
             document, "createPart",
-            JS_NewCFunction(context, jsCreatePart, "createPart", 1));
+            JS_NewCFunction(context, js_createPart, "createPart", 1));
+        
         JS_SetPropertyStr(context,
             document, "createNode",
-            JS_NewCFunction(context, jsCreateNode, "createNode", 1));
+            JS_NewCFunction(context, js_createNode, "createNode", 1));
+        
         JS_SetPropertyStr(context,
             document, "createVariable",
-            JS_NewCFunction(context, jsCreateNode, "createVariable", 1));
+            JS_NewCFunction(context, js_createVariable, "createVariable", 2));
+        
         JS_SetPropertyStr(context, globalObject, "document", document);
         JS_FreeValue(context, globalObject);
         
@@ -115,6 +145,25 @@ void ScriptRunner::run()
     JS_FreeRuntime(runtime);
     
     qDebug() << "The script run" << countTimeConsumed.elapsed() << "milliseconds";
+}
+
+QString ScriptRunner::createVariable(const QString &name, const QString &defaultValue)
+{
+    if (nullptr != m_defaultVariables) {
+        if (m_defaultVariables->find(name) != m_defaultVariables->end()) {
+            m_scriptError += "Repeated variable name found: \"" + name + "\"";
+        }
+        (*m_defaultVariables)[name]["value"] = defaultValue;
+    }
+    if (nullptr != m_variables) {
+        auto findVariable = m_variables->find(name);
+        if (findVariable != m_variables->end()) {
+            auto findValue = findVariable->second.find("value");
+            if (findValue != findVariable->second.end())
+                return findValue->second;
+        }
+    }
+    return defaultValue;
 }
 
 void ScriptRunner::process()

@@ -57,7 +57,7 @@ class ScriptEditWidget : public QPlainTextEdit
 signals:
     void scriptChanged(const QString &script);
 public:
-    ScriptEditWidget(QWidget *parent = 0);
+    ScriptEditWidget(QWidget *parent=0);
 
     void lineNumberAreaPaintEvent(QPaintEvent *event);
     int lineNumberAreaWidth();

@@ -16,6 +16,7 @@ public:
     std::map<QString, std::map<QString, QString>> *takeDefaultVariables();
     const QString &scriptError();
     static void mergeVaraibles(std::map<QString, std::map<QString, QString>> *target, const std::map<QString, std::map<QString, QString>> &source);
+    QString createVariable(const QString &name, const QString &defaultValue);
 signals:
     void finished();
 public slots:

@@ -3355,12 +3355,15 @@ void Document::updateDefaultVariables(const std::map<QString, std::map<QString, 
         }
     }
     if (!updated) {
+        std::vector<QString> eraseList;
         for (const auto &it: m_mergedVariables) {
             if (variables.end() == variables.find(it.first)) {
-                m_mergedVariables.erase(it.first);
+                eraseList.push_back(it.first);
                 updated = true;
             }
         }
+        for (const auto &it: eraseList)
+            m_mergedVariables.erase(it);
     }
     if (updated) {
         emit mergedVaraiblesChanged();
