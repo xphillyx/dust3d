@@ -10,8 +10,10 @@ ScriptWidget::ScriptWidget(const Document *document, QWidget *parent) :
     m_scriptErrorLabel = new InfoLabel;
     m_scriptErrorLabel->hide();
     
-    ScriptEditWidget *scriptEditWidget = new ScriptEditWidget;
+    ScriptVariablesWidget *scriptVariablesWidget = new ScriptVariablesWidget(m_document);
     
+    ScriptEditWidget *scriptEditWidget = new ScriptEditWidget;
+
     connect(m_document, &Document::cleanup, scriptEditWidget, &ScriptEditWidget::clear);
     connect(m_document, &Document::scriptModifiedFromExternal, this, [=]() {
         scriptEditWidget->setPlainText(document->script());
@@ -19,11 +21,14 @@ ScriptWidget::ScriptWidget(const Document *document, QWidget *parent) :
     connect(m_document, &Document::scriptErrorChanged, this, &ScriptWidget::updateScriptError);
 
     connect(scriptEditWidget, &ScriptEditWidget::scriptChanged, m_document, &Document::updateScript);
+    
+    connect(m_document, &Document::mergedVaraiblesChanged, scriptVariablesWidget, &ScriptVariablesWidget::reload);
 
     QVBoxLayout *mainLayout = new QVBoxLayout;
+    mainLayout->addWidget(scriptVariablesWidget);
     mainLayout->addWidget(scriptEditWidget);
     mainLayout->addWidget(m_scriptErrorLabel);
-    mainLayout->setStretch(0, 1);
+    mainLayout->setStretch(1, 1);
     
     setLayout(mainLayout);
 }

@@ -3,13 +3,21 @@
 #include <QWidget>
 #include <QString>
 #include <map>
+#include <QTreeWidget>
+#include "document.h"
 
-class ScriptVariablesWidget : public QWidget
+class ScriptVariablesWidget : public QTreeWidget
 {
     Q_OBJECT
 public:
-    ScriptVariablesWidget(const std::map<QString, std::map<QString, QString>> &varaibles,
+    ScriptVariablesWidget(const Document *document,
         QWidget *parent=nullptr);
+public slots:
+    void reload();
+protected:
+    QSize sizeHint() const override;
+private:
+    const Document *m_document = nullptr;
 };
 
 #endif

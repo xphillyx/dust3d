@@ -653,7 +653,7 @@ public slots:
     void applyPreferenceFlatShadingChange();
     void initScript(const QString &script);
     void updateScript(const QString &script);
-    void updateDefaultVariables(const std::map<QString, std::map<QString, QString>> &variables);
+    void updateDefaultVariables(const std::map<QString, std::map<QString, QString>> &defaultVariables);
     void runScript();
     void scriptResultReady();
     void updateVariable(const QString &name, const std::map<QString, QString> &value);

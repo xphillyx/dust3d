@@ -3,6 +3,7 @@
 #include <QWidget>
 #include "document.h"
 #include "infolabel.h"
+#include "scriptvariableswidget.h"
 
 class ScriptWidget : public QWidget
 {

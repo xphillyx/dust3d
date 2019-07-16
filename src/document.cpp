@@ -3344,26 +3344,30 @@ void Document::updateVariable(const QString &name, const std::map<QString, QStri
     emit mergedVaraiblesChanged();
 }
 
-void Document::updateDefaultVariables(const std::map<QString, std::map<QString, QString>> &variables)
+void Document::updateDefaultVariables(const std::map<QString, std::map<QString, QString>> &defaultVariables)
 {
     bool updated = false;
-    for (const auto &it: variables) {
-        auto insertResult = m_cachedVariables.insert({it.first, it.second});
-        if (insertResult.second) {
+    for (const auto &it: defaultVariables) {
+        if (m_mergedVariables.find(it.first) != m_mergedVariables.end())
+            continue;
+        updated = true;
+        auto findCached = m_cachedVariables.find(it.first);
+        if (findCached != m_cachedVariables.end()) {
+            m_mergedVariables[it.first] = findCached->second;
+        } else {
             m_mergedVariables[it.first] = it.second;
+            m_cachedVariables[it.first] = it.second;
+        }
+    }
+    std::vector<QString> eraseList;
+    for (const auto &it: m_mergedVariables) {
+        if (defaultVariables.end() == defaultVariables.find(it.first)) {
+            eraseList.push_back(it.first);
             updated = true;
         }
     }
-    if (!updated) {
-        std::vector<QString> eraseList;
-        for (const auto &it: m_mergedVariables) {
-            if (variables.end() == variables.find(it.first)) {
-                eraseList.push_back(it.first);
-                updated = true;
-            }
-        }
-        for (const auto &it: eraseList)
-            m_mergedVariables.erase(it);
+    for (const auto &it: eraseList) {
+        m_mergedVariables.erase(it);
     }
     if (updated) {
         emit mergedVaraiblesChanged();
