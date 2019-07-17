@@ -1,4 +1,5 @@
 #include <QVBoxLayout>
+#include <QSplitter>
 #include "scriptwidget.h"
 #include "scripteditwidget.h"
 #include "theme.h"
@@ -23,14 +24,27 @@ ScriptWidget::ScriptWidget(const Document *document, QWidget *parent) :
     connect(scriptEditWidget, &ScriptEditWidget::scriptChanged, m_document, &Document::updateScript);
     
     connect(m_document, &Document::mergedVaraiblesChanged, scriptVariablesWidget, &ScriptVariablesWidget::reload);
-
+    
+    QSplitter *splitter = new QSplitter;
+    splitter->setOrientation(Qt::Vertical);
+    splitter->addWidget(scriptVariablesWidget);
+    splitter->addWidget(scriptEditWidget);
+    splitter->addWidget(m_scriptErrorLabel);
+    
+    QVBoxLayout *mainLayout = new QVBoxLayout;
+    mainLayout->addWidget(splitter);
+    setLayout(mainLayout);
+    
+    /*
     QVBoxLayout *mainLayout = new QVBoxLayout;
     mainLayout->addWidget(scriptVariablesWidget);
     mainLayout->addWidget(scriptEditWidget);
     mainLayout->addWidget(m_scriptErrorLabel);
+    mainLayout->setStretch(0, 1);
     mainLayout->setStretch(1, 1);
     
     setLayout(mainLayout);
+    */
 }
 
 QSize ScriptWidget::sizeHint() const

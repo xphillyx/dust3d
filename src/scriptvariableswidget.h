@@ -3,10 +3,10 @@
 #include <QWidget>
 #include <QString>
 #include <map>
-#include <QTreeWidget>
+#include <QScrollArea>
 #include "document.h"
 
-class ScriptVariablesWidget : public QTreeWidget
+class ScriptVariablesWidget : public QScrollArea
 {
     Q_OBJECT
 public:

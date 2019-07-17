@@ -7,30 +7,16 @@
 
 ScriptVariablesWidget::ScriptVariablesWidget(const Document *document,
         QWidget *parent) :
-    QTreeWidget(parent),
+    QScrollArea(parent),
     m_document(document)
 {
-    setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
-    setFocusPolicy(Qt::NoFocus);
-    setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    
-    setAutoScroll(false);
-    
-    QPalette palette = this->palette();
-    palette.setColor(QPalette::Window, Qt::transparent);
-    palette.setColor(QPalette::Base, Qt::transparent);
-    setPalette(palette);
-    
-    setColumnCount(1);
-    setHeaderHidden(true);
+    setWidgetResizable(true);
     
     reload();
 }
 
 void ScriptVariablesWidget::reload()
 {
-    clear();
-
     QWidget *widget = new QWidget;
     QFormLayout *formLayout = new QFormLayout;
     for (const auto &variable: m_document->variables()) {
@@ -43,10 +29,7 @@ void ScriptVariablesWidget::reload()
     }
     widget->setLayout(formLayout);
     
-    QTreeWidgetItem *item = new QTreeWidgetItem();
-    item->setFlags(item->flags() & ~(Qt::ItemIsEditable | Qt::ItemIsEnabled | Qt::ItemIsSelectable));
-    addTopLevelItem(item);
-    setItemWidget(item, 0, widget);
+    setWidget(widget);
 }
 
 QSize ScriptVariablesWidget::sizeHint() const
