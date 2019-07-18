@@ -21,6 +21,7 @@ public:
     struct DocumentElement
     {
         DocumentElementType type = DocumentElementType::Unknown;
+        bool deleted = false;
         std::map<QString, QString> attributes;
     };
     

@@ -270,6 +270,48 @@ void ScriptRunner::connect(DocumentNode *firstNode, DocumentNode *secondNode)
     m_edges.push_back(std::make_pair(firstNode, secondNode));
 }
 
+static void js_componentFinalizer(JSRuntime *runtime, JSValue value)
+{
+    ScriptRunner::DocumentComponent *component = (ScriptRunner::DocumentComponent *)JS_GetOpaque(value,
+        ScriptRunner::js_componentClassId);
+    if (component) {
+        component->deleted = true;
+    }
+}
+
+static JSClassDef js_componentClass = {
+    "Component",
+    .finalizer = js_componentFinalizer,
+};
+
+static void js_nodeFinalizer(JSRuntime *runtime, JSValue value)
+{
+    ScriptRunner::DocumentNode *node = (ScriptRunner::DocumentNode *)JS_GetOpaque(value,
+        ScriptRunner::js_nodeClassId);
+    if (node) {
+        node->deleted = true;
+    }
+}
+
+static JSClassDef js_nodeClass = {
+    "Node",
+    .finalizer = js_nodeFinalizer,
+};
+
+static void js_partFinalizer(JSRuntime *runtime, JSValue value)
+{
+    ScriptRunner::DocumentPart *part = (ScriptRunner::DocumentPart *)JS_GetOpaque(value,
+        ScriptRunner::js_partClassId);
+    if (part) {
+        part->deleted = true;
+    }
+}
+
+static JSClassDef js_partClass = {
+    "Part",
+    .finalizer = js_partFinalizer,
+};
+
 void ScriptRunner::run()
 {
     QElapsedTimer countTimeConsumed;
@@ -284,6 +326,10 @@ void ScriptRunner::run()
 
     JSRuntime *runtime = JS_NewRuntime();
     JSContext *context = JS_NewContext(runtime);
+    
+    JS_NewClass(runtime, js_partClassId, &js_partClass);
+    JS_NewClass(runtime, js_componentClassId, &js_componentClass);
+    JS_NewClass(runtime, js_nodeClassId, &js_nodeClass);
     
     JS_SetContextOpaque(context, this);
     
@@ -320,6 +366,8 @@ void ScriptRunner::run()
             JS_NewCFunction(context, js_print, "log", 1));
         JS_SetPropertyStr(context, globalObject, "console", console);
         
+        JS_FreeValue(context, globalObject);
+        
         JSValue object = JS_Eval(context, buffer.constData(), buffer.size(), "",
             JS_EVAL_TYPE_GLOBAL);
         if (JS_IsException(object)) {
@@ -349,7 +397,6 @@ void ScriptRunner::run()
         }
         
         JS_FreeValue(context, object);
-        JS_FreeValue(context, globalObject);
     }
     
     JS_FreeContext(context);
