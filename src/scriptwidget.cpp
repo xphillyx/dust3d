@@ -8,10 +8,18 @@ ScriptWidget::ScriptWidget(const Document *document, QWidget *parent) :
     QWidget(parent),
     m_document(document)
 {
-    m_scriptErrorLabel = new InfoLabel;
-    m_scriptErrorLabel->hide();
+    m_consoleEdit = new QPlainTextEdit;
+    m_consoleEdit->setReadOnly(true);
+    m_consoleEdit->hide();
     
     ScriptVariablesWidget *scriptVariablesWidget = new ScriptVariablesWidget(m_document);
+    scriptVariablesWidget->hide();
+    connect(m_document, &Document::mergedVaraiblesChanged, this, [=]() {
+        if (m_document->variables().empty())
+            scriptVariablesWidget->hide();
+        else
+            scriptVariablesWidget->show();
+    });
     
     ScriptEditWidget *scriptEditWidget = new ScriptEditWidget;
 
@@ -19,7 +27,8 @@ ScriptWidget::ScriptWidget(const Document *document, QWidget *parent) :
     connect(m_document, &Document::scriptModifiedFromExternal, this, [=]() {
         scriptEditWidget->setPlainText(document->script());
     });
-    connect(m_document, &Document::scriptErrorChanged, this, &ScriptWidget::updateScriptError);
+    connect(m_document, &Document::scriptErrorChanged, this, &ScriptWidget::updateScriptConsole);
+    connect(m_document, &Document::scriptConsoleLogChanged, this, &ScriptWidget::updateScriptConsole);
 
     connect(scriptEditWidget, &ScriptEditWidget::scriptChanged, m_document, &Document::updateScript);
     
@@ -27,24 +36,13 @@ ScriptWidget::ScriptWidget(const Document *document, QWidget *parent) :
     
     QSplitter *splitter = new QSplitter;
     splitter->setOrientation(Qt::Vertical);
-    splitter->addWidget(scriptVariablesWidget);
     splitter->addWidget(scriptEditWidget);
-    splitter->addWidget(m_scriptErrorLabel);
+    splitter->addWidget(m_consoleEdit);
+    splitter->addWidget(scriptVariablesWidget);
     
     QVBoxLayout *mainLayout = new QVBoxLayout;
     mainLayout->addWidget(splitter);
     setLayout(mainLayout);
-    
-    /*
-    QVBoxLayout *mainLayout = new QVBoxLayout;
-    mainLayout->addWidget(scriptVariablesWidget);
-    mainLayout->addWidget(scriptEditWidget);
-    mainLayout->addWidget(m_scriptErrorLabel);
-    mainLayout->setStretch(0, 1);
-    mainLayout->setStretch(1, 1);
-    
-    setLayout(mainLayout);
-    */
 }
 
 QSize ScriptWidget::sizeHint() const
@@ -52,15 +50,15 @@ QSize ScriptWidget::sizeHint() const
     return QSize(Theme::sidebarPreferredWidth, 0);
 }
 
-void ScriptWidget::updateScriptError()
+void ScriptWidget::updateScriptConsole()
 {
     const auto &scriptError = m_document->scriptError();
-    if (scriptError.isEmpty()) {
-        m_scriptErrorLabel->hide();
+    const auto &scriptConsoleLog = m_document->scriptConsoleLog();
+    if (scriptError.isEmpty() && scriptConsoleLog.isEmpty()) {
+        m_consoleEdit->hide();
     } else {
-        m_scriptErrorLabel->setText(scriptError);
-        m_scriptErrorLabel->setMaximumWidth(width() * 0.90);
-        m_scriptErrorLabel->show();
+        m_consoleEdit->setPlainText(scriptError + scriptConsoleLog);
+        m_consoleEdit->show();
     }
 }
 

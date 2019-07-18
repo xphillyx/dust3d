@@ -1580,6 +1580,7 @@ void Document::silentReset()
     m_mergedVariables.clear();
     m_cachedVariables.clear();
     m_scriptError.clear();
+    m_scriptConsoleLog.clear();
 }
 
 void Document::reset()
@@ -1589,6 +1590,7 @@ void Document::reset()
     emit skeletonChanged();
     emit scriptChanged();
     emit scriptErrorChanged();
+    emit scriptConsoleLogChanged();
 }
 
 void Document::fromSnapshot(const Snapshot &snapshot)
@@ -3404,11 +3406,18 @@ void Document::scriptResultReady()
     Snapshot *snapshot = m_scriptRunner->takeResultSnapshot();
     std::map<QString, std::map<QString, QString>> *defaultVariables = m_scriptRunner->takeDefaultVariables();
     bool errorChanged = false;
+    bool consoleLogChanged = false;
     
     const QString &scriptError = m_scriptRunner->scriptError();
     if (m_scriptError != scriptError) {
         m_scriptError = scriptError;
         errorChanged = true;
+    }
+    
+    const QString &consoleLog = m_scriptRunner->consoleLog();
+    if (m_scriptConsoleLog != consoleLog) {
+        m_scriptConsoleLog = consoleLog;
+        consoleLogChanged = true;
     }
     
     if (nullptr != snapshot) {
@@ -3427,6 +3436,9 @@ void Document::scriptResultReady()
     
     if (errorChanged)
         emit scriptErrorChanged();
+    
+    if (consoleLogChanged)
+        emit scriptConsoleLogChanged();
     
     qDebug() << "Script run done";
 
@@ -3448,4 +3460,9 @@ const std::map<QString, std::map<QString, QString>> &Document::variables() const
 const QString &Document::scriptError() const
 {
     return m_scriptError;
+}
+
+const QString &Document::scriptConsoleLog() const
+{
+    return m_scriptConsoleLog;
 }

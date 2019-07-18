@@ -467,6 +467,7 @@ signals:
     void mergedVaraiblesChanged();
     void scriptRunning();
     void scriptErrorChanged();
+    void scriptConsoleLogChanged();
 public: // need initialize
     QImage *textureGuideImage;
     QImage *textureImage;
@@ -534,6 +535,7 @@ public:
     const QString &script() const;
     const std::map<QString, std::map<QString, QString>> &variables() const;
     const QString &scriptError() const;
+    const QString &scriptConsoleLog() const;
 public slots:
     void undo() override;
     void redo() override;
@@ -712,6 +714,7 @@ private: // need initialize
     ScriptRunner *m_scriptRunner;
     bool m_isScriptResultObsolete;
     QString m_scriptError;
+    QString m_scriptConsoleLog;
 private:
     static unsigned long m_maxSnapshot;
     std::deque<HistoryItem> m_undoItems;

@@ -1,31 +1,175 @@
 #include <QDebug>
 #include <QElapsedTimer>
 #include "scriptrunner.h"
-extern "C" {
-#include "quickjs.h"
+
+JSClassID ScriptRunner::js_partClassId = 0;
+JSClassID ScriptRunner::js_componentClassId = 0;
+JSClassID ScriptRunner::js_nodeClassId = 0;
+
+static JSValue js_print(JSContext *context, JSValueConst thisValue,
+    int argc, JSValueConst *argv)
+{
+    ScriptRunner *runner = (ScriptRunner *)JS_GetContextOpaque(context);
+    
+    int i;
+    const char *str;
+
+    for (i = 0; i < argc; i++) {
+        if (i != 0)
+            runner->consoleLog() += ' ';
+        str = JS_ToCString(context, argv[i]);
+        if (!str)
+            return JS_EXCEPTION;
+        runner->consoleLog() += str;
+        JS_FreeCString(context, str);
+    }
+    runner->consoleLog() += '\n';
+    return JS_UNDEFINED;
+}
+
+static JSValue js_setAttribute(JSContext *context, JSValueConst thisValue,
+    int argc, JSValueConst *argv)
+{
+    ScriptRunner *runner = (ScriptRunner *)JS_GetContextOpaque(context);
+    if (argc < 3) {
+        runner->consoleLog() += "Incomplete parameters, expect: element, attributeName, attributeValue\r\n";
+        return JS_EXCEPTION;
+    }
+    ScriptRunner::DocumentElement *element = nullptr;
+    if (nullptr == element) {
+        ScriptRunner::DocumentNode *node = (ScriptRunner::DocumentNode *)JS_GetOpaque(argv[0],
+            ScriptRunner::js_nodeClassId);
+        if (nullptr != node) {
+            element = (ScriptRunner::DocumentElement *)node;
+        }
+    }
+    if (nullptr == element) {
+        ScriptRunner::DocumentPart *part = (ScriptRunner::DocumentPart *)JS_GetOpaque(argv[0],
+            ScriptRunner::js_partClassId);
+        if (nullptr != part) {
+            element = (ScriptRunner::DocumentElement *)part;
+        }
+    }
+    if (nullptr == element) {
+        ScriptRunner::DocumentComponent *component = (ScriptRunner::DocumentComponent *)JS_GetOpaque(argv[0],
+            ScriptRunner::js_componentClassId);
+        if (nullptr != component) {
+            element = (ScriptRunner::DocumentComponent *)component;
+        }
+    }
+    if (nullptr == element) {
+        runner->consoleLog() += "Parameters error\r\n";
+        return JS_EXCEPTION;
+    }
+    const char *attributeName = nullptr;
+    const char *attributeValue = nullptr;
+    attributeName = JS_ToCString(context, argv[1]);
+    if (!attributeName)
+        goto fail;
+    attributeValue = JS_ToCString(context, argv[2]);
+    if (!attributeValue)
+        goto fail;
+    runner->setAttribute(element, attributeName, attributeValue);
+    JS_FreeCString(context, attributeName);
+    JS_FreeCString(context, attributeValue);
+    return JS_UNDEFINED;
+fail:
+    JS_FreeCString(context, attributeName);
+    JS_FreeCString(context, attributeValue);
+    return JS_EXCEPTION;
+}
+
+static JSValue js_connect(JSContext *context, JSValueConst thisValue,
+    int argc, JSValueConst *argv)
+{
+    ScriptRunner *runner = (ScriptRunner *)JS_GetContextOpaque(context);
+    if (argc < 2) {
+        runner->consoleLog() += "Incomplete parameters, expect: firstNode, secondNode\r\n";
+        return JS_EXCEPTION;
+    }
+    ScriptRunner::DocumentElement *firstElement = (ScriptRunner::DocumentElement *)JS_GetOpaque(argv[0],
+        ScriptRunner::js_nodeClassId);
+    if (nullptr == firstElement ||
+            ScriptRunner::DocumentElementType::Node != firstElement->type) {
+        runner->consoleLog() += "First parameter must be node\r\n";
+        return JS_EXCEPTION;
+    }
+    ScriptRunner::DocumentElement *secondElement = (ScriptRunner::DocumentElement *)JS_GetOpaque(argv[1],
+        ScriptRunner::js_nodeClassId);
+    if (nullptr == secondElement ||
+            ScriptRunner::DocumentElementType::Node != secondElement->type) {
+        runner->consoleLog() += "Second parameter must be node\r\n";
+        return JS_EXCEPTION;
+    }
+    ScriptRunner::DocumentNode *firstNode = (ScriptRunner::DocumentNode *)firstElement;
+    ScriptRunner::DocumentNode *secondNode = (ScriptRunner::DocumentNode *)secondElement;
+    if (firstNode->part != secondNode->part) {
+        runner->consoleLog() += "Cannot connect nodes come from different parts\r\n";
+        return JS_EXCEPTION;
+    }
+    runner->connect(firstNode, secondNode);
+    return JS_UNDEFINED;
 }
 
 static JSValue js_createComponent(JSContext *context, JSValueConst thisValue,
     int argc, JSValueConst *argv)
 {
-    qDebug() << "jsCreateComponent";
-    JSValue component = JS_NewObject(context);
+    ScriptRunner *runner = (ScriptRunner *)JS_GetContextOpaque(context);
+    ScriptRunner::DocumentComponent *parentComponent = nullptr;
+    if (argc >= 1) {
+        ScriptRunner::DocumentElement *element = (ScriptRunner::DocumentElement *)JS_GetOpaque(argv[0],
+            ScriptRunner::js_componentClassId);
+        if (nullptr == element ||
+                ScriptRunner::DocumentElementType::Component != element->type) {
+            runner->consoleLog() += "First parameter must be null or component\r\n";
+            return JS_EXCEPTION;
+        }
+        parentComponent = (ScriptRunner::DocumentComponent *)element;
+    }
+    JSValue component = JS_NewObjectClass(context, ScriptRunner::js_componentClassId);
+    JS_SetOpaque(component, runner->createComponent(parentComponent));
     return component;
 }
 
 static JSValue js_createPart(JSContext *context, JSValueConst thisValue,
     int argc, JSValueConst *argv)
 {
-    qDebug() << "jsCreatePart";
-    JSValue part = JS_NewObject(context);
+    ScriptRunner *runner = (ScriptRunner *)JS_GetContextOpaque(context);
+    if (argc < 1) {
+        runner->consoleLog() += "Incomplete parameters, expect: component\r\n";
+        return JS_EXCEPTION;
+    }
+    ScriptRunner::DocumentElement *element = (ScriptRunner::DocumentElement *)JS_GetOpaque(argv[0],
+        ScriptRunner::js_componentClassId);
+    if (nullptr == element ||
+            ScriptRunner::DocumentElementType::Component != element->type) {
+        runner->consoleLog() += "First parameter must be component\r\n";
+        return JS_EXCEPTION;
+    }
+    ScriptRunner::DocumentComponent *component = (ScriptRunner::DocumentComponent *)element;
+    JSValue part = JS_NewObjectClass(context, ScriptRunner::js_partClassId);
+    JS_SetOpaque(part, runner->createPart(component));
     return part;
 }
 
 static JSValue js_createNode(JSContext *context, JSValueConst thisValue,
     int argc, JSValueConst *argv)
 {
-    qDebug() << "jsCreateNode";
-    JSValue node = JS_NewObject(context);
+    ScriptRunner *runner = (ScriptRunner *)JS_GetContextOpaque(context);
+    if (argc < 1) {
+        runner->consoleLog() += "Incomplete parameters, expect: part\r\n";
+        return JS_EXCEPTION;
+    }
+    ScriptRunner::DocumentElement *element = (ScriptRunner::DocumentElement *)JS_GetOpaque(argv[0],
+        ScriptRunner::js_partClassId);
+    if (nullptr == element ||
+            ScriptRunner::DocumentElementType::Part != element->type) {
+        runner->consoleLog() += "First parameter must be part\r\n";
+        return JS_EXCEPTION;
+    }
+    ScriptRunner::DocumentPart *part = (ScriptRunner::DocumentPart *)element;
+    JSValue node = JS_NewObjectClass(context, ScriptRunner::js_nodeClassId);
+    JS_SetOpaque(node, runner->createNode(part));
     return node;
 }
 
@@ -33,6 +177,10 @@ static JSValue js_createVariable(JSContext *context, JSValueConst thisValue,
     int argc, JSValueConst *argv)
 {
     ScriptRunner *runner = (ScriptRunner *)JS_GetContextOpaque(context);
+    if (argc < 2) {
+        runner->consoleLog() += "Incomplete parameters, expect: name, value\r\n";
+        return JS_EXCEPTION;
+    }
     
     QString mergedValue;
     
@@ -66,6 +214,17 @@ ScriptRunner::~ScriptRunner()
 {
     delete m_resultSnapshot;
     delete m_defaultVariables;
+    for (auto &it: m_parts)
+        delete it;
+    for (auto &it: m_components)
+        delete it;
+    for (auto &it: m_nodes)
+        delete it;
+}
+
+QString &ScriptRunner::consoleLog()
+{
+    return m_consoleLog;
 }
 
 const QString &ScriptRunner::scriptError()
@@ -73,10 +232,53 @@ const QString &ScriptRunner::scriptError()
     return m_scriptError;
 }
 
+ScriptRunner::DocumentPart *ScriptRunner::createPart(DocumentComponent *component)
+{
+    ScriptRunner::DocumentPart *part = new ScriptRunner::DocumentPart;
+    part->component = component;
+    m_parts.push_back(part);
+    return part;
+}
+
+ScriptRunner::DocumentComponent *ScriptRunner::createComponent(DocumentComponent *parentComponent)
+{
+    ScriptRunner::DocumentComponent *component = new ScriptRunner::DocumentComponent;
+    component->parentComponent = parentComponent;
+    m_components.push_back(component);
+    return component;
+}
+
+ScriptRunner::DocumentNode *ScriptRunner::createNode(DocumentPart *part)
+{
+    ScriptRunner::DocumentNode *node = new ScriptRunner::DocumentNode;
+    node->part = part;
+    m_nodes.push_back(node);
+    return node;
+}
+
+bool ScriptRunner::setAttribute(DocumentElement *element, const QString &name, const QString &value)
+{
+    element->attributes[name] = value;
+    
+    // TODO: Validate attribute name and value
+    
+    return true;
+}
+
+void ScriptRunner::connect(DocumentNode *firstNode, DocumentNode *secondNode)
+{
+    m_edges.push_back(std::make_pair(firstNode, secondNode));
+}
+
 void ScriptRunner::run()
 {
     QElapsedTimer countTimeConsumed;
     countTimeConsumed.start();
+    
+    // Warning: Not thread safe, but we have only one script instance running, so it doesn't matter
+    js_partClassId = JS_NewClassID(&js_partClassId);
+    js_componentClassId = JS_NewClassID(&js_componentClassId);
+    js_nodeClassId = JS_NewClassID(&js_nodeClassId);
     
     m_defaultVariables = new std::map<QString, std::map<QString, QString>>;
 
@@ -90,26 +292,33 @@ void ScriptRunner::run()
         auto buffer = m_script->toUtf8();
         
         JSValue globalObject = JS_GetGlobalObject(context);
-        JSValue document = JS_NewObject(context);
         
+        JSValue document = JS_NewObject(context);
         JS_SetPropertyStr(context,
             document, "createComponent",
             JS_NewCFunction(context, js_createComponent, "createComponent", 1));
-        
         JS_SetPropertyStr(context,
             document, "createPart",
             JS_NewCFunction(context, js_createPart, "createPart", 1));
-        
         JS_SetPropertyStr(context,
             document, "createNode",
             JS_NewCFunction(context, js_createNode, "createNode", 1));
-        
         JS_SetPropertyStr(context,
             document, "createVariable",
             JS_NewCFunction(context, js_createVariable, "createVariable", 2));
-        
+        JS_SetPropertyStr(context,
+            document, "connect",
+            JS_NewCFunction(context, js_connect, "connect", 2));
+        JS_SetPropertyStr(context,
+            document, "setAttribute",
+            JS_NewCFunction(context, js_setAttribute, "setAttribute", 3));
         JS_SetPropertyStr(context, globalObject, "document", document);
-        JS_FreeValue(context, globalObject);
+        
+        JSValue console = JS_NewObject(context);
+        JS_SetPropertyStr(context,
+            console, "log",
+            JS_NewCFunction(context, js_print, "log", 1));
+        JS_SetPropertyStr(context, globalObject, "console", console);
         
         JSValue object = JS_Eval(context, buffer.constData(), buffer.size(), "",
             JS_EVAL_TYPE_GLOBAL);
@@ -138,7 +347,9 @@ void ScriptRunner::run()
             qDebug() << "Result:" << objectString;
             JS_FreeCString(context, objectString);
         }
+        
         JS_FreeValue(context, object);
+        JS_FreeValue(context, globalObject);
     }
     
     JS_FreeContext(context);
