@@ -23,7 +23,7 @@ ScriptWidget::ScriptWidget(const Document *document, QWidget *parent) :
     
     ScriptEditWidget *scriptEditWidget = new ScriptEditWidget;
 
-    connect(m_document, &Document::cleanup, scriptEditWidget, &ScriptEditWidget::clear);
+    connect(m_document, &Document::cleanupScript, scriptEditWidget, &ScriptEditWidget::clear);
     connect(m_document, &Document::scriptModifiedFromExternal, this, [=]() {
         scriptEditWidget->setPlainText(document->script());
     });

@@ -1,5 +1,6 @@
 #include <QDebug>
 #include <QElapsedTimer>
+#include <QUuid>
 #include "scriptrunner.h"
 
 JSClassID ScriptRunner::js_partClassId = 0;
@@ -391,6 +392,7 @@ void ScriptRunner::run()
                 qDebug() << "QuickJS" << m_scriptError;
             }
         } else {
+            generateSnapshot();
             const char *objectString = JS_ToCString(context, object);
             qDebug() << "Result:" << objectString;
             JS_FreeCString(context, objectString);
@@ -403,6 +405,108 @@ void ScriptRunner::run()
     JS_FreeRuntime(runtime);
     
     qDebug() << "The script run" << countTimeConsumed.elapsed() << "milliseconds";
+}
+
+void ScriptRunner::generateSnapshot()
+{
+    m_resultSnapshot = new Snapshot;
+    std::map<void *, QString> pointerToIdMap;
+    
+    std::map<void *, QStringList> componentChildrensMap;
+    
+    QStringList rootChildren;
+    
+    for (const auto &it: m_components) {
+        QString idString = QUuid::createUuid().toString();
+        pointerToIdMap[it] = idString;
+        auto &component = m_resultSnapshot->components[idString];
+        component = it->attributes;
+        component["id"] = idString;
+        componentChildrensMap[it->parentComponent].append(idString);
+        if (nullptr == it->parentComponent)
+            rootChildren.append(idString);
+    }
+    m_resultSnapshot->rootComponent["children"] = rootChildren.join(",");
+    
+    for (const auto &it: m_components) {
+        const auto &idString = pointerToIdMap[it];
+        auto &component = m_resultSnapshot->components[idString];
+        auto &childrens = componentChildrensMap[it];
+        if (!childrens.empty())
+            component["children"] = childrens.join(",");
+    }
+    
+    for (const auto &it: m_parts) {
+        auto findComponent = pointerToIdMap.find(it->component);
+        if (findComponent == pointerToIdMap.end()) {
+            m_scriptError += "Find component pointer failed, component maybe deleted\r\n";
+            continue;
+        }
+        
+        QString idString = QUuid::createUuid().toString();
+        pointerToIdMap[it] = idString;
+        auto &part = m_resultSnapshot->parts[idString];
+        part = it->attributes;
+        part.insert({"visible", "true"});
+        part["id"] = idString;
+        
+        auto &component = m_resultSnapshot->components[findComponent->second];
+        component["linkData"] = idString;
+        component["linkDataType"] = "partId";
+    }
+    for (const auto &it: m_nodes) {
+        auto findPart = pointerToIdMap.find(it->part);
+        if (findPart == pointerToIdMap.end()) {
+            m_scriptError += "Find part pointer failed, part maybe deleted\r\n";
+            continue;
+        }
+        QString idString = QUuid::createUuid().toString();
+        pointerToIdMap[it] = idString;
+        auto &node = m_resultSnapshot->nodes[idString];
+        node = it->attributes;
+        node["id"] = idString;
+        node["partId"] = findPart->second;
+    }
+    for (const auto &it: m_edges) {
+        if (it.first->part != it.second->part) {
+            m_scriptError += "Cannot connect nodes come from different parts\r\n";
+            continue;
+        }
+        auto findFirstNode = pointerToIdMap.find(it.first);
+        if (findFirstNode == pointerToIdMap.end()) {
+            m_scriptError += "Find first node pointer failed, node maybe deleted\r\n";
+            continue;
+        }
+        auto findSecondNode = pointerToIdMap.find(it.second);
+        if (findSecondNode == pointerToIdMap.end()) {
+            m_scriptError += "Find second node pointer failed, node maybe deleted\r\n";
+            continue;
+        }
+        auto findPart = pointerToIdMap.find(it.first->part);
+        if (findPart == pointerToIdMap.end()) {
+            m_scriptError += "Find part pointer failed, part maybe deleted\r\n";
+            continue;
+        }
+        QString idString = QUuid::createUuid().toString();
+        auto &edge = m_resultSnapshot->edges[idString];
+        edge["id"] = idString;
+        edge["from"] = findFirstNode->second;
+        edge["to"] = findSecondNode->second;
+        edge["partId"] = findPart->second;
+    }
+    
+    for (const auto &it: m_resultSnapshot->nodes) {
+        qDebug() << "Generated node:" << it.second;
+    }
+    for (const auto &it: m_resultSnapshot->edges) {
+        qDebug() << "Generated edge:" << it.second;
+    }
+    for (const auto &it: m_resultSnapshot->parts) {
+        qDebug() << "Generated part:" << it.second;
+    }
+    for (const auto &it: m_resultSnapshot->components) {
+        qDebug() << "Generated component:" << it.second;
+    }
 }
 
 QString ScriptRunner::createVariable(const QString &name, const QString &defaultValue)

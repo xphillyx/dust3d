@@ -1081,6 +1081,7 @@ void DocumentWindow::newDocument()
             return;
     }
     m_document->clearHistories();
+    m_document->resetScript();
     m_document->reset();
     m_document->saveSnapshot();
 }
@@ -1292,6 +1293,7 @@ void DocumentWindow::openExample(const QString &modelName)
     Ds3FileReader ds3Reader(":/resources/" + modelName);
     
     m_document->clearHistories();
+    m_document->resetScript();
     m_document->reset();
     m_document->saveSnapshot();
     
@@ -1356,6 +1358,7 @@ void DocumentWindow::open()
     Ds3FileReader ds3Reader(filename);
     
     m_document->clearHistories();
+    m_document->resetScript();
     m_document->reset();
     m_document->saveSnapshot();
     

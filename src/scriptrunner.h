@@ -83,6 +83,7 @@ private:
     std::vector<std::pair<DocumentNode *, DocumentNode *>> m_edges;
     QString m_scriptError;
     QString m_consoleLog;
+    void generateSnapshot();
 public:
     static JSClassID js_partClassId;
     static JSClassID js_componentClassId;

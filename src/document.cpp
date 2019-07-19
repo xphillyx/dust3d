@@ -1576,6 +1576,10 @@ void Document::silentReset()
     motionIdList.clear();
     rootComponent = Component();
     removeRigResults();
+}
+
+void Document::silentResetScript()
+{
     m_script.clear();
     m_mergedVariables.clear();
     m_cachedVariables.clear();
@@ -1588,9 +1592,16 @@ void Document::reset()
     silentReset();
     emit cleanup();
     emit skeletonChanged();
+}
+
+void Document::resetScript()
+{
+    silentResetScript();
+    emit cleanupScript();
     emit scriptChanged();
     emit scriptErrorChanged();
     emit scriptConsoleLogChanged();
+    emit mergedVaraiblesChanged();
 }
 
 void Document::fromSnapshot(const Snapshot &snapshot)
@@ -3344,6 +3355,22 @@ void Document::updateVariable(const QString &name, const std::map<QString, QStri
     variable->second = value;
     m_mergedVariables[name] = value;
     emit mergedVaraiblesChanged();
+}
+
+void Document::updateVariableValue(const QString &name, const QString &value)
+{
+    auto variable = m_cachedVariables.find(name);
+    if (variable == m_cachedVariables.end()) {
+        qDebug() << "Update a nonexist variable:" << name << "value:" << value;
+        return;
+    }
+    auto &variableValue = variable->second["value"];
+    if (variableValue == value)
+        return;
+    qDebug() << "Update variable:" << name << "from:" << variableValue << "to:" << value;
+    variableValue = value;
+    m_mergedVariables[name] = variable->second;
+    runScript();
 }
 
 void Document::updateDefaultVariables(const std::map<QString, std::map<QString, QString>> &defaultVariables)

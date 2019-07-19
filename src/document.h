@@ -419,6 +419,7 @@ signals:
     void partColorSolubilityChanged(QUuid partId);
     void componentCombineModeChanged(QUuid componentId);
     void cleanup();
+    void cleanupScript();
     void originChanged();
     void xlockStateChanged();
     void ylockStateChanged();
@@ -623,8 +624,10 @@ public slots:
     void batchChangeBegin();
     void batchChangeEnd();
     void reset();
+    void resetScript();
     void clearHistories();
     void silentReset();
+    void silentResetScript();
     void breakEdge(QUuid edgeId);
     void setXlockState(bool locked);
     void setYlockState(bool locked);
@@ -659,6 +662,7 @@ public slots:
     void runScript();
     void scriptResultReady();
     void updateVariable(const QString &name, const std::map<QString, QString> &value);
+    void updateVariableValue(const QString &name, const QString &value);
 private:
     void splitPartByNode(std::vector<std::vector<QUuid>> *groups, QUuid nodeId);
     void joinNodeAndNeiborsToGroup(std::vector<QUuid> *group, QUuid nodeId, std::set<QUuid> *visitMap, QUuid noUseEdgeId=QUuid());

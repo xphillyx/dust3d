@@ -9,6 +9,8 @@
 class ScriptVariablesWidget : public QScrollArea
 {
     Q_OBJECT
+signals:
+    void updateVariableValue(const QString &name, const QString &value);
 public:
     ScriptVariablesWidget(const Document *document,
         QWidget *parent=nullptr);
