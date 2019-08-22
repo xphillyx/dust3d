@@ -416,9 +416,55 @@ HEADERS += src/mousepicker.h
 SOURCES += src/paintmode.cpp
 HEADERS += src/paintmode.h
 
+SOURCES += src/ragdoll.cpp
+HEADERS += src/ragdoll.h
+
 SOURCES += src/main.cpp
 
 HEADERS += src/version.h
+
+INCLUDEPATH += thirdparty/bullet3/src
+
+SOURCES += thirdparty/bullet3/src/LinearMath/btAlignedAllocator.cpp
+HEADERS += thirdparty/bullet3/src/LinearMath/btAlignedAllocator.h
+
+SOURCES += thirdparty/bullet3/src/BulletDynamics/Dynamics/btRigidBody.cpp
+HEADERS += thirdparty/bullet3/src/BulletDynamics/Dynamics/btRigidBody.h
+
+SOURCES += thirdparty/bullet3/src/BulletCollision/CollisionDispatch/btCollisionObject.cpp
+HEADERS += thirdparty/bullet3/src/BulletCollision/CollisionDispatch/btCollisionObject.h
+
+SOURCES += thirdparty/bullet3/src/BulletDynamics/ConstraintSolver/btTypedConstraint.cpp
+HEADERS += thirdparty/bullet3/src/BulletDynamics/ConstraintSolver/btTypedConstraint.h
+
+SOURCES += thirdparty/bullet3/src/LinearMath/btVector3.cpp
+HEADERS += thirdparty/bullet3/src/LinearMath/btVector3.h
+
+HEADERS += thirdparty/bullet3/src/LinearMath/btScalar.h
+
+SOURCES += thirdparty/bullet3/src/LinearMath/btSerializer.cpp
+HEADERS += thirdparty/bullet3/src/LinearMath/btSerializer.h
+
+SOURCES += thirdparty/bullet3/src/BulletCollision/CollisionShapes/btCollisionShape.cpp
+HEADERS += thirdparty/bullet3/src/BulletCollision/CollisionShapes/btCollisionShape.h
+
+SOURCES += thirdparty/bullet3/src/BulletCollision/CollisionShapes/btCapsuleShape.cpp
+HEADERS += thirdparty/bullet3/src/BulletCollision/CollisionShapes/btCapsuleShape.h
+
+SOURCES += thirdparty/bullet3/src/BulletCollision/CollisionShapes/btConvexShape.cpp
+HEADERS += thirdparty/bullet3/src/BulletCollision/CollisionShapes/btConvexShape.h
+
+SOURCES += thirdparty/bullet3/src/BulletCollision/CollisionShapes/btConvexInternalShape.cpp
+HEADERS += thirdparty/bullet3/src/BulletCollision/CollisionShapes/btConvexInternalShape.h
+
+SOURCES += thirdparty/bullet3/src/BulletDynamics/ConstraintSolver/btHingeConstraint.cpp
+HEADERS += thirdparty/bullet3/src/BulletDynamics/ConstraintSolver/btHingeConstraint.h
+
+SOURCES += thirdparty/bullet3/src/BulletDynamics/ConstraintSolver/btConeTwistConstraint.cpp
+HEADERS += thirdparty/bullet3/src/BulletDynamics/ConstraintSolver/btConeTwistConstraint.h
+
+SOURCES += thirdparty/bullet3/src/BulletDynamics/ConstraintSolver/btTypedConstraint.cpp
+HEADERS += thirdparty/bullet3/src/BulletDynamics/ConstraintSolver/btTypedConstraint.h
 
 INCLUDEPATH += thirdparty/quickjs/quickjs-2019-07-09-dust3d
 
