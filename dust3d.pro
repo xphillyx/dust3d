@@ -434,9 +434,6 @@ HEADERS += thirdparty/bullet3/src/BulletDynamics/Dynamics/btRigidBody.h
 SOURCES += thirdparty/bullet3/src/BulletCollision/CollisionDispatch/btCollisionObject.cpp
 HEADERS += thirdparty/bullet3/src/BulletCollision/CollisionDispatch/btCollisionObject.h
 
-SOURCES += thirdparty/bullet3/src/BulletDynamics/ConstraintSolver/btTypedConstraint.cpp
-HEADERS += thirdparty/bullet3/src/BulletDynamics/ConstraintSolver/btTypedConstraint.h
-
 SOURCES += thirdparty/bullet3/src/LinearMath/btVector3.cpp
 HEADERS += thirdparty/bullet3/src/LinearMath/btVector3.h
 

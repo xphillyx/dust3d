@@ -1,3 +1,5 @@
+#define _USE_MATH_DEFINES
+#include <cmath>
 #include <LinearMath/btDefaultMotionState.h>
 #include <LinearMath/btAlignedAllocator.h>
 #include <BulletCollision/CollisionShapes/btCapsuleShape.h>
