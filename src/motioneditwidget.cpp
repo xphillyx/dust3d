@@ -16,6 +16,8 @@ MotionEditWidget::MotionEditWidget(const Document *document, QWidget *parent) :
     QDialog(parent),
     m_document(document)
 {
+    setWindowFlags(windowFlags() | Qt::WindowStaysOnTopHint);
+    
     m_clipPlayer = new AnimationClipPlayer;
 
     m_timelineWidget = new MotionTimelineWidget(document, this);
