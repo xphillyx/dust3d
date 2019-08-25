@@ -419,6 +419,9 @@ HEADERS += src/paintmode.h
 SOURCES += src/ragdoll.cpp
 HEADERS += src/ragdoll.h
 
+SOURCES += src/proceduralanimation.cpp
+HEADERS += src/proceduralanimation.h
+
 SOURCES += src/main.cpp
 
 HEADERS += src/version.h
