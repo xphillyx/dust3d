@@ -264,6 +264,7 @@ bool AnimalRigger::rig()
     struct SpineNode
     {
         float coord;
+        float radius;
         QVector3D position;
         std::set<int> chainMarkIndices;
     };
@@ -273,6 +274,7 @@ bool AnimalRigger::rig()
             sideIndices[Column::Left] < chainColumns[Column::Left]->size() ||
             sideIndices[Column::Right] < chainColumns[Column::Right]->size();) {
         float choosenCoord = std::numeric_limits<float>::max();
+        float choosenRadius = 0;
         int choosenColumn = -1;
         for (size_t side = Column::Left; side <= Column::Right; ++side) {
             if (sideIndices[side] < chainColumns[side]->size()) {
@@ -281,6 +283,7 @@ bool AnimalRigger::rig()
                         mark.bonePosition.z();
                 if (coord < choosenCoord) {
                     choosenCoord = coord;
+                    choosenRadius = mark.nodeRadius;
                     choosenColumn = side;
                 }
             }
@@ -314,6 +317,7 @@ bool AnimalRigger::rig()
         rawSpineNodes.push_back(SpineNode());
         SpineNode &spineNode = rawSpineNodes.back();
         spineNode.coord = choosenCoord;
+        spineNode.radius = choosenRadius;
         spineNode.chainMarkIndices = chainMarkIndices;
         spineNode.position = sumOfChainPositions / countOfChains;
     }
@@ -332,6 +336,7 @@ bool AnimalRigger::rig()
             SpineNode intermediate;
             const auto &nextRaw = rawSpineNodes[i + 1];
             intermediate.coord = (raw.coord + nextRaw.coord) / 2;
+            intermediate.radius = (raw.radius + nextRaw.radius) / 2;
             intermediate.position = (raw.position + nextRaw.position) / 2;
             spineNodes.push_back(intermediate);
         }
@@ -370,6 +375,7 @@ bool AnimalRigger::rig()
         const auto &spineNode = spineNodes[spineNodeIndex];
         std::set<int> spineBoneVertices;
         QVector3D tailPosition;
+        float tailRadius = 0;
 
         if (spineNodeIndex + 1 < (int)spineNodes.size()) {
             float distance = (spineNodes[spineNodeIndex + 1].position - spineNode.position).length();
@@ -408,12 +414,15 @@ bool AnimalRigger::rig()
                 remainingSpineVerticies = frontOrCoincidentVertices;
             }
             tailPosition = spineNodes[spineNodeIndex + 1].position;
+            tailRadius = spineNodes[spineNodeIndex + 1].radius;
         } else {
             spineBoneVertices = remainingSpineVerticies;
             tailPosition = findExtremPointFrom(spineBoneVertices, spineNode.position);
+            tailRadius = spineNode.radius;
         }
         
         QVector3D spineBoneHeadPosition = spineNode.position;
+        float spineBoneHeadRadius = spineNode.radius;
         QVector3D averagePoint = averagePosition(spineBoneVertices);
         if (isMainBodyVerticalAligned) {
             //qDebug() << "Update spine position's z from:" << spineBoneHeadPosition.z() << "to:" << averagePoint.z();
@@ -430,7 +439,9 @@ bool AnimalRigger::rig()
         spineBone.index = m_resultBones.size() - 1;
         spineBone.name = spineName;
         spineBone.headPosition = spineBoneHeadPosition;
+        spineBone.headRadius = spineBoneHeadRadius;
         spineBone.tailPosition = tailPosition;
+        spineBone.tailRadius = tailRadius;
         spineBone.color = twoColorsForSpine[spineGenerateOrder % 2];
         addVerticesToWeights(spineBoneVertices, spineBone.index);
         boneIndexMap[spineBone.name] = spineBone.index;
@@ -457,6 +468,7 @@ bool AnimalRigger::rig()
             ribBone.index = m_resultBones.size() - 1;
             ribBone.name = namingConnector(spineName, chainName);
             ribBone.headPosition = spineBoneHeadPosition;
+            ribBone.headRadius = spineBoneHeadRadius;
             //qDebug() << "Added connector:" << ribBone.name;
             boneIndexMap[ribBone.name] = ribBone.index;
             if (1 == spineGenerateOrder) {
@@ -477,13 +489,15 @@ bool AnimalRigger::rig()
             auto boneColor = [&]() {
                 return twoColorsForChain[jointGenerateOrder % 2];
             };
-            auto addToParentBone = [&](QVector3D headPosition, SkeletonSide side, int boneIndex) {
+            auto addToParentBone = [&](QVector3D headPosition, float headRadius, SkeletonSide side, int boneIndex) {
                 if (1 == jointGenerateOrder) {
                     m_resultBones[boneIndexMap[namingConnector(spineName, chainName)]].tailPosition = headPosition;
+                    m_resultBones[boneIndexMap[namingConnector(spineName, chainName)]].tailRadius = headRadius;
                     m_resultBones[boneIndexMap[namingConnector(spineName, chainName)]].children.push_back(boneIndex);
                 } else {
                     QString parentLimbBoneName = namingChain(chainBaseName, side, chainGenerateOrder, spineNode.chainMarkIndices.size(), jointGenerateOrder - 1);
                     m_resultBones[boneIndexMap[parentLimbBoneName]].tailPosition = headPosition;
+                    m_resultBones[boneIndexMap[parentLimbBoneName]].tailRadius = headRadius;
                     m_resultBones[boneIndexMap[parentLimbBoneName]].children.push_back(boneIndex);
                 }
             };
@@ -525,6 +539,7 @@ bool AnimalRigger::rig()
                 jointBone.index = m_resultBones.size() - 1;
                 jointBone.name = namingChain(chainBaseName, chainMark.boneSide, chainGenerateOrder, spineNode.chainMarkIndices.size(), jointGenerateOrder);
                 jointBone.headPosition = jointPositions[jointGenerateOrder - 1];
+                jointBone.headRadius = jointMark.nodeRadius;
                 jointBone.tailPosition = jointPositions[jointGenerateOrder];
                 jointBone.color = boneColor();
                 if (jointGenerateOrder == (int)jointMarkIndices.size()) {
@@ -560,7 +575,7 @@ bool AnimalRigger::rig()
                 }
                 
                 boneIndexMap[jointBone.name] = jointBone.index;
-                addToParentBone(jointBone.headPosition, chainMark.boneSide, jointBone.index);
+                addToParentBone(jointBone.headPosition, jointBone.headRadius, chainMark.boneSide, jointBone.index);
             }
             
             ++chainGenerateOrder;
@@ -574,30 +589,8 @@ bool AnimalRigger::rig()
         weights.second.finalizeWeights();
     }
     
-    //convertNames();
-    
     return true;
 }
-
-/*
-void AnimalRigger::convertNames()
-{
-    BoneNameConverter boneNameConverter;
-    for (auto &it: m_resultBones) {
-        boneNameConverter.addBoneName(it.name);
-        it.humanName = it.name;
-    }
-    if (boneNameConverter.convertToReadable()) {
-        const auto &map = boneNameConverter.converted();
-        for (auto &it: m_resultBones) {
-            auto findReadable = map.find(it.name);
-            if (findReadable != map.end()) {
-                it.humanName = findReadable->second;
-            }
-        }
-    }
-}
-*/
 
 QVector3D AnimalRigger::findExtremPointFrom(const std::set<int> &verticies, const QVector3D &from)
 {

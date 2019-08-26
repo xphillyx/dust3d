@@ -8,6 +8,10 @@
 #include <BulletDynamics/ConstraintSolver/btTypedConstraint.h>
 #include "ragdoll.h"
 
+RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones, const JointNodeTree &jointNodeTree)
+{
+}
+
 RagDoll::RagDoll(btDynamicsWorld* ownerWorld, const btVector3& positionOffset, btScalar scale)
     : m_ownerWorld(ownerWorld)
 {

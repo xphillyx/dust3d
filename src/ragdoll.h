@@ -7,6 +7,8 @@
 #include <BulletDynamics/ConstraintSolver/btTypedConstraint.h>
 #include <LinearMath/btVector3.h>
 #include <LinearMath/btScalar.h>
+#include "rigger.h"
+#include "jointnodetree.h"
 
 class RagDoll : public QObject
 {
@@ -54,6 +56,7 @@ public:
 	};
 
     RagDoll(btDynamicsWorld* ownerWorld, const btVector3& positionOffset, btScalar scale);
+    RagDoll(const std::vector<RiggerBone> *rigBones, const JointNodeTree &jointNodeTree);
     ~RagDoll();
 
 private:
