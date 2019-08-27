@@ -11,7 +11,9 @@
 #include "ragdoll.h"
 #include "poser.h"
 
-RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones, const JointNodeTree &jointNodeTree)
+RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones, const JointNodeTree &jointNodeTree) :
+    m_jointNodeTree(jointNodeTree),
+    m_setpJointNodeTree(jointNodeTree)
 {
     if (nullptr == rigBones)
         return;
@@ -30,6 +32,7 @@ RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones, const JointNodeTree &j
         float radius = (bone.headRadius + bone.tailRadius) * 0.5;
         float height = bone.headPosition.distanceToPoint(bone.tailPosition);
         m_boneShapes[bone.name] = new btCapsuleShape(btScalar(radius), btScalar(height));
+        m_boneShapes[bone.name]->setUserIndex(bone.index);
     }
     
     // Setup all the rigid bodies
@@ -73,7 +76,7 @@ RagDoll::~RagDoll()
 
     // Remove all bodies and shapes
     for (auto &body: m_boneBodies) {
-        m_ownerWorld->removeRigidBody(body.second);
+        m_world->removeRigidBody(body.second);
         delete body.second->getMotionState();
         delete body.second;
     }
@@ -83,7 +86,7 @@ RagDoll::~RagDoll()
     }
     m_boneShapes.clear();
     
-    delete m_ownerWorld;
+    delete m_world;
     
     delete m_collisionConfiguration;
     delete m_collisionDispather;
@@ -98,8 +101,33 @@ void RagDoll::createDynamicsWorld()
     m_broadphase = new btDbvtBroadphase();
     m_constraintSolver = new btSequentialImpulseConstraintSolver();
     
-    m_ownerWorld = new btDiscreteDynamicsWorld(m_collisionDispather, m_broadphase, m_constraintSolver, m_collisionConfiguration);
-    m_ownerWorld->setGravity(btVector3(0, -100, 0));
+    m_world = new btDiscreteDynamicsWorld(m_collisionDispather, m_broadphase, m_constraintSolver, m_collisionConfiguration);
+    m_world->setGravity(btVector3(0, -100, 0));
+}
+
+void RagDoll::stepSimulation(float amount)
+{
+    m_world->stepSimulation(btScalar(amount));
+    
+    m_setpJointNodeTree = m_jointNodeTree;
+    for (const auto &it: m_boneShapes) {
+        const auto *body = m_boneBodies[it.first];
+        int jointIndex = it.second->getUserIndex();
+        btTransform btWorldTransform;
+        if (body->getMotionState())
+            body->getMotionState()->getWorldTransform(btWorldTransform);
+        else
+            btWorldTransform = body->getWorldTransform();
+        const auto &btOrigin = btWorldTransform.getOrigin();
+        m_setpJointNodeTree.updateTranslation(jointIndex, QVector3D(btOrigin.x(), btOrigin.y(), btOrigin.z()));
+    }
+    
+    m_setpJointNodeTree.recalculateTransformMatrices();
+}
+
+const JointNodeTree &RagDoll::getStepJointNodeTree()
+{
+    return m_setpJointNodeTree;
 }
 
 /*
@@ -338,7 +366,7 @@ btRigidBody *RagDoll::createRigidBody(btScalar mass, const btTransform &startTra
     btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, shape, localInertia);
     btRigidBody* body = new btRigidBody(rbInfo);
 
-    m_ownerWorld->addRigidBody(body);
+    m_world->addRigidBody(body);
 
     return body;
 }

@@ -65,6 +65,8 @@ public:
     //RagDoll(btDynamicsWorld* ownerWorld, const btVector3& positionOffset, btScalar scale);
     RagDoll(const std::vector<RiggerBone> *rigBones, const JointNodeTree &jointNodeTree);
     ~RagDoll();
+    void stepSimulation(float amount);
+    const JointNodeTree &getStepJointNodeTree();
 
 private:
 	//btCollisionShape *m_shapes[BODYPART_COUNT] = {nullptr};
@@ -75,10 +77,13 @@ private:
     btCollisionDispatcher *m_collisionDispather = nullptr;
     btDbvtBroadphase *m_broadphase = nullptr;
     btSequentialImpulseConstraintSolver *m_constraintSolver = nullptr;
-    btDynamicsWorld *m_ownerWorld = nullptr;
+    btDynamicsWorld *m_world = nullptr;
     
     std::map<QString, btCollisionShape *> m_boneShapes;
     std::map<QString, btRigidBody *> m_boneBodies;
+    
+    JointNodeTree m_jointNodeTree;
+    JointNodeTree m_setpJointNodeTree;
  
     btRigidBody *createRigidBody(btScalar mass, const btTransform &startTransform, btCollisionShape *shape);
     void createDynamicsWorld();
