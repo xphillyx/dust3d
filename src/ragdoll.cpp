@@ -6,12 +6,103 @@
 #include <BulletDynamics/ConstraintSolver/btHingeConstraint.h>
 #include <BulletDynamics/ConstraintSolver/btConeTwistConstraint.h>
 #include <BulletDynamics/ConstraintSolver/btTypedConstraint.h>
+#include <QQuaternion>
+#include <QtMath>
 #include "ragdoll.h"
+#include "poser.h"
 
 RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones, const JointNodeTree &jointNodeTree)
 {
+    if (nullptr == rigBones)
+        return;
+    
+    createDynamicsWorld();
+    
+    std::map<QString, std::vector<QString>> chains;
+    std::vector<QString> boneNames;
+    for (const auto &bone: *rigBones) {
+        boneNames.push_back(bone.name);
+    }
+    Poser::fetchChains(boneNames, chains);
+    
+    // Setup the geometry
+    for (const auto &bone: *rigBones) {
+        float radius = (bone.headRadius + bone.tailRadius) * 0.5;
+        float height = bone.headPosition.distanceToPoint(bone.tailPosition);
+        m_boneShapes[bone.name] = new btCapsuleShape(btScalar(radius), btScalar(height));
+    }
+    
+    // Setup all the rigid bodies
+    for (const auto &bone: *rigBones) {
+        btTransform transform;
+        transform.setIdentity();
+        transform.setOrigin(btVector3(
+            btScalar(bone.headPosition.x()),
+            btScalar(bone.headPosition.y()),
+            btScalar(bone.headPosition.z())
+        ));
+        QVector3D to = (bone.tailPosition - bone.headPosition).normalized();
+        QVector3D from = QVector3D(0, 1, 0);
+        QQuaternion rotation = QQuaternion::rotationTo(from, to);
+        auto eulerAngles = rotation.toEulerAngles();
+        transform.getBasis().setEulerZYX(
+            qDegreesToRadians(eulerAngles.x()),
+            qDegreesToRadians(eulerAngles.y()),
+            qDegreesToRadians(eulerAngles.z())
+        );
+        m_boneBodies[bone.name] = createRigidBody(btScalar(1.), transform, m_boneShapes[bone.name]);
+    }
+    
+    // Setup some damping on the m_bodies
+    for (const auto &bone: *rigBones) {
+        m_boneBodies[bone.name]->setDamping(btScalar(0.05), btScalar(0.85));
+        m_boneBodies[bone.name]->setDeactivationTime(btScalar(0.8));
+        m_boneBodies[bone.name]->setSleepingThresholds(btScalar(1.6), btScalar(2.5));
+    }
 }
 
+RagDoll::~RagDoll()
+{
+    // Remove all constraints
+    //for (i = 0; i < JOINT_COUNT; ++i)
+    //{
+    //    m_ownerWorld->removeConstraint(m_joints[i]);
+    //    delete m_joints[i];
+    //    m_joints[i] = 0;
+    //}
+
+    // Remove all bodies and shapes
+    for (auto &body: m_boneBodies) {
+        m_ownerWorld->removeRigidBody(body.second);
+        delete body.second->getMotionState();
+        delete body.second;
+    }
+    m_boneBodies.clear();
+    for (auto &shape: m_boneShapes) {
+        delete shape.second;
+    }
+    m_boneShapes.clear();
+    
+    delete m_ownerWorld;
+    
+    delete m_collisionConfiguration;
+    delete m_collisionDispather;
+    delete m_broadphase;
+    delete m_constraintSolver;
+}
+
+void RagDoll::createDynamicsWorld()
+{
+    m_collisionConfiguration = new btDefaultCollisionConfiguration();
+    m_collisionDispather = new btCollisionDispatcher(m_collisionConfiguration);
+    m_broadphase = new btDbvtBroadphase();
+    m_constraintSolver = new btSequentialImpulseConstraintSolver();
+    
+    m_ownerWorld = new btDiscreteDynamicsWorld(m_collisionDispather, m_broadphase, m_constraintSolver, m_collisionConfiguration);
+    m_ownerWorld->setGravity(btVector3(0, -100, 0));
+}
+
+/*
 RagDoll::RagDoll(btDynamicsWorld* ownerWorld, const btVector3& positionOffset, btScalar scale)
     : m_ownerWorld(ownerWorld)
 {
@@ -232,6 +323,7 @@ RagDoll::~RagDoll()
         m_shapes[i] = 0;
     }
 }
+*/
 
 btRigidBody *RagDoll::createRigidBody(btScalar mass, const btTransform &startTransform, btCollisionShape *shape)
 {

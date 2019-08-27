@@ -7,6 +7,12 @@
 #include <BulletDynamics/ConstraintSolver/btTypedConstraint.h>
 #include <LinearMath/btVector3.h>
 #include <LinearMath/btScalar.h>
+#include <BulletCollision/CollisionDispatch/btDefaultCollisionConfiguration.h>
+#include <BulletCollision/BroadphaseCollision/btDbvtBroadphase.h>
+#include <BulletDynamics/ConstraintSolver/btSequentialImpulseConstraintSolver.h>
+#include <BulletDynamics/Dynamics/btDiscreteDynamicsWorld.h>
+#include <QString>
+#include <map>
 #include "rigger.h"
 #include "jointnodetree.h"
 
@@ -14,6 +20,7 @@ class RagDoll : public QObject
 {
     Q_OBJECT
 public:
+    /*
     enum
 	{
 		BODYPART_PELVIS = 0,
@@ -54,18 +61,27 @@ public:
 
 		JOINT_COUNT
 	};
-
-    RagDoll(btDynamicsWorld* ownerWorld, const btVector3& positionOffset, btScalar scale);
+    */
+    //RagDoll(btDynamicsWorld* ownerWorld, const btVector3& positionOffset, btScalar scale);
     RagDoll(const std::vector<RiggerBone> *rigBones, const JointNodeTree &jointNodeTree);
     ~RagDoll();
 
 private:
+	//btCollisionShape *m_shapes[BODYPART_COUNT] = {nullptr};
+	//btRigidBody *m_bodies[BODYPART_COUNT] = {nullptr};
+	//btTypedConstraint *m_joints[JOINT_COUNT] = {nullptr};
+ 
+    btDefaultCollisionConfiguration *m_collisionConfiguration = nullptr;
+    btCollisionDispatcher *m_collisionDispather = nullptr;
+    btDbvtBroadphase *m_broadphase = nullptr;
+    btSequentialImpulseConstraintSolver *m_constraintSolver = nullptr;
     btDynamicsWorld *m_ownerWorld = nullptr;
-	btCollisionShape *m_shapes[BODYPART_COUNT] = {nullptr};
-	btRigidBody *m_bodies[BODYPART_COUNT] = {nullptr};
-	btTypedConstraint *m_joints[JOINT_COUNT] = {nullptr};
+    
+    std::map<QString, btCollisionShape *> m_boneShapes;
+    std::map<QString, btRigidBody *> m_boneBodies;
  
     btRigidBody *createRigidBody(btScalar mass, const btTransform &startTransform, btCollisionShape *shape);
+    void createDynamicsWorld();
 };
 
 #endif
