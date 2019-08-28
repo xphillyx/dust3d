@@ -44,10 +44,13 @@ private:
     void generatePreviewsForOutcomes(const std::vector<std::pair<float, JointNodeTree>> &outcomes, std::vector<std::pair<float, MeshLoader *>> &previews);
     float calculateMotionDuration(const QUuid &motionId, std::set<QUuid> &visited);
     float calculatePoseDuration(const QUuid &poseId);
+    float calculateProceduralAnimationDuration(ProceduralAnimation proceduralAnimation);
+    const std::vector<std::pair<float, JointNodeTree>> &getProceduralAnimation(ProceduralAnimation proceduralAnimation);
     
     RigType m_rigType = RigType::None;
     std::vector<RiggerBone> m_rigBones;
     std::map<int, RiggerVertexWeights> m_rigWeights;
+    std::map<int, std::vector<std::pair<float, JointNodeTree>>> m_proceduralAnimations;
     Outcome m_outcome;
     std::map<QUuid, std::vector<std::pair<std::map<QString, QString>, std::map<QString, std::map<QString, QString>>>>> m_poses;
     std::map<QUuid, float> m_posesYtranslationScales;

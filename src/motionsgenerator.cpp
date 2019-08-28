@@ -5,6 +5,7 @@
 #include "posemeshcreator.h"
 #include "poserconstruct.h"
 #include "posedocument.h"
+#include "ragdoll.h"
 
 MotionsGenerator::MotionsGenerator(RigType rigType,
         const std::vector<RiggerBone> *rigBones,
@@ -96,6 +97,37 @@ float MotionsGenerator::calculatePoseDuration(const QUuid &poseId)
     return totalDuration;
 }
 
+const std::vector<std::pair<float, JointNodeTree>> &MotionsGenerator::getProceduralAnimation(ProceduralAnimation proceduralAnimation)
+{
+    auto findResult = m_proceduralAnimations.find((int)proceduralAnimation);
+    if (findResult != m_proceduralAnimations.end())
+        return findResult->second;
+    std::vector<std::pair<float, JointNodeTree>> &resultFrames = m_proceduralAnimations[(int)proceduralAnimation];
+    RagDoll ragdoll(&m_rigBones);
+    float stepSeconds = 0.01;
+    float maxSeconds = 1.0;
+    int maxSteps = maxSeconds / stepSeconds;
+    int steps = 0;
+    qDebug() << "Ragdoll start.............";
+    while (steps < maxSteps && ragdoll.stepSimulation(stepSeconds)) {
+        qDebug() << "Ragdoll step:" << steps;
+        resultFrames.push_back(std::make_pair(stepSeconds, ragdoll.getStepJointNodeTree()));
+        ++steps;
+    }
+    qDebug() << "Ragdoll stopped frames:" << resultFrames.size();
+    return resultFrames;
+}
+
+float MotionsGenerator::calculateProceduralAnimationDuration(ProceduralAnimation proceduralAnimation)
+{
+    const auto &result = getProceduralAnimation(proceduralAnimation);
+    float totalDuration = 0;
+    for (const auto &it: result) {
+        totalDuration += it.first;
+    }
+    return totalDuration;
+}
+
 float MotionsGenerator::calculateMotionDuration(const QUuid &motionId, std::set<QUuid> &visited)
 {
     const std::vector<MotionClip> *motionClips = findMotionClips(motionId);
@@ -112,6 +144,8 @@ float MotionsGenerator::calculateMotionDuration(const QUuid &motionId, std::set<
             totalDuration += clip.duration;
         else if (clip.clipType == MotionClipType::Pose)
             totalDuration += calculatePoseDuration(clip.linkToId);
+        else if (clip.clipType == MotionClipType::ProceduralAnimation)
+            totalDuration += calculateProceduralAnimationDuration(clip.proceduralAnimation);
         else if (clip.clipType == MotionClipType::Motion)
             totalDuration += calculateMotionDuration(clip.linkToId, visited);
     }
@@ -139,6 +173,8 @@ void MotionsGenerator::generateMotion(const QUuid &motionId, std::set<QUuid> &vi
             clip.duration = calculateMotionDuration(clip.linkToId, subVisited);
         } else if (clip.clipType == MotionClipType::Pose) {
             clip.duration = calculatePoseDuration(clip.linkToId);
+        } else if (clip.clipType == MotionClipType::ProceduralAnimation) {
+            clip.duration = calculateProceduralAnimationDuration(clip.proceduralAnimation);
         }
         timePoints.push_back(totalDuration);
         totalDuration += clip.duration;
@@ -215,6 +251,18 @@ void MotionsGenerator::generateMotion(const QUuid &motionId, std::set<QUuid> &vi
             generateMotion(progressClip.linkToId, visited, outcomes);
             progress += progressClip.duration;
             continue;
+        } else if (MotionClipType::ProceduralAnimation == progressClip.clipType) {
+            const auto &frames = getProceduralAnimation(progressClip.proceduralAnimation);
+            float clipDuration = std::max((float)0.0001, progressClip.duration);
+            int frame = clipLocalProgress * frames.size() / clipDuration;
+            if (frame >= (int)frames.size())
+                frame = frames.size() - 1;
+            if (frame >= 0 && frame < (int)frames.size()) {
+                outcomes.push_back({progress - lastProgress, frames[frame].second});
+                lastProgress = progress;
+            }
+            progress += interval;
+            continue;
         }
         progress += interval;
     }
@@ -260,6 +308,11 @@ const JointNodeTree *MotionsGenerator::findClipBeginJointNodeTree(const MotionCl
             return findClipBeginJointNodeTree((*motionClips)[0]);
         }
         return nullptr;
+    } else if (MotionClipType::ProceduralAnimation == clip.clipType) {
+        const auto &result = getProceduralAnimation(clip.proceduralAnimation);
+        if (!result.empty())
+            return &result[0].second;
+        return nullptr;
     }
     return nullptr;
 }
@@ -277,6 +330,11 @@ const JointNodeTree *MotionsGenerator::findClipEndJointNodeTree(const MotionClip
         if (nullptr != motionClips && !motionClips->empty()) {
             return findClipEndJointNodeTree((*motionClips)[motionClips->size() - 1]);
         }
+        return nullptr;
+    } else if (MotionClipType::ProceduralAnimation == clip.clipType) {
+        const auto &result = getProceduralAnimation(clip.proceduralAnimation);
+        if (!result.empty())
+            return &result[result.size() - 1].second;
         return nullptr;
     }
     return nullptr;
