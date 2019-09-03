@@ -334,11 +334,11 @@ void RagDoll::createDynamicsWorld()
     m_world = new btDiscreteDynamicsWorld(m_collisionDispather, m_broadphase, m_constraintSolver, m_collisionConfiguration);
     m_world->setGravity(btVector3(0, -100, 0));
     
-    m_groundShape = new btStaticPlaneShape(btVector3(0, 1, 0), 0.5);
+    m_groundShape = new btStaticPlaneShape(btVector3(0, 1, 0), 0);
 
     btTransform groundTransform;
     groundTransform.setIdentity();
-    groundTransform.setOrigin(btVector3(0, m_groundY - 0.5, 0));
+    groundTransform.setOrigin(btVector3(0, m_groundY, 0));
     m_groundBody = createRigidBody(0, groundTransform, m_groundShape);
 }
 
