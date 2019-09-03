@@ -625,8 +625,8 @@ HEADERS += thirdparty/bullet3/src/BulletCollision/NarrowPhaseCollision/btMinkows
 SOURCES += thirdparty/bullet3/src/BulletCollision/NarrowPhaseCollision/btGjkEpa2.cpp
 HEADERS += thirdparty/bullet3/src/BulletCollision/NarrowPhaseCollision/btGjkEpa2.h
 
-SOURCES += thirdparty/bullet3/src/BulletCollision/CollisionShapes/btBoxShape.cpp
-HEADERS += thirdparty/bullet3/src/BulletCollision/CollisionShapes/btBoxShape.h
+SOURCES += thirdparty/bullet3/src/BulletCollision/CollisionShapes/btStaticPlaneShape.cpp
+HEADERS += thirdparty/bullet3/src/BulletCollision/CollisionShapes/btStaticPlaneShape.h
 
 INCLUDEPATH += thirdparty/quickjs/quickjs-2019-07-09-dust3d
 

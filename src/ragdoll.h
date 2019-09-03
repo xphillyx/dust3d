@@ -11,9 +11,10 @@
 #include <BulletCollision/BroadphaseCollision/btDbvtBroadphase.h>
 #include <BulletDynamics/ConstraintSolver/btSequentialImpulseConstraintSolver.h>
 #include <BulletDynamics/Dynamics/btDiscreteDynamicsWorld.h>
-#include <BulletCollision/CollisionShapes/btBoxShape.h>
+#include <BulletCollision/CollisionShapes/btStaticPlaneShape.h>
 #include <QString>
 #include <map>
+#include <QStringList>
 #include "rigger.h"
 #include "jointnodetree.h"
 
@@ -32,19 +33,29 @@ private:
     btDbvtBroadphase *m_broadphase = nullptr;
     btSequentialImpulseConstraintSolver *m_constraintSolver = nullptr;
     btDynamicsWorld *m_world = nullptr;
-    btBoxShape *m_groundShape = nullptr;
+    btCollisionShape *m_groundShape = nullptr;
     btRigidBody *m_groundBody = nullptr;
     float m_groundY = 0;
     
     std::map<QString, btCollisionShape *> m_boneShapes;
     std::map<QString, btRigidBody *> m_boneBodies;
+    std::vector<btTypedConstraint *> m_boneConstraints;
     std::map<QString, QVector3D> m_boneLastPositions;
+    
+    std::map<QString, QVector3D> m_boneMiddleMap;
+    std::map<QString, float> m_boneLengthMap;
+    std::vector<btTransform> m_boneInitialTransforms;
     
     JointNodeTree m_jointNodeTree;
     JointNodeTree m_setpJointNodeTree;
+    std::vector<RiggerBone> m_bones;
+    
+    QStringList m_bulletCodes;
  
     btRigidBody *createRigidBody(btScalar mass, const btTransform &startTransform, btCollisionShape *shape);
     void createDynamicsWorld();
+    btVector3 chainNameToHingeAxis(const QString &chainName);
+    bool isPhysicsBone(const QString &boneName);
 };
 
 #endif
