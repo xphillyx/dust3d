@@ -50,12 +50,11 @@ private:
     JointNodeTree m_setpJointNodeTree;
     std::vector<RiggerBone> m_bones;
     
-    QStringList m_bulletCodes;
+    QStringList m_bulletCodeList;
  
     btRigidBody *createRigidBody(btScalar mass, const btTransform &startTransform, btCollisionShape *shape);
     void createDynamicsWorld();
-    btVector3 chainNameToHingeAxis(const QString &chainName);
-    bool isPhysicsBone(const QString &boneName);
+    void addConstraint(const RiggerBone &parent, const RiggerBone &child);
 };
 
 #endif
