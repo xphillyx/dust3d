@@ -11,7 +11,7 @@
 #include <BulletCollision/BroadphaseCollision/btDbvtBroadphase.h>
 #include <BulletDynamics/ConstraintSolver/btSequentialImpulseConstraintSolver.h>
 #include <BulletDynamics/Dynamics/btDiscreteDynamicsWorld.h>
-#include <BulletCollision/CollisionShapes/btStaticPlaneShape.h>
+#include <BulletCollision/CollisionShapes/btBoxShape.h>
 #include <QString>
 #include <map>
 #include <QStringList>
@@ -51,6 +51,7 @@ private:
     std::vector<RiggerBone> m_bones;
     
     QStringList m_bulletCodeList;
+    bool shouldExportBoneToBullet(const QString &boneName);
  
     btRigidBody *createRigidBody(btScalar mass, const btTransform &startTransform, btCollisionShape *shape);
     void createDynamicsWorld();
