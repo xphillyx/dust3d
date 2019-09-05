@@ -104,17 +104,17 @@ const std::vector<std::pair<float, JointNodeTree>> &MotionsGenerator::getProcedu
         return findResult->second;
     std::vector<std::pair<float, JointNodeTree>> &resultFrames = m_proceduralAnimations[(int)proceduralAnimation];
     RagDoll ragdoll(&m_rigBones);
-    float stepSeconds = 0.03;
+    float stepSeconds = 1.0 / 60;
     float maxSeconds = 2.0;
     int maxSteps = maxSeconds / stepSeconds;
     int steps = 0;
-    qDebug() << "Ragdoll start.............";
+    //printf("Ragdoll start.............\r\n");
     while (steps < maxSteps && ragdoll.stepSimulation(stepSeconds)) {
-        qDebug() << "Ragdoll step:" << steps;
+        //printf("Ragdoll step:%d\r\n", steps);
         resultFrames.push_back(std::make_pair(stepSeconds, ragdoll.getStepJointNodeTree()));
         ++steps;
     }
-    qDebug() << "Ragdoll stopped frames:" << resultFrames.size();
+    //printf("Ragdoll stopped frames:%d\r\n", (int)resultFrames.size());
     return resultFrames;
 }
 

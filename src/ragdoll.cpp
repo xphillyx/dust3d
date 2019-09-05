@@ -259,19 +259,17 @@ void RagDoll::createDynamicsWorld()
     m_world->getSolverInfo().m_solverMode |= SOLVER_ENABLE_FRICTION_DIRECTION_CACHING;
     m_world->getSolverInfo().m_numIterations = 5;
     
-    //m_groundShape = new btStaticPlaneShape(btVector3(0, 1, 0), 0);
     m_groundShape = new btBoxShape(btVector3(btScalar(250.), btScalar(0.), btScalar(250.)));
 
     btTransform groundTransform;
     groundTransform.setIdentity();
     groundTransform.setOrigin(btVector3(0, m_groundY, 0));
     m_groundBody = createRigidBody(0, groundTransform, m_groundShape);
-    m_groundBody->setFriction(1.0);
 }
 
 bool RagDoll::stepSimulation(float amount)
 {
-    bool positionChanged = true;
+    bool positionChanged = false;
     m_world->stepSimulation(btScalar(amount));
     
     if (m_boneBodies.empty())
@@ -359,8 +357,9 @@ btRigidBody *RagDoll::createRigidBody(btScalar mass, const btTransform &startTra
 
     btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, shape, localInertia);
     btRigidBody *body = new btRigidBody(rbInfo);
-    body->setFriction(1.0);
-    body->setRollingFriction(1.0);
+    body->setFriction(1.f);
+    body->setRollingFriction(.1);
+    body->setSpinningFriction(0.1);
 
     m_world->addRigidBody(body);
 
