@@ -274,7 +274,6 @@ bool AnimalRigger::rig()
             sideIndices[Column::Left] < chainColumns[Column::Left]->size() ||
             sideIndices[Column::Right] < chainColumns[Column::Right]->size();) {
         float choosenCoord = std::numeric_limits<float>::max();
-        float choosenRadius = 0;
         int choosenColumn = -1;
         for (size_t side = Column::Left; side <= Column::Right; ++side) {
             if (sideIndices[side] < chainColumns[side]->size()) {
@@ -283,7 +282,6 @@ bool AnimalRigger::rig()
                         mark.bonePosition.z();
                 if (coord < choosenCoord) {
                     choosenCoord = coord;
-                    choosenRadius = mark.nodeRadius;
                     choosenColumn = side;
                 }
             }
@@ -296,6 +294,9 @@ bool AnimalRigger::rig()
         QVector3D sumOfChainPositions;
         int countOfChains = 0;
         std::set<int> chainMarkIndices;
+        std::vector<float> leftXs;
+        std::vector<float> rightXs;
+        std::vector<float> middleRadiusCollection;
         for (size_t side = Column::Left; side <= Column::Right; ++side) {
             if (sideIndices[side] < chainColumns[side]->size()) {
                 const auto &mark = m_marks[chainColumns[side]->at(sideIndices[side])];
@@ -306,6 +307,12 @@ bool AnimalRigger::rig()
                     sumOfChainPositions += mark.bonePosition;
                     ++countOfChains;
                     ++sideIndices[side];
+                    if (Column::Left == side)
+                        leftXs.push_back(mark.bonePosition.x());
+                    else if (Column::Right == side)
+                        rightXs.push_back(mark.bonePosition.x());
+                    else
+                        middleRadiusCollection.push_back(mark.nodeRadius);
                 }
             }
         }
@@ -313,11 +320,11 @@ bool AnimalRigger::rig()
             qDebug() << "Should not come here, there must be at least one chain";
             break;
         }
-
+        
         rawSpineNodes.push_back(SpineNode());
         SpineNode &spineNode = rawSpineNodes.back();
         spineNode.coord = choosenCoord;
-        spineNode.radius = choosenRadius;
+        spineNode.radius = calculateSpineRadius(leftXs, rightXs, middleRadiusCollection);
         spineNode.chainMarkIndices = chainMarkIndices;
         spineNode.position = sumOfChainPositions / countOfChains;
     }
@@ -590,6 +597,38 @@ bool AnimalRigger::rig()
     }
     
     return true;
+}
+
+float AnimalRigger::calculateSpineRadius(const std::vector<float> &leftXs,
+        const std::vector<float> &rightXs,
+        const std::vector<float> &middleRadiusCollection)
+{
+    float leftX = 0;
+    if (!leftXs.empty())
+        leftX = std::accumulate(leftXs.begin(), leftXs.end(), 0.0) / leftXs.size();
+    
+    float rightX = 0;
+    if (!rightXs.empty())
+        rightX = std::accumulate(rightXs.begin(), rightXs.end(), 0.0) / rightXs.size();
+    
+    float limbSpanRadius = qAbs(leftX - rightX) * 0.5;
+    
+    float middleRadius = 0;
+    if (!middleRadiusCollection.empty()) {
+        middleRadius = std::accumulate(middleRadiusCollection.begin(),
+            middleRadiusCollection.end(), 0.0) / middleRadiusCollection.size();
+    }
+    
+    std::vector<float> radiusCollection;
+    if (!qFuzzyIsNull(limbSpanRadius))
+        radiusCollection.push_back(limbSpanRadius);
+    if (!qFuzzyIsNull(middleRadius))
+        radiusCollection.push_back(middleRadius);
+    
+    if (radiusCollection.empty())
+        return 0.0;
+    
+    return std::accumulate(radiusCollection.begin(), radiusCollection.end(), 0.0) / radiusCollection.size();
 }
 
 QVector3D AnimalRigger::findExtremPointFrom(const std::set<int> &verticies, const QVector3D &from)

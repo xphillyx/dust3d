@@ -201,38 +201,41 @@ void RigGenerator::generate()
     
     // Create mesh for demo
     
-    ShaderVertex *triangleVertices = new ShaderVertex[m_outcome->triangles.size() * 3];
+    ShaderVertex *triangleVertices = nullptr;
     int triangleVerticesNum = 0;
-    const QVector3D defaultUv = QVector3D(0, 0, 0);
-    const QVector3D defaultTangents = QVector3D(0, 0, 0);
-    for (size_t triangleIndex = 0; triangleIndex < m_outcome->triangles.size(); triangleIndex++) {
-        const auto &sourceTriangle = m_outcome->triangles[triangleIndex];
-        const auto *sourceTangent = &defaultTangents;
-        if (nullptr != triangleTangents)
-            sourceTangent = &(*triangleTangents)[triangleIndex];
-        for (int i = 0; i < 3; i++) {
-            ShaderVertex &currentVertex = triangleVertices[triangleVerticesNum++];
-            const auto &sourcePosition = inputVerticesPositions[sourceTriangle[i]];
-            const auto &sourceColor = inputVerticesColors[sourceTriangle[i]];
-            const auto *sourceNormal = &defaultUv;
-            if (nullptr != triangleVertexNormals)
-                sourceNormal = &(*triangleVertexNormals)[triangleIndex][i];
-            currentVertex.posX = sourcePosition.x();
-            currentVertex.posY = sourcePosition.y();
-            currentVertex.posZ = sourcePosition.z();
-            currentVertex.texU = 0;
-            currentVertex.texV = 0;
-            currentVertex.colorR = sourceColor.redF();
-            currentVertex.colorG = sourceColor.greenF();
-            currentVertex.colorB = sourceColor.blueF();
-            currentVertex.normX = sourceNormal->x();
-            currentVertex.normY = sourceNormal->y();
-            currentVertex.normZ = sourceNormal->z();
-            currentVertex.metalness = MeshLoader::m_defaultMetalness;
-            currentVertex.roughness = MeshLoader::m_defaultRoughness;
-            currentVertex.tangentX = sourceTangent->x();
-            currentVertex.tangentY = sourceTangent->y();
-            currentVertex.tangentZ = sourceTangent->z();
+    if (m_isSucceed) {
+        triangleVertices = new ShaderVertex[m_outcome->triangles.size() * 3];
+        const QVector3D defaultUv = QVector3D(0, 0, 0);
+        const QVector3D defaultTangents = QVector3D(0, 0, 0);
+        for (size_t triangleIndex = 0; triangleIndex < m_outcome->triangles.size(); triangleIndex++) {
+            const auto &sourceTriangle = m_outcome->triangles[triangleIndex];
+            const auto *sourceTangent = &defaultTangents;
+            if (nullptr != triangleTangents)
+                sourceTangent = &(*triangleTangents)[triangleIndex];
+            for (int i = 0; i < 3; i++) {
+                ShaderVertex &currentVertex = triangleVertices[triangleVerticesNum++];
+                const auto &sourcePosition = inputVerticesPositions[sourceTriangle[i]];
+                const auto &sourceColor = inputVerticesColors[sourceTriangle[i]];
+                const auto *sourceNormal = &defaultUv;
+                if (nullptr != triangleVertexNormals)
+                    sourceNormal = &(*triangleVertexNormals)[triangleIndex][i];
+                currentVertex.posX = sourcePosition.x();
+                currentVertex.posY = sourcePosition.y();
+                currentVertex.posZ = sourcePosition.z();
+                currentVertex.texU = 0;
+                currentVertex.texV = 0;
+                currentVertex.colorR = sourceColor.redF();
+                currentVertex.colorG = sourceColor.greenF();
+                currentVertex.colorB = sourceColor.blueF();
+                currentVertex.normX = sourceNormal->x();
+                currentVertex.normY = sourceNormal->y();
+                currentVertex.normZ = sourceNormal->z();
+                currentVertex.metalness = MeshLoader::m_defaultMetalness;
+                currentVertex.roughness = MeshLoader::m_defaultRoughness;
+                currentVertex.tangentX = sourceTangent->x();
+                currentVertex.tangentY = sourceTangent->y();
+                currentVertex.tangentZ = sourceTangent->z();
+            }
         }
     }
     
