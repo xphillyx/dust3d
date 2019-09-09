@@ -32,76 +32,33 @@ RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones) :
     
     createDynamicsWorld();
     
-    std::map<QString, int> boneNameToIndexMap;
-    
     std::map<QString, std::vector<QString>> chains;
     std::vector<QString> boneNames;
     for (const auto &bone: *rigBones) {
-        boneNameToIndexMap[bone.name] = bone.index;
+        m_boneNameToIndexMap[bone.name] = bone.index;
         boneNames.push_back(bone.name);
     }
     Poser::fetchChains(boneNames, chains);
     
-    // Setup the geometry
+    //printf("//////////////// bones ///////////////\r\n");
     for (const auto &bone: *rigBones) {
         float radius = (bone.headRadius + bone.tailRadius) * 0.5;
         float height = bone.headPosition.distanceToPoint(bone.tailPosition);
-        m_boneLengthMap[bone.name] = height;
-        m_boneShapes[bone.name] = new btCapsuleShape(btScalar(radius), btScalar(height));
-        m_boneShapes[bone.name]->setUserIndex(bone.index);
-        
-        if (shouldExportBoneToBullet(bone.name)) {
-            m_bulletCodeList += QString("m_boneShapes[\"%1\"] = new btCapsuleShape(btScalar(%2), btScalar(%3));")
-                .arg(bone.name)
-                .arg(QString::number(radius))
-                .arg(QString::number(height));
-        }
-    }
-    
-    // Setup all the rigid bodies
-    m_boneInitialTransforms.resize(rigBones->size());
-    for (const auto &bone: *rigBones) {
-        btCollisionShape *shape = m_boneShapes[bone.name];
-        btTransform transform;
         QVector3D middlePosition = (bone.headPosition + bone.tailPosition) * 0.5;
+        m_boneLengthMap[bone.name] = height;
+        m_boneRadiusMap[bone.name] = radius;
         m_boneMiddleMap[bone.name] = middlePosition;
-        transform.setIdentity();
-        transform.setOrigin(btVector3(
-            btScalar(middlePosition.x()),
-            btScalar(middlePosition.y()),
-            btScalar(middlePosition.z())
-        ));
-        QVector3D to = (bone.tailPosition - bone.headPosition).normalized();
-        QVector3D from = QVector3D(0, 1, 0);
-        QQuaternion rotation = QQuaternion::rotationTo(from, to);
-        btQuaternion btRotation(btScalar(rotation.x()), btScalar(rotation.y()), btScalar(rotation.z()),
-            btScalar(rotation.scalar()));
-        transform.getBasis().setRotation(btRotation);
-        m_boneInitialTransforms[bone.index] = transform;
-        m_boneBodies[bone.name] = createRigidBody(btScalar(1.), transform, shape);
-        
-        if (shouldExportBoneToBullet(bone.name)) {
-            m_bulletCodeList += QString("{");
-            m_bulletCodeList += QString("    btTransform transform;");
-            m_bulletCodeList += QString("    transform.setIdentity();");
-            m_bulletCodeList += QString("    transform.setOrigin(btVector3(");
-            m_bulletCodeList += QString("        btScalar(%1),").arg(QString::number(middlePosition.x()));
-            m_bulletCodeList += QString("        btScalar(%2),").arg(QString::number(middlePosition.y()));
-            m_bulletCodeList += QString("        btScalar(%3)").arg(QString::number(middlePosition.z()));
-            m_bulletCodeList += QString("    ));");
-            m_bulletCodeList += QString("    btQuaternion btRotation(");
-            m_bulletCodeList += QString("        btScalar(%1),").arg(QString::number(btRotation.x()));
-            m_bulletCodeList += QString("        btScalar(%2),").arg(QString::number(btRotation.y()));
-            m_bulletCodeList += QString("        btScalar(%3),").arg(QString::number(btRotation.z()));
-            m_bulletCodeList += QString("        btScalar(%4)").arg(QString::number(btRotation.w()));
-            m_bulletCodeList += QString("    );");
-            m_bulletCodeList += QString("    transform.getBasis().setRotation(btRotation);");
-            m_bulletCodeList += QString("    m_boneBodies[\"%1\"] = createRigidBody(btScalar(1.), transform, m_boneShapes[\"%2\"]);")
-                .arg(bone.name)
-                .arg(bone.name);
-            m_bulletCodeList += QString("}");
-        }
+        //printf("[%s] radius:%f height:%f head:(%f,%f,%f) tail:(%f,%f,%f)\r\n",
+        //    bone.name.toUtf8().constData(),
+        //    radius, height,
+        //    bone.headPosition.x(), bone.headPosition.y(), bone.headPosition.z(),
+        //    bone.tailPosition.x(), bone.tailPosition.y(), bone.tailPosition.z());
+        //for (const auto &childIndex: bone.children) {
+        //    const auto &child = m_bones[childIndex];
+        //    printf("    child:%s\r\n", child.name.toUtf8().constData());
+        //}
     }
+    //printf("///////////////////////////////////////\r\n");
     
     // Setup some damping on the m_bodies
     //for (const auto &bone: *rigBones) {
@@ -112,26 +69,18 @@ RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones) :
     
     for (const auto &it: chains) {
         for (size_t i = 1; i < it.second.size(); ++i) {
-            const auto &parent = (*rigBones)[boneNameToIndexMap[it.second[i - 1]]];
-            const auto &child = (*rigBones)[boneNameToIndexMap[it.second[i]]];
-            addConstraint(parent, child);
+            const auto &parent = (*rigBones)[m_boneNameToIndexMap[it.second[i - 1]]];
+            const auto &child = (*rigBones)[m_boneNameToIndexMap[it.second[i]]];
+            addChainConstraint(parent, child);
         }
     }
     
-    {
-        const auto &parent = (*rigBones)[0];
-        for (const auto &childIndex: parent.children) {
-            const auto &child = (*rigBones)[childIndex];
-            addConstraint(parent, child);
-        }
-    }
-    
+    std::map<QString, std::pair<int, int>> virtualLinkMap;
     for (const auto &bone: *rigBones) {
         if (bone.name.startsWith("Virtual_")) {
             const auto &parent = bone;
             for (const auto &childIndex: bone.children) {
-                const auto &child = (*rigBones)[childIndex];
-                addConstraint(parent, child);
+                virtualLinkMap[parent.name] = std::make_pair(-1, childIndex);
             }
         }
     }
@@ -141,40 +90,181 @@ RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones) :
         for (const auto &childIndex: bone.children) {
             const auto &child = (*rigBones)[childIndex];
             if (child.name.startsWith("Virtual_")) {
-                addConstraint(parent, child);
+                auto findLink = virtualLinkMap.find(child.name);
+                if (findLink == virtualLinkMap.end())
+                    continue;
+                findLink->second.first = parent.index;
             }
         }
     }
     
-    for (auto &constraint: m_boneConstraints) {
-        m_world->addConstraint(constraint, true);
+    for (const auto &it: virtualLinkMap) {
+        if (-1 == it.second.first || -1 == it.second.second)
+            continue;
+        addVirtualConstraint((*rigBones)[it.second.first], (*rigBones)[it.second.second]);
     }
     
-    m_bulletCodeList += QString("for (auto &constraint: m_boneConstraints) {");
-    m_bulletCodeList += QString("    m_dynamicsWorld->addConstraint(constraint, true);");
-    m_bulletCodeList += QString("}");
-    
-    printf("//////////// Bullet code /////////////\r\n%s\r\n////////////////////////////////////\r\n", m_bulletCodeList.join("\r\n").toUtf8().constData());
+    //printf("//////////// Bullet code /////////////\r\n%s\r\n////////////////////////////////////\r\n", m_bulletCodeList.join("\r\n").toUtf8().constData());
 }
 
-void RagDoll::addConstraint(const RiggerBone &parent, const RiggerBone &child)
+btRigidBody *RagDoll::addBoneBody(const QString &name)
 {
-    btRigidBody *parentBoneBody = m_boneBodies[parent.name];
-    btRigidBody *childBoneBody = m_boneBodies[child.name];
+    auto findBoneBody = m_boneBodies.find(name);
+    if (findBoneBody != m_boneBodies.end())
+        return findBoneBody->second;
+        
+    const auto &bone = m_bones[m_boneNameToIndexMap[name]];
+    float height = m_boneLengthMap[bone.name];
+    float radius = m_boneRadiusMap[bone.name];
+    float mass = 1.0;
+
+    btCollisionShape *shape = new btCapsuleShape(btScalar(radius), btScalar(height));
+    shape->setUserIndex(bone.index);
+    
+    if (shouldExportBoneToBullet(bone.name)) {
+        m_bulletCodeList += QString("m_boneShapes[\"%1\"] = new btCapsuleShape(btScalar(%2), btScalar(%3));")
+            .arg(bone.name)
+            .arg(QString::number(radius))
+            .arg(QString::number(height));
+    }
+    
+    m_boneShapes[bone.name] = shape;
+    
+    btTransform transform;
+    const auto &middlePosition = m_boneMiddleMap[bone.name];
+    transform.setIdentity();
+    transform.setOrigin(btVector3(
+        btScalar(middlePosition.x()),
+        btScalar(middlePosition.y()),
+        btScalar(middlePosition.z())
+    ));
+    QVector3D to = (bone.tailPosition - bone.headPosition).normalized();
+    QVector3D from = QVector3D(0, 1, 0);
+    QQuaternion rotation = QQuaternion::rotationTo(from, to);
+    btQuaternion btRotation(btScalar(rotation.x()), btScalar(rotation.y()), btScalar(rotation.z()),
+        btScalar(rotation.scalar()));
+    transform.getBasis().setRotation(btRotation);
+    
+    btRigidBody *body = createRigidBody(btScalar(mass), transform, shape);
+    
+    if (shouldExportBoneToBullet(bone.name)) {
+        m_bulletCodeList += QString("{");
+        m_bulletCodeList += QString("    btTransform transform;");
+        m_bulletCodeList += QString("    transform.setIdentity();");
+        m_bulletCodeList += QString("    transform.setOrigin(btVector3(");
+        m_bulletCodeList += QString("        btScalar(%1),").arg(QString::number(middlePosition.x()));
+        m_bulletCodeList += QString("        btScalar(%2),").arg(QString::number(middlePosition.y()));
+        m_bulletCodeList += QString("        btScalar(%3)").arg(QString::number(middlePosition.z()));
+        m_bulletCodeList += QString("    ));");
+        m_bulletCodeList += QString("    btQuaternion btRotation(");
+        m_bulletCodeList += QString("        btScalar(%1),").arg(QString::number(btRotation.x()));
+        m_bulletCodeList += QString("        btScalar(%2),").arg(QString::number(btRotation.y()));
+        m_bulletCodeList += QString("        btScalar(%3),").arg(QString::number(btRotation.z()));
+        m_bulletCodeList += QString("        btScalar(%4)").arg(QString::number(btRotation.w()));
+        m_bulletCodeList += QString("    );");
+        m_bulletCodeList += QString("    transform.getBasis().setRotation(btRotation);");
+        m_bulletCodeList += QString("    m_boneBodies[\"%1\"] = createRigidBody(btScalar(1.), transform, m_boneShapes[\"%2\"]);")
+            .arg(bone.name)
+            .arg(bone.name);
+        m_bulletCodeList += QString("}");
+    }
+    
+    m_boneBodies[bone.name] = body;
+    return body;
+}
+
+void RagDoll::addVirtualConstraint(const RiggerBone &parent, const RiggerBone &child)
+{
+    btRigidBody *parentBoneBody = addBoneBody(parent.name);
+    btRigidBody *childBoneBody = addBoneBody(child.name);
+    float parentLength = m_boneLengthMap[parent.name];
+    float childLength = m_boneLengthMap[child.name];
+    bool isLimb = -1 != child.name.indexOf("Limb");
+    float aOffset = 0;
+    if (isLimb) {
+        aOffset = child.headPosition.x() - parent.tailPosition.x();
+    }
+    const btVector3 btPivotA(aOffset, parentLength * 0.5, 0.0f);
+    const btVector3 btPivotB(0, -childLength * 0.5, 0.0f);
+    
+    printf("Virtual constaint parent:%s child:%s aOffset:%f\r\n",
+        parent.name.toUtf8().constData(),
+        child.name.toUtf8().constData(),
+        aOffset);
+    
+    btTransform localA;
+    btTransform localB;
+    
+    btConeTwistConstraint *constraint = nullptr;
+    std::tuple<float, float, float> limits = std::make_tuple(0, 0, 0);
+    
+    localA.setIdentity();
+    localB.setIdentity();
+    localA.setOrigin(btPivotA);
+    localB.setOrigin(btPivotB);
+    if ("Body" == parent.name) {
+        localA.getBasis().setEulerZYX(0, 0, -M_PI);
+        localB.getBasis().setEulerZYX(0, 0, -M_PI);
+    } else {
+        if (isLimb) {
+            if (child.name.startsWith("Left")) {
+                //localA.getBasis().setEulerZYX(0, 0, M_PI_2);
+                //localB.getBasis().setEulerZYX(0, 0, M_PI_2);
+            } else {
+                //localA.getBasis().setEulerZYX(0, 0, -M_PI_2);
+                //localB.getBasis().setEulerZYX(0, 0, -M_PI_2);
+            }
+        } else {
+            return;
+        }
+    }
+    constraint = new btConeTwistConstraint(*parentBoneBody, *childBoneBody, localA, localB);
+    constraint->setLimit(btScalar(std::get<0>(limits)), btScalar(std::get<1>(limits)), btScalar(std::get<2>(limits)));
+    
+    m_world->addConstraint(constraint, true);
+    
+    m_boneConstraints.push_back(constraint);
+}
+
+void RagDoll::addChainConstraint(const RiggerBone &parent, const RiggerBone &child)
+{
+    btRigidBody *parentBoneBody = addBoneBody(parent.name);
+    btRigidBody *childBoneBody = addBoneBody(child.name);
     float parentLength = m_boneLengthMap[parent.name];
     float childLength = m_boneLengthMap[child.name];
     const btVector3 btPivotA(0, parentLength * 0.5, 0.0f);
     const btVector3 btPivotB(0, -childLength * 0.5, 0.0f);
-    btVector3 axis = btVector3(btScalar(0.0), btScalar(0.0), btScalar(1.0));
-    if (parent.name.startsWith("Spine") || child.name.startsWith("Spine"))
-        axis = btVector3(btScalar(1.0), btScalar(0.0), btScalar(0.0));
-    btVector3 btAxisA = axis;
-    btVector3 btAxisB = axis;
-    btHingeConstraint *constraint = new btHingeConstraint(*parentBoneBody, *childBoneBody,
-        btPivotA, btPivotB,
-        btAxisA, btAxisB);
-    constraint->setLimit(btScalar(0.0), btScalar(0.0));
-    m_boneConstraints.push_back(constraint);
+    bool isLimb = -1 != parent.name.indexOf("Limb") || -1 != child.name.indexOf("Limb");
+    QVector3D axis = isLimb ? QVector3D(0, 0, 1) : QVector3D(1, 0, 0);
+    
+    QVector3D parentDirection = (parent.tailPosition - parent.headPosition).normalized();
+    QVector3D childDirection = (child.tailPosition - child.headPosition).normalized();
+    float degrees = angleInRangle360BetweenTwoVectors(parentDirection, childDirection, axis);
+    if (degrees > 180)
+        degrees = -(360 - degrees);
+    float radian = qDegreesToRadians(degrees);
+    
+    btTransform localA;
+    btTransform localB;
+    
+    btHingeConstraint *constraint = nullptr;
+    std::pair<float, float> limits = std::make_pair(radian, radian);;
+    
+    localA.setIdentity();
+    localB.setIdentity();
+    localA.setOrigin(btPivotA);
+    localB.setOrigin(btPivotB);
+    if (isLimb) {
+        constraint = new btHingeConstraint(*parentBoneBody, *childBoneBody, localA, localB);
+    } else {
+        localA.getBasis().setEulerZYX(0, M_PI_2, 0);
+        localB.getBasis().setEulerZYX(0, M_PI_2, 0);
+        constraint = new btHingeConstraint(*parentBoneBody, *childBoneBody, localA, localB);
+    }
+    
+    constraint->setLimit(btScalar(limits.first), btScalar(limits.second));
+    
+    m_world->addConstraint(constraint, true);
     
     if (shouldExportBoneToBullet(parent.name) && shouldExportBoneToBullet(child.name)) {
         m_bulletCodeList += QString("{");
@@ -188,22 +278,26 @@ void RagDoll::addConstraint(const RiggerBone &parent, const RiggerBone &child)
         m_bulletCodeList += QString("        btScalar(%2),").arg(QString::number(btPivotB.y()));
         m_bulletCodeList += QString("        btScalar(%3)").arg(QString::number(btPivotB.z()));
         m_bulletCodeList += QString("    );");
-        m_bulletCodeList += QString("    btVector3 axis(");
-        m_bulletCodeList += QString("        btScalar(%1),").arg(QString::number(axis.x()));
-        m_bulletCodeList += QString("        btScalar(%2),").arg(QString::number(axis.y()));
-        m_bulletCodeList += QString("        btScalar(%3)").arg(QString::number(axis.z()));
-        m_bulletCodeList += QString("    );");
-        m_bulletCodeList += QString("    btVector3 btAxisA = axis;");
-        m_bulletCodeList += QString("    btVector3 btAxisB = axis;");
+        m_bulletCodeList += QString("    btTransform localA;");
+        m_bulletCodeList += QString("    btTransform localB;");
+        m_bulletCodeList += QString("    localA.setIdentity();");
+        m_bulletCodeList += QString("    localB.setIdentity();");
+        m_bulletCodeList += QString("    localA.getBasis().setEulerZYX(0, M_PI_2, 0);");
+        m_bulletCodeList += QString("    localA.setOrigin(btPivotA);");
+        m_bulletCodeList += QString("    localB.getBasis().setEulerZYX(0, M_PI_2, 0);");
+        m_bulletCodeList += QString("    localB.setOrigin(btPivotB);");
         m_bulletCodeList += QString("    btHingeConstraint *constraint = new btHingeConstraint(*m_boneBodies[\"%1\"], *m_boneBodies[\"%2\"],")
             .arg(parent.name)
             .arg(child.name);
-        m_bulletCodeList += QString("        btPivotA, btPivotB,");
-        m_bulletCodeList += QString("        btAxisA, btAxisB);");
-        m_bulletCodeList += QString("    constraint->setLimit(btScalar(0.0), btScalar(0.0));");
-        m_bulletCodeList += QString("    m_boneConstraints.push_back(constraint);");
+        m_bulletCodeList += QString("        localA, localB);");
+        m_bulletCodeList += QString("    constraint->setLimit(btScalar(%1), btScalar(%2));")
+            .arg(QString::number(limits.first))
+            .arg(QString::number(limits.second));
+        m_bulletCodeList += QString("    m_dynamicsWorld->addConstraint(constraint, true);");
         m_bulletCodeList += QString("}");
     }
+    
+    m_boneConstraints.push_back(constraint);
 }
 
 bool RagDoll::shouldExportBoneToBullet(const QString &boneName)
@@ -263,7 +357,7 @@ void RagDoll::createDynamicsWorld()
 
     btTransform groundTransform;
     groundTransform.setIdentity();
-    groundTransform.setOrigin(btVector3(0, m_groundY, 0));
+    groundTransform.setOrigin(btVector3(0, m_groundY - 0.5, 0));
     m_groundBody = createRigidBody(0, groundTransform, m_groundShape);
 }
 
@@ -275,22 +369,23 @@ bool RagDoll::stepSimulation(float amount)
     if (m_boneBodies.empty())
         return positionChanged;
     
-    std::vector<std::pair<QVector3D, QVector3D>> newBonePositions(m_boneBodies.size());
+    std::vector<std::pair<QVector3D, QVector3D>> newBonePositions(m_bones.size());
+    for (size_t i = 0; i < newBonePositions.size(); ++i) {
+        const auto &bone = m_bones[i];
+        newBonePositions[i] = std::make_pair(bone.headPosition, bone.tailPosition);
+    }
     m_setpJointNodeTree = m_jointNodeTree;
     for (const auto &it: m_boneShapes) {
         const auto *body = m_boneBodies[it.first];
         int jointIndex = it.second->getUserIndex();
         btTransform btWorldTransform;
+        if (body->isActive()) {
+            positionChanged = true;
+        }
         if (body->getMotionState()) {
             body->getMotionState()->getWorldTransform(btWorldTransform);
         } else {
             btWorldTransform = body->getWorldTransform();
-        }
-        const auto &btOrigin = btWorldTransform.getOrigin();
-        QVector3D position = QVector3D(btOrigin.x(), btOrigin.y(), btOrigin.z());
-        if (!qFuzzyCompare(position, m_boneLastPositions[it.first])) {
-            positionChanged = true;
-            m_boneLastPositions[it.first] = position;
         }
         float halfHeight = m_boneLengthMap[it.first] * 0.5;
         btVector3 oldBoneHead(btScalar(0.0f), btScalar(-halfHeight), btScalar(0.0f));
@@ -357,9 +452,9 @@ btRigidBody *RagDoll::createRigidBody(btScalar mass, const btTransform &startTra
 
     btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, shape, localInertia);
     btRigidBody *body = new btRigidBody(rbInfo);
-    body->setFriction(1.f);
-    body->setRollingFriction(.1);
-    body->setSpinningFriction(0.1);
+    body->setFriction(1.0f);
+    body->setRollingFriction(1.0f);
+    body->setSpinningFriction(1.0f);
 
     m_world->addRigidBody(body);
 

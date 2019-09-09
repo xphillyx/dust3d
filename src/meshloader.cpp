@@ -57,11 +57,11 @@ MeshLoader::MeshLoader(const MeshLoader &mesh) :
     this->m_meshId = mesh.meshId();
 }
 
-MeshLoader::MeshLoader(ShaderVertex *triangleVertices, int vertexNum) :
+MeshLoader::MeshLoader(ShaderVertex *triangleVertices, int vertexNum, ShaderVertex *edgeVertices, int edgeVertexCount) :
     m_triangleVertices(triangleVertices),
     m_triangleVertexCount(vertexNum),
-    m_edgeVertices(nullptr),
-    m_edgeVertexCount(0),
+    m_edgeVertices(edgeVertices),
+    m_edgeVertexCount(edgeVertexCount),
     m_textureImage(nullptr)
 {
 }

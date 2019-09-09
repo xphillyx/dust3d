@@ -2,6 +2,7 @@
 #include <QDebug>
 #include <QElapsedTimer>
 #include <cmath>
+#include <QVector2D>
 #include "riggenerator.h"
 #include "riggerconstruct.h"
 
@@ -234,7 +235,86 @@ void RigGenerator::generate()
             currentVertex.tangentZ = sourceTangent->z();
         }
     }
-    m_resultMesh = new MeshLoader(triangleVertices, triangleVerticesNum);
+    
+    // Create bone bounding box for demo
+    
+    auto generateBoxForBone = [](const RiggerBone &bone, ShaderVertex *vertices) {
+        QVector3D direction = bone.tailPosition - bone.headPosition;
+        QVector3D cutNormal = direction.normalized();
+        QVector3D baseNormal = QVector3D(0, 0, 1);
+        QVector3D u = QVector3D::crossProduct(cutNormal, baseNormal).normalized();
+        QVector3D v = QVector3D::crossProduct(u, cutNormal).normalized();
+        float radius = qMax(bone.headRadius, bone.tailRadius);
+        auto uFactor = u * radius;
+        auto vFactor = v * radius;
+        const std::vector<QVector2D> cutFaceTemplate = {QVector2D((float)-1.0, (float)-1.0),
+            QVector2D((float)1.0, (float)-1.0),
+            QVector2D((float)1.0,  (float)1.0),
+            QVector2D((float)-1.0,  (float)1.0)
+        };
+        std::vector<QVector3D> resultCut;
+        for (const auto &t: cutFaceTemplate) {
+            resultCut.push_back(uFactor * t.x() + vFactor * t.y());
+        }
+        std::vector<QVector3D> headRing;
+        std::vector<QVector3D> tailRing;
+        std::vector<QVector3D> finalizedPoints;
+        for (const auto &it: resultCut) {
+            headRing.push_back(it + bone.headPosition);
+        }
+        for (const auto &it: resultCut) {
+            tailRing.push_back(it + bone.tailPosition);
+        }
+        for (size_t i = 0; i < headRing.size(); ++i) {
+            finalizedPoints.push_back(headRing[i]);
+            finalizedPoints.push_back(headRing[(i + 1) % headRing.size()]);
+        }
+        for (size_t i = 0; i < tailRing.size(); ++i) {
+            finalizedPoints.push_back(tailRing[i]);
+            finalizedPoints.push_back(tailRing[(i + 1) % tailRing.size()]);
+        }
+        for (size_t i = 0; i < headRing.size(); ++i) {
+            finalizedPoints.push_back(headRing[i]);
+            finalizedPoints.push_back(tailRing[i]);
+        }
+        for (size_t i = 0; i < finalizedPoints.size(); ++i) {
+            const auto &sourcePosition = finalizedPoints[i];
+            ShaderVertex &currentVertex = vertices[i];
+            currentVertex.posX = sourcePosition.x();
+            currentVertex.posY = sourcePosition.y();
+            currentVertex.posZ = sourcePosition.z();
+            currentVertex.texU = 0;
+            currentVertex.texV = 0;
+            currentVertex.colorR = 0.0;
+            currentVertex.colorG = 0.0;
+            currentVertex.colorB = 0.0;
+            currentVertex.normX = 0;
+            currentVertex.normY = 0;
+            currentVertex.normZ = 0;
+            currentVertex.metalness = MeshLoader::m_defaultMetalness;
+            currentVertex.roughness = MeshLoader::m_defaultRoughness;
+            currentVertex.tangentX = 0;
+            currentVertex.tangentY = 0;
+            currentVertex.tangentZ = 0;
+        }
+    };
+    
+    ShaderVertex *edgeVertices = nullptr;
+    int edgeVerticesNum = 0;
+    if (m_isSucceed) {
+        const auto &resultBones = m_autoRigger->resultBones();
+        const int numPerItem = 12 * 2;
+        edgeVerticesNum = resultBones.size() * numPerItem;
+        edgeVertices = new ShaderVertex[edgeVerticesNum];
+        int vertexIndex = 0;
+        for (const auto &bone: resultBones) {
+            generateBoxForBone(bone, &edgeVertices[vertexIndex]);
+            vertexIndex += numPerItem;
+        }
+    }
+    
+    m_resultMesh = new MeshLoader(triangleVertices, triangleVerticesNum,
+        edgeVertices, edgeVerticesNum);
 }
 
 void RigGenerator::process()

@@ -23,7 +23,7 @@ public:
         const std::vector<std::vector<QVector3D>> &triangleVertexNormals,
         const QColor &color=Qt::white);
     MeshLoader(Outcome &outcome);
-    MeshLoader(ShaderVertex *triangleVertices, int vertexNum);
+    MeshLoader(ShaderVertex *triangleVertices, int vertexNum, ShaderVertex *edgeVertices=nullptr, int edgeVertexCount=0);
     MeshLoader(const MeshLoader &mesh);
     MeshLoader();
     ~MeshLoader();

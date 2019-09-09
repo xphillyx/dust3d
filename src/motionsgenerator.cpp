@@ -111,7 +111,7 @@ const std::vector<std::pair<float, JointNodeTree>> &MotionsGenerator::getProcedu
     //printf("Ragdoll start.............\r\n");
     while (steps < maxSteps && ragdoll.stepSimulation(stepSeconds)) {
         //printf("Ragdoll step:%d\r\n", steps);
-        resultFrames.push_back(std::make_pair(stepSeconds, ragdoll.getStepJointNodeTree()));
+        resultFrames.push_back(std::make_pair(stepSeconds * 3, ragdoll.getStepJointNodeTree()));
         ++steps;
     }
     //printf("Ragdoll stopped frames:%d\r\n", (int)resultFrames.size());
