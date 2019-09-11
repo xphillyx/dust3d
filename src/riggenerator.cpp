@@ -306,14 +306,17 @@ void RigGenerator::generate()
     int edgeVerticesNum = 0;
     if (m_isSucceed) {
         const auto &resultBones = m_autoRigger->resultBones();
-        const int numPerItem = 12 * 2;
+        int numPerItem = 12 * 2;
         edgeVerticesNum = resultBones.size() * numPerItem;
         edgeVertices = new ShaderVertex[edgeVerticesNum];
         int vertexIndex = 0;
         for (const auto &bone: resultBones) {
+            if (bone.name.startsWith("Virtual") || bone.name.startsWith("Body"))
+                continue;
             generateBoxForBone(bone, &edgeVertices[vertexIndex]);
             vertexIndex += numPerItem;
         }
+        edgeVerticesNum = vertexIndex;
     }
     
     m_resultMesh = new MeshLoader(triangleVertices, triangleVerticesNum,

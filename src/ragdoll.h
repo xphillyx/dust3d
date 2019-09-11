@@ -52,16 +52,12 @@ private:
     std::vector<RiggerBone> m_bones;
     
     std::map<QString, int> m_boneNameToIndexMap;
-    
-    QStringList m_bulletCodeList;
-    bool shouldExportBoneToBullet(const QString &boneName);
  
     btRigidBody *createRigidBody(btScalar mass, const btTransform &startTransform, btCollisionShape *shape);
     void createDynamicsWorld();
-    //void addConstraint(const RiggerBone &parent, const RiggerBone &child);
     btRigidBody *addBoneBody(const QString &name);
     void addChainConstraint(const RiggerBone &parent, const RiggerBone &child);
-    void addVirtualConstraint(const RiggerBone &parent, const RiggerBone &child);
+    void addConstraintWithSpine(const RiggerBone &child);
 };
 
 #endif
