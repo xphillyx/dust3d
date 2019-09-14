@@ -55,7 +55,6 @@ private:
  
     btRigidBody *createRigidBody(btScalar mass, const btTransform &startTransform, btCollisionShape *shape);
     void createDynamicsWorld();
-    btRigidBody *addBoneBody(const QString &name);
     void addChainConstraint(const RiggerBone &parent, const RiggerBone &child);
     void addConstraintWithSpine(const RiggerBone &child);
 };

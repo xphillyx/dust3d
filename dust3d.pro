@@ -628,9 +628,6 @@ HEADERS += thirdparty/bullet3/src/BulletCollision/NarrowPhaseCollision/btGjkEpa2
 SOURCES += thirdparty/bullet3/src/BulletCollision/CollisionShapes/btBoxShape.cpp
 HEADERS += thirdparty/bullet3/src/BulletCollision/CollisionShapes/btBoxShape.h
 
-SOURCES += thirdparty/bullet3/src/BulletCollision/CollisionShapes/btCompoundShape.cpp
-HEADERS += thirdparty/bullet3/src/BulletCollision/CollisionShapes/btCompoundShape.h
-
 INCLUDEPATH += thirdparty/quickjs/quickjs-2019-07-09-dust3d
 
 DEFINES += "CONFIG_VERSION=\"\\\"2019-07-09\\\"\""

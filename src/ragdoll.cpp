@@ -3,7 +3,6 @@
 #include <LinearMath/btDefaultMotionState.h>
 #include <LinearMath/btAlignedAllocator.h>
 #include <BulletCollision/CollisionShapes/btCapsuleShape.h>
-#include <BulletCollision/CollisionShapes/btCompoundShape.h>
 #include <BulletDynamics/ConstraintSolver/btHingeConstraint.h>
 #include <BulletDynamics/ConstraintSolver/btConeTwistConstraint.h>
 #include <BulletDynamics/ConstraintSolver/btTypedConstraint.h>
@@ -73,13 +72,6 @@ RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones) :
             continue;
         printf("Chain:%s\r\n", it.first.toUtf8().constData());
         float mass = 1.0;
-        btCompoundShape *compundShape = nullptr;
-        if (it.first.startsWith("Spine")) {
-            compundShape = new btCompoundShape();
-            compundShape->setUserIndex(-1);
-            Q_ASSERT(nullptr == m_boneShapes[it.first]);
-            m_boneShapes[it.first] = compundShape;
-        }
         for (size_t i = 0; i < it.second.size(); ++i) {
             const auto &name = it.second[i];
             printf("    child:%s\r\n", name.toUtf8().constData());
@@ -107,27 +99,17 @@ RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones) :
                 btScalar(rotation.scalar()));
             transform.getBasis().setRotation(btRotation);
             
-            if (nullptr == compundShape) {
-                btRigidBody *body = createRigidBody(btScalar(mass), transform, shape);
-                m_boneBodies[bone.name] = body;
-            } else {
-                compundShape->addChildShape(transform, shape);
-            }
-        }
-        
-        if (nullptr != compundShape) {
-            btTransform transform;
-            btRigidBody *spineBody = createRigidBody(btScalar(mass), transform, compundShape);
-            m_boneBodies[it.first] = spineBody;
+            btRigidBody *body = createRigidBody(btScalar(mass), transform, shape);
+            m_boneBodies[bone.name] = body;
         }
     }
     
     for (const auto &it: chains) {
-        if (Rigger::rootBoneName == it.first || it.first.startsWith("Spine"))
-            continue;
-        if (it.second.empty())
-            continue;
-        addConstraintWithSpine((*rigBones)[m_boneNameToIndexMap[it.second[0]]]);
+        //if (Rigger::rootBoneName == it.first || it.first.startsWith("Spine"))
+        //    continue;
+        //if (it.second.empty())
+        //    continue;
+        //addConstraintWithSpine((*rigBones)[m_boneNameToIndexMap[it.second[0]]]);
         for (size_t i = 1; i < it.second.size(); ++i) {
             const auto &parent = (*rigBones)[m_boneNameToIndexMap[it.second[i - 1]]];
             const auto &child = (*rigBones)[m_boneNameToIndexMap[it.second[i]]];
@@ -185,49 +167,13 @@ RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones) :
     //printf("//////////// Bullet code /////////////\r\n%s\r\n////////////////////////////////////\r\n", m_bulletCodeList.join("\r\n").toUtf8().constData());
 }
 
-btRigidBody *RagDoll::addBoneBody(const QString &name)
-{
-    auto findBoneBody = m_boneBodies.find(name);
-    if (findBoneBody != m_boneBodies.end())
-        return findBoneBody->second;
-        
-    const auto &bone = m_bones[m_boneNameToIndexMap[name]];
-    float height = m_boneLengthMap[bone.name];
-    float radius = m_boneRadiusMap[bone.name];
-    float mass = 1.0;
-
-    btCollisionShape *shape = new btCapsuleShape(btScalar(radius), btScalar(height));
-    shape->setUserIndex(bone.index);
-    
-    m_boneShapes[bone.name] = shape;
-    
-    btTransform transform;
-    const auto &middlePosition = m_boneMiddleMap[bone.name];
-    transform.setIdentity();
-    transform.setOrigin(btVector3(
-        btScalar(middlePosition.x()),
-        btScalar(middlePosition.y()),
-        btScalar(middlePosition.z())
-    ));
-    QVector3D to = (bone.tailPosition - bone.headPosition).normalized();
-    QVector3D from = QVector3D(0, 1, 0);
-    QQuaternion rotation = QQuaternion::rotationTo(from, to);
-    btQuaternion btRotation(btScalar(rotation.x()), btScalar(rotation.y()), btScalar(rotation.z()),
-        btScalar(rotation.scalar()));
-    transform.getBasis().setRotation(btRotation);
-    
-    btRigidBody *body = createRigidBody(btScalar(mass), transform, shape);
-    
-    m_boneBodies[bone.name] = body;
-    return body;
-}
-
 void RagDoll::addConstraintWithSpine(const RiggerBone &child)
 {
     btRigidBody *parentBoneBody = m_boneBodies["Spine"];
     btRigidBody *childBoneBody = m_boneBodies[child.name];
     float childLength = m_boneLengthMap[child.name];
     bool isLimb = child.name.startsWith("Limb");
+    bool isTail = child.name.startsWith("Tail");
     
     if (nullptr == parentBoneBody || nullptr == childBoneBody)
         return;
@@ -247,12 +193,15 @@ void RagDoll::addConstraintWithSpine(const RiggerBone &child)
     localB.setOrigin(btPivotB);
     if (isLimb) {
         if (child.name.startsWith("Left")) {
-            localA.getBasis().setEulerZYX(0, 0, M_PI);
+            localA.getBasis().setEulerZYX(0, 0, 0);
             localB.getBasis().setEulerZYX(0, 0, M_PI_2);
         } else {
             localA.getBasis().setEulerZYX(0, 0, 0);
-            localB.getBasis().setEulerZYX(0, 0, M_PI_2);
+            localB.getBasis().setEulerZYX(0, 0, -M_PI_2);
         }
+    } else if (isTail) {
+        localA.getBasis().setEulerZYX(0, 0, 0);
+        localB.getBasis().setEulerZYX(0, 0, -M_PI);
     }
     constraint = new btConeTwistConstraint(*parentBoneBody, *childBoneBody, localA, localB);
     constraint->setLimit(btScalar(std::get<0>(limits)), btScalar(std::get<1>(limits)), btScalar(std::get<2>(limits)));
@@ -288,17 +237,19 @@ void RagDoll::addChainConstraint(const RiggerBone &parent, const RiggerBone &chi
     btTransform localB;
     
     btHingeConstraint *constraint = nullptr;
-    std::pair<float, float> limits = std::make_pair(radian, radian);;
+    std::pair<float, float> limits = std::make_pair(radian, radian);
     
     localA.setIdentity();
     localB.setIdentity();
     localA.setOrigin(btPivotA);
     localB.setOrigin(btPivotB);
     if (isLimb) {
+        localA.getBasis().setEulerZYX(0, 0, 0);
+        localB.getBasis().setEulerZYX(0, 0, 0);
         constraint = new btHingeConstraint(*parentBoneBody, *childBoneBody, localA, localB);
     } else {
-        localA.getBasis().setEulerZYX(0, M_PI_2, 0);
-        localB.getBasis().setEulerZYX(0, M_PI_2, 0);
+        localA.getBasis().setEulerZYX(0, -M_PI_2, 0);
+        localB.getBasis().setEulerZYX(0, -M_PI_2, 0);
         constraint = new btHingeConstraint(*parentBoneBody, *childBoneBody, localA, localB);
     }
     
@@ -395,37 +346,28 @@ bool RagDoll::stepSimulation(float amount)
     for (const auto &it: m_boneShapes) {
         btTransform btWorldTransform;
         const auto *body = m_boneBodies[it.first];
-        if (nullptr != body) {
-            if (body->isActive()) {
-                positionChanged = true;
-            }
-            if (body->getMotionState()) {
-                body->getMotionState()->getWorldTransform(btWorldTransform);
-            } else {
-                btWorldTransform = body->getWorldTransform();
-            }
+        if (nullptr == body)
+            continue;
+        if (body->isActive()) {
+            positionChanged = true;
+        }
+        if (body->getMotionState()) {
+            body->getMotionState()->getWorldTransform(btWorldTransform);
+        } else {
+            btWorldTransform = body->getWorldTransform();
         }
         int jointIndex = it.second->getUserIndex();
-        if (-1 != jointIndex) {
-            updateToNewPosition(it.first, btWorldTransform, jointIndex);
+        if (-1 == jointIndex)
             continue;
-        }
-        if (!it.first.startsWith("Spine"))
-            continue;
-        btCompoundShape *compoundShape = (btCompoundShape *)m_boneShapes[it.first];
-        for (int j = compoundShape->getNumChildShapes() - 1; j >= 0; j--) {
-            const btCollisionShape *shape = compoundShape->getChildShape(j);
-            btTransform btTransform = btWorldTransform *compoundShape->getChildTransform(j);
-            jointIndex = shape->getUserIndex();
-            updateToNewPosition(m_bones[jointIndex].name, btTransform, jointIndex);
-        }
+        printf("Update \"%s\" to new position\r\n", m_bones[jointIndex].name.toUtf8().constData());
+        updateToNewPosition(it.first, btWorldTransform, jointIndex);
     }
     
-    QVector3D newRootBoneMiddle = (newBonePositions[0].first + newBonePositions[0].second) * 0.5;
-    QVector3D modelTranslation = newRootBoneMiddle - m_boneMiddleMap[Rigger::rootBoneName];
+    //QVector3D newRootBoneMiddle = (newBonePositions[0].first + newBonePositions[0].second) * 0.5;
+    //QVector3D modelTranslation = newRootBoneMiddle - m_boneMiddleMap[Rigger::rootBoneName];
     //qDebug() << "modelTranslation:" << modelTranslation << "newRootBoneMiddle:" << newRootBoneMiddle << "oldRootBoneMiddle:" << m_boneMiddleMap[Rigger::rootBoneName];
-    m_setpJointNodeTree.addTranslation(0,
-        QVector3D(0, modelTranslation.y(), 0));
+    //m_setpJointNodeTree.addTranslation(0,
+    //    QVector3D(0, modelTranslation.y(), 0));
     
     std::vector<QVector3D> directions(newBonePositions.size());
     for (size_t index = 0; index < newBonePositions.size(); ++index) {
@@ -445,6 +387,9 @@ bool RagDoll::stepSimulation(float amount)
         const auto &oldDirection = directions[index];
         QVector3D newDirection = (newBonePositions[index].second - newBonePositions[index].first).normalized();
         rotation = QQuaternion::rotationTo(oldDirection, newDirection);
+        //if (m_bones[index].name.startsWith("Spine") ||
+        //        m_bones[index].name.startsWith("Tail") ||
+        //        m_bones[index].name.startsWith("Neck"))
         m_setpJointNodeTree.updateRotation(index, rotation);
         rotateChildren(index, rotation);
     }
