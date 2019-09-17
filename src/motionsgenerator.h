@@ -34,7 +34,8 @@ public slots:
     void process();
     
 private:
-    void generateMotion(const QUuid &motionId, std::set<QUuid> &visited, std::vector<std::pair<float, JointNodeTree>> &outcomes);
+    void generateMotion(const QUuid &motionId, std::set<QUuid> &visited, std::vector<std::pair<float, JointNodeTree>> &outcomes,
+            std::vector<MeshLoader *> *previews=nullptr);
     const JointNodeTree &poseJointNodeTree(const QUuid &poseId, int frame);
     JointNodeTree generateInterpolation(InterpolationType interpolationType, const JointNodeTree &first, const JointNodeTree &second, float progress);
     const JointNodeTree *findClipBeginJointNodeTree(const MotionClip &clip);
@@ -51,6 +52,7 @@ private:
     std::vector<RiggerBone> m_rigBones;
     std::map<int, RiggerVertexWeights> m_rigWeights;
     std::map<int, std::vector<std::pair<float, JointNodeTree>>> m_proceduralAnimations;
+    std::map<int, std::vector<MeshLoader *>> m_proceduralPreviews;
     Outcome m_outcome;
     std::map<QUuid, std::vector<std::pair<std::map<QString, QString>, std::map<QString, std::map<QString, QString>>>>> m_poses;
     std::map<QUuid, float> m_posesYtranslationScales;

@@ -8,7 +8,6 @@
 #include <QTextStream>
 #include "outcome.h"
 #include "shadervertex.h"
-#include "toolmesh.h"
 
 struct TriangulatedFace
 {

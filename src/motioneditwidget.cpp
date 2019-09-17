@@ -32,6 +32,7 @@ MotionEditWidget::MotionEditWidget(const Document *document, QWidget *parent) :
     m_previewWidget->enableMove(true);
     m_previewWidget->enableZoom(false);
     m_previewWidget->move(-64, 0);
+    m_previewWidget->toggleWireframe();
     
     connect(m_clipPlayer, &AnimationClipPlayer::frameReadyToShow, this, [=]() {
         m_previewWidget->updateMesh(m_clipPlayer->takeFrameMesh());

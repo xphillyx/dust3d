@@ -14,6 +14,7 @@
 #include <BulletCollision/CollisionShapes/btBoxShape.h>
 #include <QString>
 #include <map>
+#include <tuple>
 #include <QStringList>
 #include "rigger.h"
 #include "jointnodetree.h"
@@ -26,6 +27,7 @@ public:
     ~RagDoll();
     bool stepSimulation(float amount);
     const JointNodeTree &getStepJointNodeTree();
+    const std::vector<std::tuple<QVector3D, QVector3D, float>> &getStepBonePositions();
 
 private:
     btDefaultCollisionConfiguration *m_collisionConfiguration = nullptr;
@@ -48,15 +50,19 @@ private:
     std::vector<btTransform> m_boneInitialTransforms;
     
     JointNodeTree m_jointNodeTree;
-    JointNodeTree m_setpJointNodeTree;
+    JointNodeTree m_stepJointNodeTree;
     std::vector<RiggerBone> m_bones;
+    std::vector<std::tuple<QVector3D, QVector3D, float>> m_stepBonePositions;
     
     std::map<QString, int> m_boneNameToIndexMap;
+    std::map<QString, std::vector<QString>> m_chains;
+    std::map<QString, std::pair<QString, QString>> m_virtualConnections;
  
     btRigidBody *createRigidBody(btScalar mass, const btTransform &startTransform, btCollisionShape *shape);
     void createDynamicsWorld();
     void addChainConstraint(const RiggerBone &parent, const RiggerBone &child);
-    void addConstraintWithSpine(const RiggerBone &child);
+    void addConstraintWithSpine(const RiggerBone &parent, const RiggerBone &child);
+    int findNearestSpine(const RiggerBone &bone);
 };
 
 #endif

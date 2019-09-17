@@ -3,7 +3,6 @@
 #include <queue>
 #include <unordered_set>
 #include "animalrigger.h"
-#include "bonenameconverter.h"
 
 AnimalRigger::AnimalRigger(const std::vector<QVector3D> &verticesPositions,
         const std::set<MeshSplitterTriangle> &inputTriangles) :
