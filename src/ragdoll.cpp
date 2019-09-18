@@ -377,11 +377,11 @@ void RagDoll::createDynamicsWorld()
     m_world->getSolverInfo().m_solverMode |= SOLVER_ENABLE_FRICTION_DIRECTION_CACHING;
     m_world->getSolverInfo().m_numIterations = 5;
     
-    m_groundShape = new btBoxShape(btVector3(btScalar(250.), btScalar(0.), btScalar(250.)));
+    m_groundShape = new btBoxShape(btVector3(btScalar(250.), btScalar(250.), btScalar(250.)));
 
     btTransform groundTransform;
     groundTransform.setIdentity();
-    groundTransform.setOrigin(btVector3(0, m_groundY - 0.5, 0));
+    groundTransform.setOrigin(btVector3(0, m_groundY - 250, 0));
     m_groundBody = createRigidBody(0, groundTransform, m_groundShape);
 }
 
@@ -443,11 +443,12 @@ bool RagDoll::stepSimulation(float amount)
     }
     */
     
-    //QVector3D newRootBoneMiddle = (newBonePositions[0].first + newBonePositions[0].second) * 0.5;
-    //QVector3D modelTranslation = newRootBoneMiddle - m_boneMiddleMap[Rigger::rootBoneName];
+    QVector3D newRootBoneMiddle = (std::get<0>(m_stepBonePositions[0]) +
+        std::get<1>(m_stepBonePositions[0])) * 0.5;
+    QVector3D modelTranslation = newRootBoneMiddle - m_boneMiddleMap[Rigger::rootBoneName];
     //qDebug() << "modelTranslation:" << modelTranslation << "newRootBoneMiddle:" << newRootBoneMiddle << "oldRootBoneMiddle:" << m_boneMiddleMap[Rigger::rootBoneName];
-    //m_setpJointNodeTree.addTranslation(0,
-    //    QVector3D(0, modelTranslation.y(), 0));
+    m_stepJointNodeTree.addTranslation(0,
+        QVector3D(modelTranslation.x(), modelTranslation.y(), modelTranslation.z()));
     
     std::vector<QVector3D> directions(m_stepBonePositions.size());
     for (size_t index = 0; index < m_stepBonePositions.size(); ++index) {
@@ -458,11 +459,11 @@ bool RagDoll::stepSimulation(float amount)
     rotateChildren = [&](size_t index, const QQuaternion &rotation) {
         const auto &bone = m_bones[index];
         for (const auto &childIndex: bone.children) {
-            directions[childIndex] = rotation.rotatedVector(directions[childIndex]);
+            directions[childIndex] = rotation.rotatedVector(directions[childIndex]).normalized();
             rotateChildren(childIndex, rotation);
         }
     };
-    for (size_t index = 0; index < m_stepBonePositions.size(); ++index) {
+    for (size_t index = 1; index < m_stepBonePositions.size(); ++index) {
         QQuaternion rotation;
         const auto &oldDirection = directions[index];
         QVector3D newDirection = (std::get<1>(m_stepBonePositions[index]) - std::get<0>(m_stepBonePositions[index])).normalized();

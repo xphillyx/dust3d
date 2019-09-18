@@ -379,17 +379,35 @@ void MotionsGenerator::generate()
         std::set<QUuid> visited;
         std::vector<MeshLoader *> previews;
         generateMotion(motionId, visited, m_resultJointNodeTrees[motionId], &previews);
-        if (previews.empty()) {
-            generatePreviewsForOutcomes(m_resultJointNodeTrees[motionId], m_resultPreviewMeshs[motionId]);
-        } else {
+        generatePreviewsForOutcomes(m_resultJointNodeTrees[motionId], m_resultPreviewMeshs[motionId]);
+        if (!previews.empty()) {
             const auto &tree = m_resultJointNodeTrees[motionId];
             auto &target = m_resultPreviewMeshs[motionId];
-            target.clear();
-            for (size_t i = 0; i < tree.size(); ++i) {
-                MeshLoader *previewMesh = new MeshLoader(*previews[i]);
-                target.push_back(std::make_pair(tree[i].first, previewMesh));
+            for (size_t i = 0; i < tree.size() && i < previews.size(); ++i) {
+                int edgeVertexCount = previews[i]->edgeVertexCount();
+                if (0 == edgeVertexCount)
+                    continue;
+                ShaderVertex *source = previews[i]->edgeVertices();
+                printf("edgeVertexCount:%d\r\n", edgeVertexCount);
+                ShaderVertex *edgeVertices = new ShaderVertex[edgeVertexCount];
+                for (int j = 0; j < edgeVertexCount; ++j) {
+                    edgeVertices[j] = source[j];
+                }
+                target[i].second->updateEdges(edgeVertices, edgeVertexCount);
             }
         }
+        // updateEdges
+        //if (previews.empty()) {
+        //
+        //} else {
+        //    const auto &tree = m_resultJointNodeTrees[motionId];
+        //    auto &target = m_resultPreviewMeshs[motionId];
+        //    target.clear();
+        //    for (size_t i = 0; i < tree.size(); ++i) {
+        //        MeshLoader *previewMesh = new MeshLoader(*previews[i]);
+        //        target.push_back(std::make_pair(tree[i].first, previewMesh));
+        //    }
+        //}
         m_generatedMotionIds.insert(motionId);
     }
 }

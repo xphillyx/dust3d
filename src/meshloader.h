@@ -53,6 +53,7 @@ public:
     void exportAsObj(const QString &filename);
     void exportAsObj(QTextStream *textStream);
     void updateTool(ShaderVertex *toolVertices, int vertexNum);
+    void updateEdges(ShaderVertex *edgeVertices, int edgeVertexCount);
     quint64 meshId() const;
     void setMeshId(quint64 id);
 private:

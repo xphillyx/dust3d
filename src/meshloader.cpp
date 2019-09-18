@@ -352,6 +352,16 @@ void MeshLoader::updateTool(ShaderVertex *toolVertices, int vertexNum)
     m_toolVertexCount = vertexNum;
 }
 
+void MeshLoader::updateEdges(ShaderVertex *edgeVertices, int edgeVertexCount)
+{
+    delete[] m_edgeVertices;
+    m_edgeVertices = nullptr;
+    m_edgeVertexCount = 0;
+    
+    m_edgeVertices = edgeVertices;
+    m_edgeVertexCount = edgeVertexCount;
+}
+
 quint64 MeshLoader::meshId() const
 {
     return m_meshId;
