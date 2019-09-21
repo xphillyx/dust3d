@@ -42,12 +42,10 @@ private:
     std::map<QString, btCollisionShape *> m_boneShapes;
     std::map<QString, btRigidBody *> m_boneBodies;
     std::vector<btTypedConstraint *> m_boneConstraints;
-    //std::map<QString, QVector3D> m_boneLastPositions;
     
     std::map<QString, QVector3D> m_boneMiddleMap;
     std::map<QString, float> m_boneLengthMap;
     std::map<QString, float> m_boneRadiusMap;
-    std::vector<btTransform> m_boneInitialTransforms;
     
     JointNodeTree m_jointNodeTree;
     JointNodeTree m_stepJointNodeTree;
@@ -56,15 +54,11 @@ private:
     
     std::map<QString, int> m_boneNameToIndexMap;
     std::map<QString, std::vector<QString>> m_chains;
-    std::map<QString, std::pair<QString, QString>> m_virtualConnections;
  
     btRigidBody *createRigidBody(btScalar mass, const btTransform &startTransform, btCollisionShape *shape);
     void createDynamicsWorld();
-    void addChainConstraint(const RiggerBone &parent, const RiggerBone &child, bool addLimits=true);
     void addFixedConstraint(const RiggerBone &parent, const RiggerBone &child);
     void addFreeConstraint(const RiggerBone &parent, const RiggerBone &child);
-    void addConstraintWithSpine(const RiggerBone &parent, const RiggerBone &child);
-    int findNearestSpine(const RiggerBone &bone);
 };
 
 #endif

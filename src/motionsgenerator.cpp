@@ -109,21 +109,18 @@ const std::vector<std::pair<float, JointNodeTree>> &MotionsGenerator::getProcedu
     if (findResult != m_proceduralAnimations.end())
         return findResult->second;
     std::vector<std::pair<float, JointNodeTree>> &resultFrames = m_proceduralAnimations[(int)proceduralAnimation];
-    std::vector<MeshLoader *> &resultPreviews = m_proceduralPreviews[(int)proceduralAnimation];
+    //std::vector<MeshLoader *> &resultPreviews = m_proceduralPreviews[(int)proceduralAnimation];
     RagDoll ragdoll(&m_rigBones);
     float stepSeconds = 1.0 / 60;
     float maxSeconds = 1.5;
     int maxSteps = maxSeconds / stepSeconds;
     int steps = 0;
-    //printf("Ragdoll start.............\r\n");
     while (steps < maxSteps && ragdoll.stepSimulation(stepSeconds)) {
-        //printf("Ragdoll step:%d\r\n", steps);
         resultFrames.push_back(std::make_pair(stepSeconds * 2, ragdoll.getStepJointNodeTree()));
-        MeshLoader *preview = buildBoundingBoxMesh(ragdoll.getStepBonePositions());
-        resultPreviews.push_back(preview);
+        //MeshLoader *preview = buildBoundingBoxMesh(ragdoll.getStepBonePositions());
+        //resultPreviews.push_back(preview);
         ++steps;
     }
-    //printf("Ragdoll stopped frames:%d\r\n", (int)resultFrames.size());
     return resultFrames;
 }
 
@@ -267,8 +264,8 @@ void MotionsGenerator::generateMotion(const QUuid &motionId, std::set<QUuid> &vi
             if (frame >= (int)frames.size())
                 frame = frames.size() - 1;
             if (frame >= 0 && frame < (int)frames.size()) {
-                if (nullptr != previews)
-                    previews->push_back(m_proceduralPreviews[(int)progressClip.proceduralAnimation][frame]);
+                //if (nullptr != previews)
+                //    previews->push_back(m_proceduralPreviews[(int)progressClip.proceduralAnimation][frame]);
                 outcomes.push_back({progress - lastProgress, frames[frame].second});
                 lastProgress = progress;
             }
@@ -377,9 +374,10 @@ void MotionsGenerator::generate()
     
     for (const auto &motionId: m_requiredMotionIds) {
         std::set<QUuid> visited;
-        std::vector<MeshLoader *> previews;
-        generateMotion(motionId, visited, m_resultJointNodeTrees[motionId], &previews);
+        //std::vector<MeshLoader *> previews;
+        generateMotion(motionId, visited, m_resultJointNodeTrees[motionId]);
         generatePreviewsForOutcomes(m_resultJointNodeTrees[motionId], m_resultPreviewMeshs[motionId]);
+        /*
         if (!previews.empty()) {
             const auto &tree = m_resultJointNodeTrees[motionId];
             auto &target = m_resultPreviewMeshs[motionId];
@@ -392,22 +390,10 @@ void MotionsGenerator::generate()
                 for (int j = 0; j < edgeVertexCount; ++j) {
                     edgeVertices[j] = source[j];
                 }
-                //target[i].second->updateEdges(edgeVertices, edgeVertexCount);
-                //target[i].second->updateTriangleVertices(nullptr, 0);
+                target[i].second->updateEdges(edgeVertices, edgeVertexCount);
+                target[i].second->updateTriangleVertices(nullptr, 0);
             }
-        }
-        // updateEdges
-        //if (previews.empty()) {
-        //
-        //} else {
-        //    const auto &tree = m_resultJointNodeTrees[motionId];
-        //    auto &target = m_resultPreviewMeshs[motionId];
-        //    target.clear();
-        //    for (size_t i = 0; i < tree.size(); ++i) {
-        //        MeshLoader *previewMesh = new MeshLoader(*previews[i]);
-        //        target.push_back(std::make_pair(tree[i].first, previewMesh));
-        //    }
-        //}
+        }*/
         m_generatedMotionIds.insert(motionId);
     }
 }

@@ -24,15 +24,12 @@ RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones) :
     m_bones = *rigBones;
     
     for (const auto &bone: m_bones) {
-        m_stepBonePositions.push_back(std::make_tuple(bone.headPosition, bone.tailPosition,
-            qMax(bone.headRadius, bone.tailRadius)));
-    }
-    
-    for (const auto &bone: *rigBones) {
-        float groundY = bone.headPosition.y() - bone.headRadius;
+        auto radius = qMax(bone.headRadius, bone.tailRadius);
+        m_stepBonePositions.push_back(std::make_tuple(bone.headPosition, bone.tailPosition, radius));
+        float groundY = bone.headPosition.y() - radius;
         if (groundY < m_groundY)
             m_groundY = groundY;
-        groundY = bone.tailPosition.y() - bone.tailRadius;
+        groundY = bone.tailPosition.y() - radius;
         if (groundY < m_groundY)
             m_groundY = groundY;
     }
@@ -46,7 +43,6 @@ RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones) :
     }
     Poser::fetchChains(boneNames, m_chains);
     
-    //printf("//////////////// bones ///////////////\r\n");
     for (const auto &bone: *rigBones) {
         float radius = (bone.headRadius + bone.tailRadius) * 0.5;
         float height = bone.headPosition.distanceToPoint(bone.tailPosition);
@@ -54,33 +50,9 @@ RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones) :
         m_boneLengthMap[bone.name] = height;
         m_boneRadiusMap[bone.name] = radius;
         m_boneMiddleMap[bone.name] = middlePosition;
-        printf("[%s] radius:%f height:%f head:(%f,%f,%f) tail:(%f,%f,%f)\r\n",
-            bone.name.toUtf8().constData(),
-            radius, height,
-            bone.headPosition.x(), bone.headPosition.y(), bone.headPosition.z(),
-            bone.tailPosition.x(), bone.tailPosition.y(), bone.tailPosition.z());
-        for (const auto &childIndex: bone.children) {
-            const auto &child = m_bones[childIndex];
-            printf("    child:%s\r\n", child.name.toUtf8().constData());
-        }
     }
-    //printf("///////////////////////////////////////\r\n");
     
     std::set<std::pair<QString, QString>> constraintPairs;
-    
-    for (const auto &bone: m_bones) {
-        if (bone.name.startsWith("Virtual") && !bone.children.empty()) {
-            m_virtualConnections[bone.name] = std::make_pair(QString(), m_bones[bone.children[0]].name);
-        }
-    }
-    for (const auto &bone: m_bones) {
-        for (const auto &childIndex: bone.children) {
-            const auto &child = m_bones[childIndex];
-            if (child.name.startsWith("Virtual")) {
-                m_virtualConnections[child.name].first = bone.name;
-            }
-        }
-    }
     
     for (const auto &bone: m_bones) {
         float height = m_boneLengthMap[bone.name];
@@ -123,12 +95,7 @@ RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones) :
             const auto &parent = (*rigBones)[m_boneNameToIndexMap[it.second[i - 1]]];
             const auto &child = (*rigBones)[m_boneNameToIndexMap[it.second[i]]];
             if (constraintPairs.find(std::make_pair(parent.name, child.name)) == constraintPairs.end()) {
-                printf("add chain constrait: %s,%s\r\n",
-                        parent.name.toUtf8().constData(),
-                        child.name.toUtf8().constData());
                 constraintPairs.insert(std::make_pair(parent.name, child.name));
-                //addChainConstraint(parent, child, false);
-                //addFreeConstraint(parent, child);
                 if (parent.name.startsWith("Spine")) {
                     addFixedConstraint(parent, child);
                 } else {
@@ -138,30 +105,12 @@ RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones) :
         }
     }
     
-    /*
-    for (const auto &it: m_chains) {
-        if (Rigger::rootBoneName == it.first)
-            continue;
-        if (it.first.startsWith("Spine"))
-            continue;
-        const auto &name = it.second[0];
-        const auto &bone = m_bones[m_boneNameToIndexMap[name]];
-        int nearestSpineBoneIndex = findNearestSpine(bone);
-        if (-1 == nearestSpineBoneIndex)
-            continue;
-        addConstraintWithSpine(m_bones[nearestSpineBoneIndex], bone);
-    }
-    */
-    
     for (const auto &parent: m_bones) {
         for (const auto &childIndex: parent.children) {
             const auto &child = m_bones[childIndex];
             if (parent.children.size() <= 1 && !child.name.startsWith("Virtual"))
                 continue;
             if (constraintPairs.find(std::make_pair(parent.name, child.name)) == constraintPairs.end()) {
-                printf("add fixed constrait: %s,%s\r\n",
-                    parent.name.toUtf8().constData(),
-                    child.name.toUtf8().constData());
                 constraintPairs.insert(std::make_pair(parent.name, child.name));
                 addFixedConstraint(parent, child);
             }
@@ -172,9 +121,6 @@ RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones) :
         for (const auto &childIndex: parent.children) {
             const auto &child = m_bones[childIndex];
             if (constraintPairs.find(std::make_pair(parent.name, child.name)) == constraintPairs.end()) {
-                printf("add remaining constrait: %s,%s\r\n",
-                    parent.name.toUtf8().constData(),
-                    child.name.toUtf8().constData());
                 constraintPairs.insert(std::make_pair(parent.name, child.name));
                 addFreeConstraint(parent, child);
             }
@@ -206,108 +152,6 @@ RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones) :
             rightBody->second->setIgnoreCollisionCheck(leftBody->second, true);
         }
     }
-    
-    //printf("//////////// Bullet code /////////////\r\n%s\r\n////////////////////////////////////\r\n", m_bulletCodeList.join("\r\n").toUtf8().constData());
-}
-
-int RagDoll::findNearestSpine(const RiggerBone &bone)
-{
-    const auto &findSpine = m_chains.find("Spine");
-    if (findSpine == m_chains.end())
-        return -1;
-    float minDist2 = std::numeric_limits<float>::max();
-    int selectedIndex = -1;
-    for (const auto &it: findSpine->second) {
-        const auto &spine = m_bones[m_boneNameToIndexMap[it]];
-        float length2 = (bone.headPosition - m_boneMiddleMap[spine.name]).lengthSquared();
-        if (length2 < minDist2) {
-            minDist2 = length2;
-            selectedIndex = spine.index;
-        }
-    }
-    return selectedIndex;
-}
-
-void RagDoll::addConstraintWithSpine(const RiggerBone &parent, const RiggerBone &child)
-{
-    btRigidBody *parentBoneBody = m_boneBodies[parent.name];
-    btRigidBody *childBoneBody = m_boneBodies[child.name];
-    float parentLength = m_boneLengthMap[parent.name];
-    float childLength = m_boneLengthMap[child.name];
-    
-    QVector3D offsetOnA = child.headPosition - m_boneMiddleMap[parent.name];
-    
-    const btVector3 btPivotA(offsetOnA.x(), offsetOnA.y(), offsetOnA.z());
-    const btVector3 btPivotB(0, -childLength * 0.5, 0.0f);
-    bool isLimb = child.name.startsWith("Limb");
-    bool isTail = child.name.startsWith("Tail");
-    bool isNeck = child.name.startsWith("Neck");
-    
-    QVector3D directionA = (parent.tailPosition - parent.headPosition).normalized();
-    QVector3D directionB = (child.tailPosition - child.headPosition).normalized();
-    
-    //if (!isLimb)
-    //    return;
-    
-    if (nullptr == parentBoneBody || nullptr == childBoneBody)
-        return;
-    
-    const auto &parentMiddle = m_boneMiddleMap[parent.name];
-    const auto &childMiddle = m_boneMiddleMap[child.name];
-    //const auto &direction = (childMiddle - parentMiddle).normalized();
-    //const auto direction = QVector3D(0, 1, 0);
-    
-    printf("Add constraint with spine, parent:%s child:%s\r\n",
-        parent.name.toUtf8().constData(),
-        child.name.toUtf8().constData());
-    
-    btTransform localA;
-    btTransform localB;
-    
-    btConeTwistConstraint *constraint = nullptr;
-    std::tuple<float, float, float> limits = std::make_tuple(0, 0, 0);
-    
-    localA.setIdentity();
-    localB.setIdentity();
-    localA.setOrigin(btPivotA);
-    localB.setOrigin(btPivotB);
-    
-    auto rotationA = QQuaternion::rotationTo(QVector3D(1, 0, 0), directionA);
-    {
-        float pitch = 0;
-        float yaw = 0;
-        float roll = 0;
-        rotationA.getEulerAngles(&pitch, &yaw, &roll);
-        localA.getBasis().setEulerZYX(qDegreesToRadians(pitch),
-            qDegreesToRadians(yaw),
-            qDegreesToRadians(roll));
-    }
-    auto rotationB = QQuaternion::rotationTo(QVector3D(1, 0, 0), directionB);
-    {
-        float pitch = 0;
-        float yaw = 0;
-        float roll = 0;
-        rotationB.getEulerAngles(&pitch, &yaw, &roll);
-        localB.getBasis().setEulerZYX(qDegreesToRadians(pitch),
-            qDegreesToRadians(yaw),
-            qDegreesToRadians(roll));
-    }
-    
-    /*
-    if (isNeck) {
-        localA.getBasis().setEulerZYX(0, 0, M_PI_2);
-        localB.getBasis().setEulerZYX(0, 0, M_PI_2);
-    } else if (isTail) {
-        localA.getBasis().setEulerZYX(0, 0, M_PI_2);
-        localB.getBasis().setEulerZYX(0, 0, M_PI_2);
-    }
-    */
-    constraint = new btConeTwistConstraint(*parentBoneBody, *childBoneBody, localA, localB);
-    //constraint->setLimit(btScalar(std::get<0>(limits)), btScalar(std::get<1>(limits)), btScalar(std::get<2>(limits)));
-    
-    m_world->addConstraint(constraint, true);
-    
-    m_boneConstraints.push_back(constraint);
 }
 
 void RagDoll::addFreeConstraint(const RiggerBone &parent, const RiggerBone &child)
@@ -325,9 +169,7 @@ void RagDoll::addFreeConstraint(const RiggerBone &parent, const RiggerBone &chil
     
     btPoint2PointConstraint *constraint = new btPoint2PointConstraint(*parentBoneBody, *childBoneBody,
         btPivotA, btPivotB);
-    
     m_world->addConstraint(constraint, true);
-    
     m_boneConstraints.push_back(constraint);
 }
 
@@ -355,64 +197,12 @@ void RagDoll::addFixedConstraint(const RiggerBone &parent, const RiggerBone &chi
     localB.setOrigin(btPivotB);
     
     constraint = new btFixedConstraint(*parentBoneBody, *childBoneBody, localA, localB);
-    
     m_world->addConstraint(constraint, true);
-    
-    m_boneConstraints.push_back(constraint);
-}
-
-void RagDoll::addChainConstraint(const RiggerBone &parent, const RiggerBone &child, bool addLimits)
-{
-    btRigidBody *parentBoneBody = m_boneBodies[parent.name];
-    btRigidBody *childBoneBody = m_boneBodies[child.name];
-    
-    if (nullptr == parentBoneBody || nullptr == childBoneBody)
-        return;
-    
-    float parentLength = m_boneLengthMap[parent.name];
-    float childLength = m_boneLengthMap[child.name];
-    const btVector3 btPivotA(0, parentLength * 0.5, 0.0f);
-    const btVector3 btPivotB(0, -childLength * 0.5, 0.0f);
-    bool isLimb = -1 != parent.name.indexOf("Limb") || -1 != child.name.indexOf("Limb");
-    QVector3D axis = isLimb ? QVector3D(0, 0, 1) : QVector3D(1, 0, 0);
-    
-    QVector3D parentDirection = (parent.tailPosition - parent.headPosition).normalized();
-    QVector3D childDirection = (child.tailPosition - child.headPosition).normalized();
-    float degrees = angleInRangle360BetweenTwoVectors(parentDirection, childDirection, axis);
-    if (degrees > 180)
-        degrees = -(360 - degrees);
-    float radian = qDegreesToRadians(degrees);
-    
-    btTransform localA;
-    btTransform localB;
-    
-    btHingeConstraint *constraint = nullptr;
-    std::pair<float, float> limits = std::make_pair(radian, radian);
-    
-    localA.setIdentity();
-    localB.setIdentity();
-    localA.setOrigin(btPivotA);
-    localB.setOrigin(btPivotB);
-    if (isLimb) {
-        localA.getBasis().setEulerZYX(0, 0, 0);
-        localB.getBasis().setEulerZYX(0, 0, 0);
-        constraint = new btHingeConstraint(*parentBoneBody, *childBoneBody, localA, localB);
-    } else {
-        localA.getBasis().setEulerZYX(0, -M_PI_2, 0);
-        localB.getBasis().setEulerZYX(0, -M_PI_2, 0);
-        constraint = new btHingeConstraint(*parentBoneBody, *childBoneBody, localA, localB);
-    }
-    //if (addLimits)
-    //    constraint->setLimit(btScalar(limits.first), btScalar(limits.second));
-    
-    m_world->addConstraint(constraint, true);
-    
     m_boneConstraints.push_back(constraint);
 }
 
 RagDoll::~RagDoll()
 {
-    // Remove all bodies and shapes
     for (auto &constraint: m_boneConstraints) {
         delete constraint;
     }
@@ -478,11 +268,6 @@ bool RagDoll::stepSimulation(float amount)
         btVector3 oldBoneTail(btScalar(0.0f), btScalar(halfHeight), btScalar(0.0f));
         btVector3 newBoneHead = btWorldTransform * oldBoneHead;
         btVector3 newBoneTail = btWorldTransform * oldBoneTail;
-        //const auto &bone = m_bones[jointIndex];
-        //printf("bone[%s] oldHead:(%f,%f,%f)\r\n", bone.name.toUtf8().constData(), bone.headPosition.x(), bone.headPosition.y(), bone.headPosition.z());
-        //printf("bone[%s] newHead:(%f,%f,%f)\r\n", bone.name.toUtf8().constData(), newBoneHead.x(), newBoneHead.y(), newBoneHead.z());
-        //printf("bone[%s] oldTail:(%f,%f,%f)\r\n", bone.name.toUtf8().constData(), bone.tailPosition.x(), bone.tailPosition.y(), bone.tailPosition.z());
-        //printf("bone[%s] newTail:(%f,%f,%f)\r\n", bone.name.toUtf8().constData(), newBoneTail.x(), newBoneTail.y(), newBoneTail.z());
         std::get<0>(m_stepBonePositions[jointIndex]) = QVector3D(newBoneHead.x(), newBoneHead.y(), newBoneHead.z());
         std::get<1>(m_stepBonePositions[jointIndex]) = QVector3D(newBoneTail.x(), newBoneTail.y(), newBoneTail.z());
     };
@@ -502,45 +287,18 @@ bool RagDoll::stepSimulation(float amount)
         int jointIndex = it.second->getUserIndex();
         if (-1 == jointIndex)
             continue;
-        //printf("Update \"%s\" to new position\r\n", m_bones[jointIndex].name.toUtf8().constData());
         updateToNewPosition(it.first, btWorldTransform, jointIndex);
     }
-    /*
-    printf("============ Virtual ===============\r\n");
-    for (const auto &it: m_virtualConnections) {
-        const auto &parentIndex = m_boneNameToIndexMap[it.second.first];
-        const auto &childIndex = m_boneNameToIndexMap[it.second.second];
-        const auto &virtualIndex = m_boneNameToIndexMap[it.first];
-        printf("Virtual:%s parent:%s child:%s\r\n",
-            it.first.toUtf8().constData(),
-            it.second.first.toUtf8().constData(),
-            it.second.second.toUtf8().constData());
-        std::get<0>(m_stepBonePositions[virtualIndex]) = std::get<1>(m_stepBonePositions[parentIndex]);
-        std::get<1>(m_stepBonePositions[virtualIndex]) = std::get<0>(m_stepBonePositions[childIndex]);
-    }
-    printf("====================================\r\n");
-    */
     
-    QVector3D sumOfRootBoneTail;
-    for (const auto &childIndex: m_bones[0].children) {
-        sumOfRootBoneTail += std::get<0>(m_stepBonePositions[childIndex]);
-    }
-    QVector3D modelTranslation = sumOfRootBoneTail /= m_bones[0].children.size();
-    //QVector3D newRootBoneMiddle = (std::get<0>(m_stepBonePositions[0]) +
-    //    std::get<1>(m_stepBonePositions[0])) * 0.5;
-    //QVector3D modelTranslation = newRootBoneMiddle - m_boneMiddleMap[Rigger::rootBoneName];
-    //qDebug() << "modelTranslation:" << modelTranslation << "newRootBoneMiddle:" << newRootBoneMiddle << "oldRootBoneMiddle:" << m_boneMiddleMap[Rigger::rootBoneName];
-    m_stepJointNodeTree.addTranslation(0,
-        QVector3D(0, modelTranslation.y() - m_stepJointNodeTree.nodes()[0].translation.y(), 0));
-    
-    /*
-    for (const auto &parent: m_bones) {
-        for (const auto &childIndex: parent.children) {
-            const auto &child = m_bones[childIndex];
-            m_stepJointNodeTree.updateTranslation(childIndex,
-                std::get<0>(m_stepBonePositions[child.index]) - std::get<0>(m_stepBonePositions[parent.index]));
+    if (!m_bones[0].children.empty()) {
+        QVector3D sumOfRootBoneTail;
+        for (const auto &childIndex: m_bones[0].children) {
+            sumOfRootBoneTail += std::get<0>(m_stepBonePositions[childIndex]);
         }
-    }*/
+        QVector3D modelTranslation = sumOfRootBoneTail / m_bones[0].children.size();
+        m_stepJointNodeTree.addTranslation(0,
+            QVector3D(0, modelTranslation.y() - m_stepJointNodeTree.nodes()[0].translation.y(), 0));
+    }
     
     std::vector<QVector3D> directions(m_stepBonePositions.size());
     for (size_t index = 0; index < m_stepBonePositions.size(); ++index) {
@@ -563,9 +321,6 @@ bool RagDoll::stepSimulation(float amount)
         const auto &oldDirection = directions[index];
         QVector3D newDirection = std::get<1>(m_stepBonePositions[index]) - std::get<0>(m_stepBonePositions[index]);
         rotation = QQuaternion::rotationTo(oldDirection.normalized(), newDirection.normalized());
-        //if (m_bones[index].name.startsWith("Spine") ||
-        //        m_bones[index].name.startsWith("Tail") ||
-        //        m_bones[index].name.startsWith("Neck"))
         m_stepJointNodeTree.updateRotation(index, rotation);
         rotateChildren(index, rotation);
     }

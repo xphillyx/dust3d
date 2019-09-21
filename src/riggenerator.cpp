@@ -244,6 +244,8 @@ void RigGenerator::generate()
     
     ShaderVertex *edgeVertices = nullptr;
     int edgeVerticesNum = 0;
+    
+    /*
     if (m_isSucceed) {
         const auto &resultBones = m_autoRigger->resultBones();
         std::vector<std::tuple<QVector3D, QVector3D, float>> boxes;
@@ -255,6 +257,7 @@ void RigGenerator::generate()
         }
         edgeVertices = buildBoundingBoxMeshEdges(boxes, &edgeVerticesNum);
     }
+    */
     
     m_resultMesh = new MeshLoader(triangleVertices, triangleVerticesNum,
         edgeVertices, edgeVerticesNum);
