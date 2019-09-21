@@ -112,13 +112,13 @@ const std::vector<std::pair<float, JointNodeTree>> &MotionsGenerator::getProcedu
     std::vector<MeshLoader *> &resultPreviews = m_proceduralPreviews[(int)proceduralAnimation];
     RagDoll ragdoll(&m_rigBones);
     float stepSeconds = 1.0 / 60;
-    float maxSeconds = 2.0;
+    float maxSeconds = 1.5;
     int maxSteps = maxSeconds / stepSeconds;
     int steps = 0;
     //printf("Ragdoll start.............\r\n");
     while (steps < maxSteps && ragdoll.stepSimulation(stepSeconds)) {
         //printf("Ragdoll step:%d\r\n", steps);
-        resultFrames.push_back(std::make_pair(stepSeconds * 3, ragdoll.getStepJointNodeTree()));
+        resultFrames.push_back(std::make_pair(stepSeconds * 2, ragdoll.getStepJointNodeTree()));
         MeshLoader *preview = buildBoundingBoxMesh(ragdoll.getStepBonePositions());
         resultPreviews.push_back(preview);
         ++steps;
@@ -392,8 +392,8 @@ void MotionsGenerator::generate()
                 for (int j = 0; j < edgeVertexCount; ++j) {
                     edgeVertices[j] = source[j];
                 }
-                target[i].second->updateEdges(edgeVertices, edgeVertexCount);
-                target[i].second->updateTriangleVertices(nullptr, 0);
+                //target[i].second->updateEdges(edgeVertices, edgeVertexCount);
+                //target[i].second->updateTriangleVertices(nullptr, 0);
             }
         }
         // updateEdges

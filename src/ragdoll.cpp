@@ -82,13 +82,6 @@ RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones) :
         }
     }
     
-    // Setup some damping on the m_bodies
-    //for (const auto &bone: *rigBones) {
-    //    m_boneBodies[bone.name]->setDamping(btScalar(0.05), btScalar(0.85));
-    //    m_boneBodies[bone.name]->setDeactivationTime(btScalar(0.8));
-    //    m_boneBodies[bone.name]->setSleepingThresholds(btScalar(1.6), btScalar(2.5));
-    //}
-    
     for (const auto &bone: m_bones) {
         float height = m_boneLengthMap[bone.name];
         float radius = m_boneRadiusMap[bone.name];
@@ -116,6 +109,13 @@ RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones) :
         
         btRigidBody *body = createRigidBody(btScalar(mass), transform, shape);
         m_boneBodies[bone.name] = body;
+    }
+    
+    // Setup some damping on the m_bodies
+    for (const auto &bone: m_bones) {
+        m_boneBodies[bone.name]->setDamping(btScalar(0.05), btScalar(0.85));
+        m_boneBodies[bone.name]->setDeactivationTime(btScalar(0.8));
+        m_boneBodies[bone.name]->setSleepingThresholds(btScalar(1.6), btScalar(2.5));
     }
     
     for (const auto &it: m_chains) {
@@ -154,10 +154,10 @@ RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones) :
     */
     
     for (const auto &parent: m_bones) {
-        if (parent.children.size() <= 1)
-            continue;
         for (const auto &childIndex: parent.children) {
             const auto &child = m_bones[childIndex];
+            if (parent.children.size() <= 1 && !child.name.startsWith("Virtual"))
+                continue;
             if (constraintPairs.find(std::make_pair(parent.name, child.name)) == constraintPairs.end()) {
                 printf("add fixed constrait: %s,%s\r\n",
                     parent.name.toUtf8().constData(),
@@ -505,6 +505,7 @@ bool RagDoll::stepSimulation(float amount)
         //printf("Update \"%s\" to new position\r\n", m_bones[jointIndex].name.toUtf8().constData());
         updateToNewPosition(it.first, btWorldTransform, jointIndex);
     }
+    /*
     printf("============ Virtual ===============\r\n");
     for (const auto &it: m_virtualConnections) {
         const auto &parentIndex = m_boneNameToIndexMap[it.second.first];
@@ -518,34 +519,50 @@ bool RagDoll::stepSimulation(float amount)
         std::get<1>(m_stepBonePositions[virtualIndex]) = std::get<0>(m_stepBonePositions[childIndex]);
     }
     printf("====================================\r\n");
+    */
     
-    QVector3D newRootBoneMiddle = (std::get<0>(m_stepBonePositions[0]) +
-        std::get<1>(m_stepBonePositions[0])) * 0.5;
-    QVector3D modelTranslation = newRootBoneMiddle - m_boneMiddleMap[Rigger::rootBoneName];
+    QVector3D sumOfRootBoneTail;
+    for (const auto &childIndex: m_bones[0].children) {
+        sumOfRootBoneTail += std::get<0>(m_stepBonePositions[childIndex]);
+    }
+    QVector3D modelTranslation = sumOfRootBoneTail /= m_bones[0].children.size();
+    //QVector3D newRootBoneMiddle = (std::get<0>(m_stepBonePositions[0]) +
+    //    std::get<1>(m_stepBonePositions[0])) * 0.5;
+    //QVector3D modelTranslation = newRootBoneMiddle - m_boneMiddleMap[Rigger::rootBoneName];
     //qDebug() << "modelTranslation:" << modelTranslation << "newRootBoneMiddle:" << newRootBoneMiddle << "oldRootBoneMiddle:" << m_boneMiddleMap[Rigger::rootBoneName];
     m_stepJointNodeTree.addTranslation(0,
-        QVector3D(modelTranslation.x(), modelTranslation.y(), modelTranslation.z()));
+        QVector3D(0, modelTranslation.y() - m_stepJointNodeTree.nodes()[0].translation.y(), 0));
+    
+    /*
+    for (const auto &parent: m_bones) {
+        for (const auto &childIndex: parent.children) {
+            const auto &child = m_bones[childIndex];
+            m_stepJointNodeTree.updateTranslation(childIndex,
+                std::get<0>(m_stepBonePositions[child.index]) - std::get<0>(m_stepBonePositions[parent.index]));
+        }
+    }*/
     
     std::vector<QVector3D> directions(m_stepBonePositions.size());
     for (size_t index = 0; index < m_stepBonePositions.size(); ++index) {
         const auto &bone = m_bones[index];
-        directions[index] = (bone.tailPosition - bone.headPosition).normalized();
+        directions[index] = bone.tailPosition - bone.headPosition;
     }
     std::function<void(size_t index, const QQuaternion &rotation)> rotateChildren;
     rotateChildren = [&](size_t index, const QQuaternion &rotation) {
         const auto &bone = m_bones[index];
         for (const auto &childIndex: bone.children) {
-            directions[childIndex] = rotation.rotatedVector(directions[childIndex]).normalized();
+            directions[childIndex] = rotation.rotatedVector(directions[childIndex]);
             rotateChildren(childIndex, rotation);
         }
     };
     for (size_t index = 1; index < m_stepBonePositions.size(); ++index) {
-        //if (m_bones[index].name.startsWith("Virtual"))
-        //    continue;
+        if (m_bones[index].name.startsWith("Virtual") ||
+                m_bones[index].name.startsWith("Spine01"))
+            continue;
         QQuaternion rotation;
         const auto &oldDirection = directions[index];
-        QVector3D newDirection = (std::get<1>(m_stepBonePositions[index]) - std::get<0>(m_stepBonePositions[index])).normalized();
-        rotation = QQuaternion::rotationTo(oldDirection, newDirection);
+        QVector3D newDirection = std::get<1>(m_stepBonePositions[index]) - std::get<0>(m_stepBonePositions[index]);
+        rotation = QQuaternion::rotationTo(oldDirection.normalized(), newDirection.normalized());
         //if (m_bones[index].name.startsWith("Spine") ||
         //        m_bones[index].name.startsWith("Tail") ||
         //        m_bones[index].name.startsWith("Neck"))
