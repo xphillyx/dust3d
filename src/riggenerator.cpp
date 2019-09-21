@@ -248,8 +248,8 @@ void RigGenerator::generate()
         const auto &resultBones = m_autoRigger->resultBones();
         std::vector<std::tuple<QVector3D, QVector3D, float>> boxes;
         for (const auto &bone: resultBones) {
-            if (bone.name.startsWith("Virtual") || bone.name.startsWith("Body"))
-                continue;
+            //if (bone.name.startsWith("Virtual") || bone.name.startsWith("Body"))
+            //    continue;
             boxes.push_back(std::make_tuple(bone.headPosition, bone.tailPosition, 
                 qMax(bone.headRadius, bone.tailRadius)));
         }

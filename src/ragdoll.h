@@ -60,7 +60,9 @@ private:
  
     btRigidBody *createRigidBody(btScalar mass, const btTransform &startTransform, btCollisionShape *shape);
     void createDynamicsWorld();
-    void addChainConstraint(const RiggerBone &parent, const RiggerBone &child);
+    void addChainConstraint(const RiggerBone &parent, const RiggerBone &child, bool addLimits=true);
+    void addFixedConstraint(const RiggerBone &parent, const RiggerBone &child);
+    void addFreeConstraint(const RiggerBone &parent, const RiggerBone &child);
     void addConstraintWithSpine(const RiggerBone &parent, const RiggerBone &child);
     int findNearestSpine(const RiggerBone &bone);
 };

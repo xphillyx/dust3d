@@ -362,6 +362,16 @@ void MeshLoader::updateEdges(ShaderVertex *edgeVertices, int edgeVertexCount)
     m_edgeVertexCount = edgeVertexCount;
 }
 
+void MeshLoader::updateTriangleVertices(ShaderVertex *triangleVertices, int triangleVertexCount)
+{
+    delete[] m_triangleVertices;
+    m_triangleVertices = 0;
+    m_triangleVertexCount = 0;
+    
+    m_triangleVertices = triangleVertices;
+    m_triangleVertexCount = triangleVertexCount;
+}
+
 quint64 MeshLoader::meshId() const
 {
     return m_meshId;

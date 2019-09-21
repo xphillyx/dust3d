@@ -607,6 +607,15 @@ HEADERS += thirdparty/bullet3/src/BulletCollision/CollisionDispatch/btHashedSimp
 SOURCES += thirdparty/bullet3/src/BulletDynamics/ConstraintSolver/btGeneric6DofConstraint.cpp
 HEADERS += thirdparty/bullet3/src/BulletDynamics/ConstraintSolver/btGeneric6DofConstraint.h
 
+SOURCES += thirdparty/bullet3/src/BulletDynamics/ConstraintSolver/btPoint2PointConstraint.cpp
+HEADERS += thirdparty/bullet3/src/BulletDynamics/ConstraintSolver/btPoint2PointConstraint.h
+
+SOURCES += thirdparty/bullet3/src/BulletDynamics/ConstraintSolver/btFixedConstraint.cpp
+HEADERS += thirdparty/bullet3/src/BulletDynamics/ConstraintSolver/btFixedConstraint.h
+
+SOURCES += thirdparty/bullet3/src/BulletDynamics/ConstraintSolver/btGeneric6DofSpring2Constraint.cpp
+HEADERS += thirdparty/bullet3/src/BulletDynamics/ConstraintSolver/btGeneric6DofSpring2Constraint.h
+
 SOURCES += thirdparty/bullet3/src/BulletCollision/CollisionShapes/btMiniSDF.cpp
 HEADERS += thirdparty/bullet3/src/BulletCollision/CollisionShapes/btMiniSDF.h
 

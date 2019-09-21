@@ -5,6 +5,8 @@
 #include <BulletCollision/CollisionShapes/btCapsuleShape.h>
 #include <BulletDynamics/ConstraintSolver/btHingeConstraint.h>
 #include <BulletDynamics/ConstraintSolver/btConeTwistConstraint.h>
+#include <BulletDynamics/ConstraintSolver/btPoint2PointConstraint.h>
+#include <BulletDynamics/ConstraintSolver/btFixedConstraint.h>
 #include <BulletDynamics/ConstraintSolver/btTypedConstraint.h>
 #include <QQuaternion>
 #include <QtMath>
@@ -64,15 +66,14 @@ RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones) :
     }
     //printf("///////////////////////////////////////\r\n");
     
-    /*
-    for (const auto &bone: *rigBones) {
-        if (bone.name.startsWith("Virtual")) {
-            if (bone.children.empty())
-                continue;
+    std::set<std::pair<QString, QString>> constraintPairs;
+    
+    for (const auto &bone: m_bones) {
+        if (bone.name.startsWith("Virtual") && !bone.children.empty()) {
             m_virtualConnections[bone.name] = std::make_pair(QString(), m_bones[bone.children[0]].name);
         }
     }
-    for (const auto &bone: *rigBones) {
+    for (const auto &bone: m_bones) {
         for (const auto &childIndex: bone.children) {
             const auto &child = m_bones[childIndex];
             if (child.name.startsWith("Virtual")) {
@@ -80,7 +81,6 @@ RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones) :
             }
         }
     }
-    */
     
     // Setup some damping on the m_bodies
     //for (const auto &bone: *rigBones) {
@@ -89,7 +89,7 @@ RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones) :
     //    m_boneBodies[bone.name]->setSleepingThresholds(btScalar(1.6), btScalar(2.5));
     //}
     
-    for (const auto &bone: *rigBones) {
+    for (const auto &bone: m_bones) {
         float height = m_boneLengthMap[bone.name];
         float radius = m_boneRadiusMap[bone.name];
         float mass = 1.0;
@@ -118,21 +118,25 @@ RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones) :
         m_boneBodies[bone.name] = body;
     }
     
-    /*
     for (const auto &it: m_chains) {
-        //if (Rigger::rootBoneName == it.first)
-        //    continue;
-        //if (Rigger::rootBoneName == it.first || it.first.startsWith("Spine"))
-        //    continue;
-        //if (it.second.empty())
-        //    continue;
-        //addConstraintWithSpine((*rigBones)[m_boneNameToIndexMap[it.second[0]]]);
         for (size_t i = 1; i < it.second.size(); ++i) {
             const auto &parent = (*rigBones)[m_boneNameToIndexMap[it.second[i - 1]]];
             const auto &child = (*rigBones)[m_boneNameToIndexMap[it.second[i]]];
-            addChainConstraint(parent, child);
+            if (constraintPairs.find(std::make_pair(parent.name, child.name)) == constraintPairs.end()) {
+                printf("add chain constrait: %s,%s\r\n",
+                        parent.name.toUtf8().constData(),
+                        child.name.toUtf8().constData());
+                constraintPairs.insert(std::make_pair(parent.name, child.name));
+                //addChainConstraint(parent, child, false);
+                //addFreeConstraint(parent, child);
+                if (parent.name.startsWith("Spine")) {
+                    addFixedConstraint(parent, child);
+                } else {
+                    addFreeConstraint(parent, child);
+                }
+            }
         }
-    }*/
+    }
     
     /*
     for (const auto &it: m_chains) {
@@ -149,9 +153,31 @@ RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones) :
     }
     */
     
-    for (const auto &bone: *rigBones) {
-        for (const auto &childIndex: bone.children) {
-            addChainConstraint(bone, m_bones[childIndex]);
+    for (const auto &parent: m_bones) {
+        if (parent.children.size() <= 1)
+            continue;
+        for (const auto &childIndex: parent.children) {
+            const auto &child = m_bones[childIndex];
+            if (constraintPairs.find(std::make_pair(parent.name, child.name)) == constraintPairs.end()) {
+                printf("add fixed constrait: %s,%s\r\n",
+                    parent.name.toUtf8().constData(),
+                    child.name.toUtf8().constData());
+                constraintPairs.insert(std::make_pair(parent.name, child.name));
+                addFixedConstraint(parent, child);
+            }
+        }
+    }
+    
+    for (const auto &parent: m_bones) {
+        for (const auto &childIndex: parent.children) {
+            const auto &child = m_bones[childIndex];
+            if (constraintPairs.find(std::make_pair(parent.name, child.name)) == constraintPairs.end()) {
+                printf("add remaining constrait: %s,%s\r\n",
+                    parent.name.toUtf8().constData(),
+                    child.name.toUtf8().constData());
+                constraintPairs.insert(std::make_pair(parent.name, child.name));
+                addFreeConstraint(parent, child);
+            }
         }
     }
     
@@ -284,7 +310,58 @@ void RagDoll::addConstraintWithSpine(const RiggerBone &parent, const RiggerBone 
     m_boneConstraints.push_back(constraint);
 }
 
-void RagDoll::addChainConstraint(const RiggerBone &parent, const RiggerBone &child)
+void RagDoll::addFreeConstraint(const RiggerBone &parent, const RiggerBone &child)
+{
+    btRigidBody *parentBoneBody = m_boneBodies[parent.name];
+    btRigidBody *childBoneBody = m_boneBodies[child.name];
+    
+    if (nullptr == parentBoneBody || nullptr == childBoneBody)
+        return;
+    
+    float parentLength = m_boneLengthMap[parent.name];
+    float childLength = m_boneLengthMap[child.name];
+    const btVector3 btPivotA(0, parentLength * 0.5, 0.0f);
+    const btVector3 btPivotB(0, -childLength * 0.5, 0.0f);
+    
+    btPoint2PointConstraint *constraint = new btPoint2PointConstraint(*parentBoneBody, *childBoneBody,
+        btPivotA, btPivotB);
+    
+    m_world->addConstraint(constraint, true);
+    
+    m_boneConstraints.push_back(constraint);
+}
+
+void RagDoll::addFixedConstraint(const RiggerBone &parent, const RiggerBone &child)
+{
+    btRigidBody *parentBoneBody = m_boneBodies[parent.name];
+    btRigidBody *childBoneBody = m_boneBodies[child.name];
+    
+    if (nullptr == parentBoneBody || nullptr == childBoneBody)
+        return;
+    
+    float parentLength = m_boneLengthMap[parent.name];
+    float childLength = m_boneLengthMap[child.name];
+    const btVector3 btPivotA(0, parentLength * 0.5, 0.0f);
+    const btVector3 btPivotB(0, -childLength * 0.5, 0.0f);
+    
+    btTransform localA;
+    btTransform localB;
+    
+    btFixedConstraint *constraint = nullptr;
+    
+    localA.setIdentity();
+    localB.setIdentity();
+    localA.setOrigin(btPivotA);
+    localB.setOrigin(btPivotB);
+    
+    constraint = new btFixedConstraint(*parentBoneBody, *childBoneBody, localA, localB);
+    
+    m_world->addConstraint(constraint, true);
+    
+    m_boneConstraints.push_back(constraint);
+}
+
+void RagDoll::addChainConstraint(const RiggerBone &parent, const RiggerBone &child, bool addLimits)
 {
     btRigidBody *parentBoneBody = m_boneBodies[parent.name];
     btRigidBody *childBoneBody = m_boneBodies[child.name];
@@ -325,8 +402,8 @@ void RagDoll::addChainConstraint(const RiggerBone &parent, const RiggerBone &chi
         localB.getBasis().setEulerZYX(0, -M_PI_2, 0);
         constraint = new btHingeConstraint(*parentBoneBody, *childBoneBody, localA, localB);
     }
-    
-    //constraint->setLimit(btScalar(limits.first), btScalar(limits.second));
+    //if (addLimits)
+    //    constraint->setLimit(btScalar(limits.first), btScalar(limits.second));
     
     m_world->addConstraint(constraint, true);
     
@@ -428,20 +505,19 @@ bool RagDoll::stepSimulation(float amount)
         //printf("Update \"%s\" to new position\r\n", m_bones[jointIndex].name.toUtf8().constData());
         updateToNewPosition(it.first, btWorldTransform, jointIndex);
     }
-    
-    /*
+    printf("============ Virtual ===============\r\n");
     for (const auto &it: m_virtualConnections) {
-        const auto &parentPositions = newBonePositions[m_boneNameToIndexMap[it.second.first]];
-        const auto &childPositions = newBonePositions[m_boneNameToIndexMap[it.second.second]];
-        auto &selfPositions = newBonePositions[m_boneNameToIndexMap[it.first]];
-        selfPositions.first = parentPositions.second;
-        selfPositions.second = childPositions.first;
-        printf("Update virtual: %s   from parent:%s child:%s\r\n",
+        const auto &parentIndex = m_boneNameToIndexMap[it.second.first];
+        const auto &childIndex = m_boneNameToIndexMap[it.second.second];
+        const auto &virtualIndex = m_boneNameToIndexMap[it.first];
+        printf("Virtual:%s parent:%s child:%s\r\n",
             it.first.toUtf8().constData(),
             it.second.first.toUtf8().constData(),
             it.second.second.toUtf8().constData());
+        std::get<0>(m_stepBonePositions[virtualIndex]) = std::get<1>(m_stepBonePositions[parentIndex]);
+        std::get<1>(m_stepBonePositions[virtualIndex]) = std::get<0>(m_stepBonePositions[childIndex]);
     }
-    */
+    printf("====================================\r\n");
     
     QVector3D newRootBoneMiddle = (std::get<0>(m_stepBonePositions[0]) +
         std::get<1>(m_stepBonePositions[0])) * 0.5;
@@ -464,6 +540,8 @@ bool RagDoll::stepSimulation(float amount)
         }
     };
     for (size_t index = 1; index < m_stepBonePositions.size(); ++index) {
+        //if (m_bones[index].name.startsWith("Virtual"))
+        //    continue;
         QQuaternion rotation;
         const auto &oldDirection = directions[index];
         QVector3D newDirection = (std::get<1>(m_stepBonePositions[index]) - std::get<0>(m_stepBonePositions[index])).normalized();

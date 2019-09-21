@@ -388,12 +388,12 @@ void MotionsGenerator::generate()
                 if (0 == edgeVertexCount)
                     continue;
                 ShaderVertex *source = previews[i]->edgeVertices();
-                printf("edgeVertexCount:%d\r\n", edgeVertexCount);
                 ShaderVertex *edgeVertices = new ShaderVertex[edgeVertexCount];
                 for (int j = 0; j < edgeVertexCount; ++j) {
                     edgeVertices[j] = source[j];
                 }
                 target[i].second->updateEdges(edgeVertices, edgeVertexCount);
+                target[i].second->updateTriangleVertices(nullptr, 0);
             }
         }
         // updateEdges

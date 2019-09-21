@@ -54,6 +54,7 @@ public:
     void exportAsObj(QTextStream *textStream);
     void updateTool(ShaderVertex *toolVertices, int vertexNum);
     void updateEdges(ShaderVertex *edgeVertices, int edgeVertexCount);
+    void updateTriangleVertices(ShaderVertex *triangleVertices, int triangleVertexCount);
     quint64 meshId() const;
     void setMeshId(quint64 id);
 private:
