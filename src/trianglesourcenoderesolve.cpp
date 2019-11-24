@@ -17,7 +17,8 @@ struct CandidateEdge
     float length;
 };
 
-void triangleSourceNodeResolve(const Outcome &outcome, std::vector<std::pair<QUuid, QUuid>> &triangleSourceNodes)
+void triangleSourceNodeResolve(const Outcome &outcome, std::vector<std::pair<QUuid, QUuid>> &triangleSourceNodes,
+    std::vector<std::pair<QUuid, QUuid>> *vertexSourceNodes)
 {
     std::map<int, std::pair<QUuid, QUuid>> vertexSourceMap;
     std::map<nodemesh::PositionKey, std::pair<QUuid, QUuid>> positionMap;
@@ -26,12 +27,16 @@ void triangleSourceNodeResolve(const Outcome &outcome, std::vector<std::pair<QUu
     for (const auto &it: outcome.nodeVertices) {
         positionMap.insert({nodemesh::PositionKey(it.first), it.second});
     }
+    if (nullptr != vertexSourceNodes)
+        vertexSourceNodes->resize(outcome.vertices.size());
     for (auto x = 0u; x < outcome.vertices.size(); x++) {
         const QVector3D *resultVertex = &outcome.vertices[x];
         std::pair<QUuid, QUuid> source;
         auto findPosition = positionMap.find(nodemesh::PositionKey(*resultVertex));
-        if (findPosition != positionMap.end())
+        if (findPosition != positionMap.end()) {
+            (*vertexSourceNodes)[x] = findPosition->second;
             vertexSourceMap[x] = findPosition->second;
+        }
     }
     for (auto x = 0u; x < outcome.triangles.size(); x++) {
         const auto triangle = outcome.triangles[x];

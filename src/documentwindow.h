@@ -136,6 +136,7 @@ private:
     QAction *m_switchXzAction;
     QAction *m_setCutFaceAction;
     QAction *m_clearCutFaceAction;
+    QAction *m_createWrapPartsAction;
     
     QMenu *m_alignToMenu;
     QAction *m_alignToGlobalCenterAction;

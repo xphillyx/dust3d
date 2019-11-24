@@ -435,6 +435,18 @@ HEADERS += src/triangleislandsresolve.h
 SOURCES += src/triangleislandslink.cpp
 HEADERS += src/triangleislandslink.h
 
+SOURCES += src/gridmeshbuilder.cpp
+HEADERS += src/gridmeshbuilder.h
+
+SOURCES += src/regionfiller.cpp
+HEADERS += src/regionfiller.h
+
+SOURCES += src/cyclefinder.cpp
+HEADERS += src/cyclefinder.h
+
+SOURCES += src/shortestpath.cpp
+HEADERS += src/shortestpath.h
+
 SOURCES += src/main.cpp
 
 HEADERS += src/version.h

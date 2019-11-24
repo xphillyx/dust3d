@@ -435,6 +435,7 @@ signals:
     void partColorSolubilityChanged(QUuid partId);
     void partHollowThicknessChanged(QUuid partId);
     void partCountershadeStateChanged(QUuid partId);
+    void partGridStateChanged(QUuid partId);
     void componentCombineModeChanged(QUuid componentId);
     void cleanup();
     void cleanupScript();
@@ -583,6 +584,11 @@ public slots:
     void setEditMode(SkeletonDocumentEditMode mode);
     void setPaintMode(PaintMode mode);
     void setMousePickRadius(float radius);
+    void createGriddedPartsFromNodes(const std::set<QUuid> &nodeIds);
+    void createFromNodesAndEdges(const std::vector<QVector3D> &nodes,
+        const std::vector<std::pair<size_t, size_t>> &edges);
+    void createSinglePartFromEdges(const std::vector<QVector3D> &nodes,
+        const std::vector<std::pair<size_t, size_t>> &edges);
     void uiReady();
     void generateMesh();
     void regenerateMesh();
@@ -715,6 +721,7 @@ private:
     void updateLinkedPart(QUuid oldPartId, QUuid newPartId);
     //void addToolToMesh(MeshLoader *mesh);
     bool updateDefaultVariables(const std::map<QString, std::map<QString, QString>> &defaultVariables);
+    void checkPartGrid(QUuid partId);
 private: // need initialize
     bool m_isResultMeshObsolete;
     MeshGenerator *m_meshGenerator;

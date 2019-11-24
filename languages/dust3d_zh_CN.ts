@@ -924,10 +924,6 @@ Tips:
         <translation>未平滑：</translation>
     </message>
     <message>
-        <source>Three nodes branch:</source>
-        <translation>三结点分枝：</translation>
-    </message>
-    <message>
         <source>Reset</source>
         <translation>重置</translation>
     </message>

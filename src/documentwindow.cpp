@@ -289,6 +289,7 @@ DocumentWindow::DocumentWindow() :
     m_modelRenderWidget->setMinimumSize(DocumentWindow::m_modelRenderWidgetInitialSize, DocumentWindow::m_modelRenderWidgetInitialSize);
     m_modelRenderWidget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
     m_modelRenderWidget->move(DocumentWindow::m_modelRenderWidgetInitialX, DocumentWindow::m_modelRenderWidgetInitialY);
+    m_modelRenderWidget->toggleWireframe();
     
     m_modelRenderWidget->setMousePickRadius(m_document->mousePickRadius());
     
@@ -574,6 +575,12 @@ DocumentWindow::DocumentWindow() :
         m_graphicsWidget->clearSelectedCutFace();
     });
     m_editMenu->addAction(m_clearCutFaceAction);
+    
+    m_createWrapPartsAction = new QAction(tr("Create Wrap Parts"), this);
+    connect(m_createWrapPartsAction, &QAction::triggered, [=] {
+        m_graphicsWidget->createWrapParts();
+    });
+    m_editMenu->addAction(m_createWrapPartsAction);
 
     m_alignToMenu = new QMenu(tr("Align To"));
 
@@ -668,6 +675,7 @@ DocumentWindow::DocumentWindow() :
         m_switchXzAction->setEnabled(m_graphicsWidget->hasSelection());
         m_setCutFaceAction->setEnabled(m_graphicsWidget->hasSelection());
         m_clearCutFaceAction->setEnabled(m_graphicsWidget->hasCutFaceAdjustedNodesSelection());
+        m_createWrapPartsAction->setEnabled(m_graphicsWidget->hasSelection());
         m_colorizeAsBlankAction->setEnabled(m_graphicsWidget->hasSelection());
         m_colorizeAsAutoAction->setEnabled(m_graphicsWidget->hasSelection());
         m_alignToGlobalCenterAction->setEnabled(m_graphicsWidget->hasSelection() && m_document->originSettled());
@@ -923,6 +931,7 @@ DocumentWindow::DocumentWindow() :
     connect(graphicsWidget, &SkeletonGraphicsWidget::setPartXmirrorState, m_document, &Document::setPartXmirrorState);
     connect(graphicsWidget, &SkeletonGraphicsWidget::setPartRoundState, m_document, &Document::setPartRoundState);
     connect(graphicsWidget, &SkeletonGraphicsWidget::setPartWrapState, m_document, &Document::setPartCutRotation);
+    connect(graphicsWidget, &SkeletonGraphicsWidget::createGriddedPartsFromNodes, m_document, &Document::createGriddedPartsFromNodes);
 
     connect(graphicsWidget, &SkeletonGraphicsWidget::setXlockState, m_document, &Document::setXlockState);
     connect(graphicsWidget, &SkeletonGraphicsWidget::setYlockState, m_document, &Document::setYlockState);
