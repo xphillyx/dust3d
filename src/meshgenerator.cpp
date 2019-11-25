@@ -1354,6 +1354,25 @@ void MeshGenerator::generate()
     // Recursively check uncombined components
     collectUncombinedComponent(QUuid().toString());
     
+    // Collect errored parts
+    for (const auto &it: m_cacheContext->parts) {
+        if (!it.second.isSucceed) {
+            auto vertexStartIndex = m_outcome->vertices.size();
+            auto updateVertexIndices = [=](std::vector<std::vector<size_t>> &faces) {
+                for (auto &it: faces) {
+                    for (auto &subIt: it)
+                        subIt += vertexStartIndex;
+                }
+            };
+            
+            auto errorTriangleAndQuads = it.second.faces;
+            updateVertexIndices(errorTriangleAndQuads);
+        
+            m_outcome->vertices.insert(m_outcome->vertices.end(), it.second.vertices.begin(), it.second.vertices.end());
+            m_outcome->triangleAndQuads.insert(m_outcome->triangleAndQuads.end(), errorTriangleAndQuads.begin(), errorTriangleAndQuads.end());
+        }
+    }
+    
     auto postprocessOutcome = [this](Outcome *outcome) {
         std::vector<QVector3D> combinedFacesNormals;
         for (const auto &face: outcome->triangles) {
