@@ -19,11 +19,13 @@ private:
     std::map<std::pair<size_t, size_t>, int> m_edgeLengthMap;
     std::vector<std::vector<size_t>> m_cycles;
     std::set<std::pair<size_t, size_t>> m_cycleEdges;
+    std::set<std::pair<size_t, size_t>> m_halfEdges;
     void removeEdgeFrom(const std::pair<size_t, size_t> &edge,
         std::vector<std::pair<size_t, size_t>> *edges,
         std::vector<int> *edgeLengths);
     void addPathToCycleEdges(const std::vector<size_t> &path,
-        std::set<std::pair<size_t, size_t>> *cycleEdges);
+        std::set<std::pair<size_t, size_t>> *cycleEdges,
+        std::set<std::pair<size_t, size_t>> *halfEdges);
     bool validateCycle(const std::set<std::pair<size_t, size_t>> &newPathEdges,
         const std::set<std::pair<size_t, size_t>> &oldPathEdges);
     void prepareWeights();

@@ -1,4 +1,5 @@
 QT += core widgets opengl network
+DEFINES += "IN_DEVELOPMENT=1"
 CONFIG += release
 DEFINES += NDEBUG
 DEFINES += QT_MESSAGELOGCONTEXT

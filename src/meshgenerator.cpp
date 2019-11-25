@@ -319,6 +319,7 @@ void MeshGenerator::cutFaceStringToCutTemplate(const QString &cutFaceString, std
     }
 }
 
+#ifdef IN_DEVELOPMENT
 #include <QTextStream>
 #include <QFile>
 static void exportAsObj(const std::vector<QVector3D> &positions,
@@ -337,6 +338,7 @@ static void exportAsObj(const std::vector<QVector3D> &positions,
         stream << endl;
     }
 }
+#endif
 
 nodemesh::Combiner::Mesh *MeshGenerator::combinePartMesh(const QString &partIdString, bool *hasError, bool addIntermediateNodes)
 {
@@ -767,6 +769,17 @@ nodemesh::Combiner::Mesh *MeshGenerator::combinePartMesh(const QString &partIdSt
     if (partCache.previewTriangles.empty()) {
         partPreviewVertices = partCache.vertices;
         nodemesh::triangulate(partPreviewVertices, partCache.faces, partCache.previewTriangles);
+#ifdef IN_DEVELOPMENT
+        {
+            QFile file("/Users/jeremy/Desktop/dust3d_debug.obj");
+            if (file.open(QIODevice::WriteOnly)) {
+                QTextStream stream(&file);
+                exportAsObj(partPreviewVertices,
+                    partCache.previewTriangles,
+                    &stream);
+            }
+        }
+#endif
         partPreviewColor = Qt::red;
         partCache.isSucceed = false;
     }
@@ -1319,6 +1332,7 @@ void MeshGenerator::generate()
         
         recoverQuads(combinedVertices, combinedFaces, componentCache.sharedQuadEdges, m_outcome->triangleAndQuads);
         
+#ifdef IN_DEVELOPMENT
         {
             QFile file("/Users/jeremy/Desktop/dust3d_debug.obj");
             if (file.open(QIODevice::WriteOnly)) {
@@ -1328,6 +1342,7 @@ void MeshGenerator::generate()
                     &stream);
             }
         }
+#endif
         
         m_outcome->nodes = componentCache.outcomeNodes;
         m_outcome->nodeVertices = componentCache.outcomeNodeVertices;

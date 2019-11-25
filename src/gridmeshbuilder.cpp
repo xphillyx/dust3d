@@ -228,6 +228,7 @@ void GridMeshBuilder::calculateNormals()
 void GridMeshBuilder::extrude()
 {
     calculateNormals();
+    /*
     bool hasHalfEdge = false;
     for (const auto &halfEdge: m_halfEdgeMap) {
         auto oppositeHalfEdge = std::make_pair(halfEdge.first.second, halfEdge.first.first);
@@ -235,28 +236,26 @@ void GridMeshBuilder::extrude()
             continue;
         hasHalfEdge = true;
         break;
-    }
+    }*/
     m_generatedPositions.resize(m_generatedVertices.size() * 2);
     m_generatedSources.resize(m_generatedPositions.size(), 0);
     for (size_t i = 0; i < m_generatedVertices.size(); ++i) {
         const auto &vertex = m_generatedVertices[i];
         const auto &normal = m_nodeNormals[i];
         m_generatedPositions[i] = vertex.position;
-        if (hasHalfEdge)
-            m_generatedPositions[i] += normal * vertex.radius;
+        m_generatedPositions[i] += normal * vertex.radius;
         m_generatedSources[i] = m_nodes[vertex.source].source;
         size_t j = m_generatedVertices.size() + i;
         m_generatedPositions[j] = vertex.position;
-        if (hasHalfEdge)
-            m_generatedPositions[j] -= normal * vertex.radius;
+        m_generatedPositions[j] -= normal * vertex.radius;
         m_generatedSources[j] = m_generatedSources[i];
     }
     size_t faceNumPerLayer = m_generatedFaces.size();
     m_generatedFaces.resize(faceNumPerLayer * 2);
     for (size_t i = faceNumPerLayer; i < m_generatedFaces.size(); ++i) {
         auto &face = m_generatedFaces[i];
-        if (!hasHalfEdge)
-            continue;
+        //if (!hasHalfEdge)
+        //    continue;
         face = m_generatedFaces[i - faceNumPerLayer];
         for (auto &it: face)
             it += m_generatedVertices.size();
