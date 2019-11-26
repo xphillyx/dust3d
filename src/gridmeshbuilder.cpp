@@ -209,7 +209,7 @@ void GridMeshBuilder::calculateNormals()
             QVector3D vh = m_generatedVertices[face[h]].position;
             QVector3D vi = m_generatedVertices[face[i]].position;
             QVector3D vj = m_generatedVertices[face[j]].position;
-            sumOfNormals += QVector3D::normal(vi, vj, vh);
+            sumOfNormals += QVector3D::normal(vj - vi, vh - vi);
         }
         QVector3D faceNormal = sumOfNormals.normalized();
         for (size_t i = 0; i < face.size(); ++i) {
@@ -228,7 +228,7 @@ void GridMeshBuilder::calculateNormals()
 void GridMeshBuilder::extrude()
 {
     calculateNormals();
-    /*
+
     bool hasHalfEdge = false;
     for (const auto &halfEdge: m_halfEdgeMap) {
         auto oppositeHalfEdge = std::make_pair(halfEdge.first.second, halfEdge.first.first);
@@ -236,7 +236,11 @@ void GridMeshBuilder::extrude()
             continue;
         hasHalfEdge = true;
         break;
-    }*/
+    }
+    
+    if (m_generatedVertices.empty())
+        return;
+    
     m_generatedPositions.resize(m_generatedVertices.size() * 2);
     m_generatedSources.resize(m_generatedPositions.size(), 0);
     for (size_t i = 0; i < m_generatedVertices.size(); ++i) {
@@ -250,33 +254,58 @@ void GridMeshBuilder::extrude()
         m_generatedPositions[j] -= normal * vertex.radius;
         m_generatedSources[j] = m_generatedSources[i];
     }
-    size_t faceNumPerLayer = m_generatedFaces.size();
-    m_generatedFaces.resize(faceNumPerLayer * 2);
-    for (size_t i = faceNumPerLayer; i < m_generatedFaces.size(); ++i) {
-        auto &face = m_generatedFaces[i];
-        //if (!hasHalfEdge)
-        //    continue;
-        face = m_generatedFaces[i - faceNumPerLayer];
-        for (auto &it: face)
-            it += m_generatedVertices.size();
-        std::reverse(face.begin(), face.end());
+    
+    bool pickSecondMesh = false;
+    // The outter faces should have longer edges
+    float sumOfFirstMeshEdgeLength = 0;
+    float sumOfSecondMeshEdgeLength = 0;
+    for (size_t i = 0; i < m_generatedFaces.size(); ++i) {
+        const auto &face = m_generatedFaces[i];
+        for (size_t m = 0; m < face.size(); ++m) {
+            size_t n = (m + 1) % face.size();
+            sumOfFirstMeshEdgeLength += (m_generatedPositions[face[m]] - m_generatedPositions[face[n]]).length();
+            sumOfSecondMeshEdgeLength += (m_generatedPositions[m_generatedFaces.size() + face[m]] - m_generatedPositions[m_generatedFaces.size() + face[n]]).length();
+        }
     }
-    for (const auto &halfEdge: m_halfEdgeMap) {
-        auto oppositeHalfEdge = std::make_pair(halfEdge.first.second, halfEdge.first.first);
-        if (m_halfEdgeMap.find(oppositeHalfEdge) != m_halfEdgeMap.end())
-            continue;
-        std::vector<size_t> face = {
-            oppositeHalfEdge.first,
-            oppositeHalfEdge.second,
-            halfEdge.first.first + m_generatedVertices.size(),
-            halfEdge.first.second + m_generatedVertices.size()
-        };
-        m_generatedFaces.push_back(face);
+    if (sumOfFirstMeshEdgeLength < sumOfSecondMeshEdgeLength)
+        pickSecondMesh = true;
+    
+    size_t faceNumPerLayer = m_generatedFaces.size();
+    if (hasHalfEdge) {
+        m_generatedFaces.resize(faceNumPerLayer * 2);
+        for (size_t i = faceNumPerLayer; i < m_generatedFaces.size(); ++i) {
+            auto &face = m_generatedFaces[i];
+            face = m_generatedFaces[i - faceNumPerLayer];
+            for (auto &it: face)
+                it += m_generatedVertices.size();
+            std::reverse(face.begin(), face.end());
+        }
+        for (const auto &halfEdge: m_halfEdgeMap) {
+            auto oppositeHalfEdge = std::make_pair(halfEdge.first.second, halfEdge.first.first);
+            if (m_halfEdgeMap.find(oppositeHalfEdge) != m_halfEdgeMap.end())
+                continue;
+            std::vector<size_t> face = {
+                oppositeHalfEdge.first,
+                oppositeHalfEdge.second,
+                halfEdge.first.first + m_generatedVertices.size(),
+                halfEdge.first.second + m_generatedVertices.size()
+            };
+            m_generatedFaces.push_back(face);
+        }
+    } else {
+        if (pickSecondMesh) {
+            for (auto &face: m_generatedFaces) {
+                for (auto &it: face)
+                    it += m_generatedVertices.size();
+                std::reverse(face.begin(), face.end());
+            }
+        }
     }
 }
 
 void GridMeshBuilder::applyModifiers()
 {
+    return;
     std::vector<Node> oldNodes = m_nodes;
     std::vector<Edge> oldEdges = m_edges;
     

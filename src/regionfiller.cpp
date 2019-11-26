@@ -160,11 +160,11 @@ bool RegionFiller::resolveOddSidedEvenSumOfSegments(int siUpperBound)
     auto di = [&](int i) {
         return std::ceil(si(i) * 0.5);
     };
-
+    
     std::vector<int> gRaySegmentNums(m_sideNum);
     for (int i = 0; i < m_sideNum; ++i) {
         gRaySegmentNums[i] = di(i);
-        if (gRaySegmentNums[i] < 0) {
+        if (gRaySegmentNums[i] <= 0) {
             qDebug() << "resolveOddSidedEvenSumOfSegments failed, di:" << gRaySegmentNums[i];
             return false;
         }

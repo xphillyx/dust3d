@@ -53,20 +53,6 @@ void CycleFinder::find()
                 return false;
             }
         }
-        /*
-        std::set<size_t> neighborCycles;
-        for (size_t i = 0; i < path.size(); ++i) {
-            size_t j = (i + 1) % path.size();
-            auto oppositeEdge = std::make_pair(path[j], path[i]);
-            auto findOpposite = halfEdgeToCycleMap.find(oppositeEdge);
-            if (findOpposite == halfEdgeToCycleMap.end())
-                continue;
-            neighborCycles.insert(findOpposite->second);
-        }
-        if (neighborCycles.size() > 4) {
-            // Should not have so many neighbors
-            return false;
-        }*/
         return true;
     };
     
@@ -132,18 +118,43 @@ void CycleFinder::find()
         return length;
     };
     
-    // Remove the longest cycle
-    if (m_cycles.size() > 1) {
-        float maxCycleLength = 0;
-        size_t maxCycle = 0;
-        for (size_t i = 0; i < m_cycles.size(); ++i) {
-            float length = cycleLength(m_cycles[i]);
-            if (length > maxCycleLength) {
-                maxCycle = i;
-                maxCycleLength = length;
+    std::vector<float> cycleLengths(m_cycles.size());
+    for (size_t i = 0; i < m_cycles.size(); ++i) {
+        cycleLengths[i] = cycleLength(m_cycles[i]);
+    }
+    
+    std::set<std::pair<size_t, size_t>> visitedHalfEdges;
+    std::set<size_t> invalidCycles;
+    for (const auto &it: halfEdgeToCycleMap) {
+        auto edge = it.first;
+        auto oppositeEdge = std::make_pair(edge.second, edge.first);
+        auto findOpposite = halfEdgeToCycleMap.find(oppositeEdge);
+        if (findOpposite == halfEdgeToCycleMap.end())
+            continue;
+        visitedHalfEdges.insert(oppositeEdge);
+        auto length = cycleLengths[it.second];
+        auto oppositeLength = cycleLengths[findOpposite->second];
+        if (length < oppositeLength) {
+            auto ratio = (float)length / oppositeLength;
+            if (ratio < m_invalidNeighborCycleRatio) {
+                qDebug() << "ratio:" << ratio;
+                invalidCycles.insert(findOpposite->second);
+            }
+        } else {
+            auto ratio = (float)oppositeLength / length;
+            if (ratio < m_invalidNeighborCycleRatio) {
+                qDebug() << "ratio:" << ratio;
+                invalidCycles.insert(it.second);
             }
         }
-        m_cycles.erase(m_cycles.begin() + maxCycle);
+    }
+    
+    std::vector<std::vector<size_t>> oldCycles = m_cycles;
+    m_cycles.clear();
+    for (size_t i = 0; i < oldCycles.size(); ++i) {
+        if (invalidCycles.find(i) != invalidCycles.end())
+            continue;
+        m_cycles.push_back(oldCycles[i]);
     }
 }
 
