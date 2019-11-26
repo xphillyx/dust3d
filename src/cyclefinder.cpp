@@ -34,6 +34,40 @@ void CycleFinder::prepareWeights()
     }
 }
 
+bool CycleFinder::validCycle(const std::vector<size_t> &cycle)
+{
+    // Validate cycle by mesaure the flatness of the face
+    // Flatness = Average variation of corner normals
+    
+    if (cycle.empty())
+        return false;
+    std::vector<QVector3D> normals;
+    for (size_t i = 0; i < cycle.size(); ++i) {
+        size_t h = (i + cycle.size() - 1) % cycle.size();
+        size_t j = (i + 1) % cycle.size();
+        QVector3D vh = m_nodePositions[cycle[h]];
+        QVector3D vi = m_nodePositions[cycle[i]];
+        QVector3D vj = m_nodePositions[cycle[j]];
+        if (QVector3D::dotProduct((vj - vi).normalized(),
+                (vi - vh).normalized()) <= 0.966) { // 15 degrees
+            auto vertexNormal = QVector3D::normal(vj - vi, vh - vi);
+            normals.push_back(vertexNormal);
+        }
+    }
+    if (normals.empty())
+        return false;
+    float sumOfDistance = 0;
+    for (size_t i = 0; i < normals.size(); ++i) {
+        size_t j = (i + 1) % normals.size();
+        sumOfDistance += (normals[i] - normals[j]).length();
+    }
+    float flatness = sumOfDistance / normals.size();
+    if (flatness >= m_invalidFlatness) {
+        return false;
+    }
+    return true;
+}
+
 void CycleFinder::find()
 {
     prepareWeights();
@@ -53,6 +87,8 @@ void CycleFinder::find()
                 return false;
             }
         }
+        if (!validCycle(path))
+            return false;
         return true;
     };
     
@@ -106,55 +142,6 @@ void CycleFinder::find()
                 continue;
             waitEdges.push(oppositeEdge);
         }
-    }
-    
-    auto cycleLength = [&](const std::vector<size_t> &path) {
-        float length = 0;
-        for (size_t i = 0; i < path.size(); ++i) {
-            size_t j = (i + 1) % path.size();
-            auto edge = std::make_pair(path[i], path[j]);
-            length += m_edgeLengthMap[edge];
-        }
-        return length;
-    };
-    
-    std::vector<float> cycleLengths(m_cycles.size());
-    for (size_t i = 0; i < m_cycles.size(); ++i) {
-        cycleLengths[i] = cycleLength(m_cycles[i]);
-    }
-    
-    std::set<std::pair<size_t, size_t>> visitedHalfEdges;
-    std::set<size_t> invalidCycles;
-    for (const auto &it: halfEdgeToCycleMap) {
-        auto edge = it.first;
-        auto oppositeEdge = std::make_pair(edge.second, edge.first);
-        auto findOpposite = halfEdgeToCycleMap.find(oppositeEdge);
-        if (findOpposite == halfEdgeToCycleMap.end())
-            continue;
-        visitedHalfEdges.insert(oppositeEdge);
-        auto length = cycleLengths[it.second];
-        auto oppositeLength = cycleLengths[findOpposite->second];
-        if (length < oppositeLength) {
-            auto ratio = (float)length / oppositeLength;
-            if (ratio < m_invalidNeighborCycleRatio) {
-                qDebug() << "ratio:" << ratio;
-                invalidCycles.insert(findOpposite->second);
-            }
-        } else {
-            auto ratio = (float)oppositeLength / length;
-            if (ratio < m_invalidNeighborCycleRatio) {
-                qDebug() << "ratio:" << ratio;
-                invalidCycles.insert(it.second);
-            }
-        }
-    }
-    
-    std::vector<std::vector<size_t>> oldCycles = m_cycles;
-    m_cycles.clear();
-    for (size_t i = 0; i < oldCycles.size(); ++i) {
-        if (invalidCycles.find(i) != invalidCycles.end())
-            continue;
-        m_cycles.push_back(oldCycles[i]);
     }
 }
 

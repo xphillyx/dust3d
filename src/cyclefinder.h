@@ -20,11 +20,12 @@ private:
     std::vector<std::vector<size_t>> m_cycles;
     std::set<std::pair<size_t, size_t>> m_cycleEdges;
     std::set<std::pair<size_t, size_t>> m_halfEdges;
-    float m_invalidNeighborCycleRatio = 0.25;
+    float m_invalidFlatness = 0.82;
     void removeEdgeFrom(const std::pair<size_t, size_t> &edge,
         std::vector<std::pair<size_t, size_t>> *edges,
         std::vector<int> *edgeLengths);
     void prepareWeights();
+    bool validCycle(const std::vector<size_t> &cycle);
 };
 
 #endif
