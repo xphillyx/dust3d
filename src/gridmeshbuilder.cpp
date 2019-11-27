@@ -124,8 +124,12 @@ void GridMeshBuilder::generateFaces()
     for (const auto &it: m_cycles) {
         std::vector<std::vector<size_t>> polylines;
         splitCycleToPolylines(it, &polylines);
-        if (polylines.size() < 3)
+        if (polylines.size() < 3) {
+            std::vector<std::vector<size_t>> faces;
+            faces.push_back(it);
+            addCandidateFaces(faces);
             continue;
+        }
         RegionFiller regionFiller(&m_generatedVertices, &polylines);
         if (regionFiller.fill()) {
             m_generatedVertices = regionFiller.getOldAndNewVertices();
@@ -305,8 +309,6 @@ void GridMeshBuilder::extrude()
 
 void GridMeshBuilder::applyModifiers()
 {
-    return;
-    
     std::vector<Node> oldNodes = m_nodes;
     std::vector<Edge> oldEdges = m_edges;
     

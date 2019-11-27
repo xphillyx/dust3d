@@ -768,11 +768,19 @@ bool RegionFiller::resolveQuadrilateralRegionWithNonIntegerSolution(int m, int n
         m_newRegions.push_back(region);
     }
     
-    {
+    if (gpIndex != e7Index) {
         std::vector<std::vector<size_t>> region = {
             createPointsToMapBetween(g2Index, e3Index, f1, &map),
             collectEdgePoints(p, e3EdgeIndex, e4EdgeIndex),
             createPointsToMapBetween(e4Index, gpIndex, f1, &map),
+            createPointsToMapBetween(gpIndex, g2Index, a, &map)
+        };
+        m_newRegions.push_back(region);
+    } else {
+        std::vector<std::vector<size_t>> region = {
+            createPointsToMapBetween(g2Index, e3Index, f1, &map),
+            collectEdgePoints(p, e3EdgeIndex, c2AlternativeEdgeIndex),
+            collectEdgePoints(n, c2EdgeIndex, e7EdgeIndex),
             createPointsToMapBetween(gpIndex, g2Index, a, &map)
         };
         m_newRegions.push_back(region);
@@ -798,11 +806,19 @@ bool RegionFiller::resolveQuadrilateralRegionWithNonIntegerSolution(int m, int n
         m_newRegions.push_back(region);
     }
     
-    {
+    if (gpIndex != e7Index) {
         std::vector<std::vector<size_t>> region = {
             createPointsToMapBetween(g1Index, gpIndex, b, &map),
             createPointsToMapBetween(gpIndex, e5Index, f0, &map),
             collectEdgePoints(q, e5EdgeIndex, e6EdgeIndex),
+            createPointsToMapBetween(e6Index, g1Index, f0, &map)
+        };
+        m_newRegions.push_back(region);
+    } else {
+        std::vector<std::vector<size_t>> region = {
+            createPointsToMapBetween(g1Index, gpIndex, b, &map),
+            collectEdgePoints(n, e7EdgeIndex, c3AlternativeEdgeIndex),
+            collectEdgePoints(q, c3EdgeIndex, e6EdgeIndex),
             createPointsToMapBetween(e6Index, g1Index, f0, &map)
         };
         m_newRegions.push_back(region);
