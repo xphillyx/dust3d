@@ -37,6 +37,7 @@ private:
     std::vector<QVector3D> m_generatedPositions;
     std::vector<size_t> m_generatedSources;
     std::vector<std::vector<size_t>> m_generatedFaces;
+    std::vector<size_t> m_generatedFaceSourceCycles;
     std::vector<RegionFiller::Node> m_nodeVertices;
     std::vector<QVector3D> m_nodePositions;
     std::vector<std::vector<size_t>> m_cycles;
@@ -51,6 +52,7 @@ private:
     void generateFaces();
     void extrude();
     void calculateNormals();
+    void removeCollapsedCycleFaces();
 };
 
 #endif

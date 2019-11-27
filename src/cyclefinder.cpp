@@ -98,8 +98,8 @@ void CycleFinder::find()
         edgeIndexMap.insert({std::make_pair(edge.second, edge.first), i});
     }
     
-    float maxCycleLength = 0;
-    int maxCycleIndex = -1;
+    //float maxCycleLength = 0;
+    //int maxCycleIndex = -1;
     
     waitEdges.push(m_edges[0]);
     while (!waitEdges.empty()) {
@@ -116,22 +116,22 @@ void CycleFinder::find()
         if (!shortestPath(m_nodeNum, edges, weights, currentEdge.first, currentEdge.second, &path))
             continue;
         
-        float cycleLength = 0;
-        for (size_t i = 0; i < path.size(); ++i) {
-            size_t j = (i + 1) % path.size();
-            auto edge = std::make_pair(path[i], path[j]);
-            auto findEdgeLength = m_edgeLengthMap.find(edge);
-            if (findEdgeLength == m_edgeLengthMap.end())
-                continue;
-            cycleLength += findEdgeLength->second;
-        }
+        //float cycleLength = 0;
+        //for (size_t i = 0; i < path.size(); ++i) {
+        //    size_t j = (i + 1) % path.size();
+        //    auto edge = std::make_pair(path[i], path[j]);
+        //    auto findEdgeLength = m_edgeLengthMap.find(edge);
+        //    if (findEdgeLength == m_edgeLengthMap.end())
+        //        continue;
+        //    cycleLength += findEdgeLength->second;
+        //}
         
         bool isValid = isPathValid(path);
         
-        if (cycleLength > maxCycleLength) {
-            maxCycleLength = cycleLength;
-            maxCycleIndex = isValid ? m_cycles.size() : -1;
-        }
+        //if (cycleLength > maxCycleLength) {
+        //    maxCycleLength = cycleLength;
+        //    maxCycleIndex = isValid ? m_cycles.size() : -1;
+        //}
         
         if (!isValid)
             continue;

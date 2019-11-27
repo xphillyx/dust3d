@@ -108,11 +108,14 @@ void GridMeshBuilder::generateFaces()
     std::map<std::pair<size_t, size_t>, std::vector<size_t>> edgeToCandidateFaceMap;
     m_generatedVertices = m_nodeVertices;
     std::vector<std::vector<size_t>> candidateFaces;
+    std::vector<size_t> candidateFaceSourceCycles;
+    m_generatedFaces.clear();
     
-    auto addCandidateFaces = [&](const std::vector<std::vector<size_t>> &newFaces) {
+    auto addCandidateFaces = [&](const std::vector<std::vector<size_t>> &newFaces, size_t sourceCycle) {
         for (const auto &face: newFaces) {
             size_t candidateFaceIndex = candidateFaces.size();
             candidateFaces.push_back(face);
+            candidateFaceSourceCycles.push_back(sourceCycle);
             for (size_t i = 0; i < face.size(); ++i) {
                 size_t j = (i + 1) % face.size();
                 auto edgeKey = createEdgeKey(face[i], face[j]);
@@ -121,13 +124,14 @@ void GridMeshBuilder::generateFaces()
         }
     };
     
-    for (const auto &it: m_cycles) {
+    for (size_t i = 0; i < m_cycles.size(); ++i) {
+        const auto &it = m_cycles[i];
         std::vector<std::vector<size_t>> polylines;
         splitCycleToPolylines(it, &polylines);
         if (polylines.size() < 3) {
             std::vector<std::vector<size_t>> faces;
             faces.push_back(it);
-            addCandidateFaces(faces);
+            addCandidateFaces(faces, i);
             continue;
         }
         RegionFiller regionFiller(&m_generatedVertices, &polylines);
@@ -137,7 +141,7 @@ void GridMeshBuilder::generateFaces()
             regionFiller.fillWithoutPartition();
         }
         auto newFaces = regionFiller.getNewFaces();
-        addCandidateFaces(newFaces);
+        addCandidateFaces(newFaces, i);
     }
     
     if (candidateFaces.empty())
@@ -183,6 +187,7 @@ void GridMeshBuilder::generateFaces()
         }
         size_t finalFaceIndex = m_generatedFaces.size();
         m_generatedFaces.push_back(finalFace);
+        m_generatedFaceSourceCycles.push_back(candidateFaceSourceCycles[faceIndex]);
         for (size_t i = 0; i < finalFace.size(); ++i) {
             size_t j = (i + 1) % finalFace.size();
             auto insertResult = m_halfEdgeMap.insert({std::make_pair(finalFace[i], finalFace[j]), finalFaceIndex});
@@ -229,8 +234,72 @@ void GridMeshBuilder::calculateNormals()
     }
 }
 
+void GridMeshBuilder::removeCollapsedCycleFaces()
+{
+    if (m_generatedFaces.size() != m_generatedFaceSourceCycles.size()) {
+        qDebug() << "Generated source cycles invalid";
+        return;
+    }
+    std::set<std::pair<size_t, size_t>> possibleInvalidNeighborCycles;
+    std::map<size_t, size_t> cycleEdgeNumMap;
+    std::set<size_t> invalidCycles;
+    for (size_t faceIndex = 0; faceIndex < m_generatedFaces.size(); ++faceIndex) {
+        const auto &face = m_generatedFaces[faceIndex];
+        size_t sourceCycle = m_generatedFaceSourceCycles[faceIndex];
+        cycleEdgeNumMap[sourceCycle]++;
+        std::map<size_t, size_t> oppositeCycleEdges;
+        for (size_t i = 0; i < face.size(); ++i) {
+            size_t j = (i + 1) % face.size();
+            auto oppositeEdge = std::make_pair(face[j], face[i]);
+            auto findOpposite = m_halfEdgeMap.find(oppositeEdge);
+            if (findOpposite == m_halfEdgeMap.end())
+                continue;
+            size_t oppositeFaceIndex = findOpposite->second;
+            size_t oppositeFaceSourceCycle = m_generatedFaceSourceCycles[oppositeFaceIndex];
+            if (sourceCycle == oppositeFaceSourceCycle)
+                continue;
+            oppositeCycleEdges[oppositeFaceSourceCycle]++;
+        }
+        for (const auto &it: oppositeCycleEdges) {
+            if (it.second >= 2) {
+                auto edgeKey = std::make_pair(sourceCycle, it.first);
+                if (edgeKey.first > edgeKey.second)
+                    std::swap(edgeKey.first, edgeKey.second);
+                possibleInvalidNeighborCycles.insert(edgeKey);
+            }
+        }
+    }
+    for (const auto &it: possibleInvalidNeighborCycles) {
+        if (cycleEdgeNumMap[it.first] > cycleEdgeNumMap[it.second]) {
+            invalidCycles.insert(it.first);
+        } else {
+            invalidCycles.insert(it.second);
+        }
+    }
+    
+    if (invalidCycles.empty())
+        return;
+    
+    auto oldFaces = m_generatedFaces;
+    m_halfEdgeMap.clear();
+    m_generatedFaces.clear();
+    for (size_t faceIndex = 0; faceIndex < oldFaces.size(); ++faceIndex) {
+        size_t sourceCycle = m_generatedFaceSourceCycles[faceIndex];
+        if (invalidCycles.find(sourceCycle) == invalidCycles.end())
+            continue;
+        const auto &face = oldFaces[faceIndex];
+        for (size_t i = 0; i < face.size(); ++i) {
+            size_t j = (i + 1) % face.size();
+            auto edge = std::make_pair(face[i], face[j]);
+            m_halfEdgeMap.insert({edge, m_generatedFaces.size()});
+        }
+        m_generatedFaces.push_back(face);
+    }
+}
+
 void GridMeshBuilder::extrude()
 {
+    removeCollapsedCycleFaces();
     calculateNormals();
 
     bool hasHalfEdge = false;
