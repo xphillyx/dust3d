@@ -1326,7 +1326,7 @@ void Document::createSinglePartFromEdges(const std::vector<QVector3D> &nodes,
         newNode.setX(getOriginX() + position.x());
         newNode.setY(getOriginY() - position.y());
         newNode.setZ(getOriginZ() - position.z());
-        newNode.setRadius(0.005);
+        newNode.setRadius(0);
         nodeMap[newNode.id] = newNode;
         newPart.nodeIds.push_back(newNode.id);
         newAddedNodeIds.push_back(newNode.id);

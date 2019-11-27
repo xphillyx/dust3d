@@ -264,7 +264,7 @@ void GridMeshBuilder::extrude()
         for (size_t m = 0; m < face.size(); ++m) {
             size_t n = (m + 1) % face.size();
             sumOfFirstMeshEdgeLength += (m_generatedPositions[face[m]] - m_generatedPositions[face[n]]).length();
-            sumOfSecondMeshEdgeLength += (m_generatedPositions[m_generatedFaces.size() + face[m]] - m_generatedPositions[m_generatedFaces.size() + face[n]]).length();
+            sumOfSecondMeshEdgeLength += (m_generatedPositions[m_generatedVertices.size() + face[m]] - m_generatedPositions[m_generatedVertices.size() + face[n]]).length();
         }
     }
     if (sumOfFirstMeshEdgeLength < sumOfSecondMeshEdgeLength)
@@ -306,6 +306,7 @@ void GridMeshBuilder::extrude()
 void GridMeshBuilder::applyModifiers()
 {
     return;
+    
     std::vector<Node> oldNodes = m_nodes;
     std::vector<Edge> oldEdges = m_edges;
     
