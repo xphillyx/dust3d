@@ -234,20 +234,17 @@ void GridMeshBuilder::calculateNormals()
     }
 }
 
-void GridMeshBuilder::removeCollapsedCycleFaces()
+void GridMeshBuilder::removeBigRingFaces()
 {
     if (m_generatedFaces.size() != m_generatedFaceSourceCycles.size()) {
         qDebug() << "Generated source cycles invalid";
         return;
     }
-    std::set<std::pair<size_t, size_t>> possibleInvalidNeighborCycles;
-    std::map<size_t, size_t> cycleEdgeNumMap;
     std::set<size_t> invalidCycles;
     for (size_t faceIndex = 0; faceIndex < m_generatedFaces.size(); ++faceIndex) {
         const auto &face = m_generatedFaces[faceIndex];
         size_t sourceCycle = m_generatedFaceSourceCycles[faceIndex];
-        cycleEdgeNumMap[sourceCycle]++;
-        std::map<size_t, size_t> oppositeCycleEdges;
+        size_t oppositeCycles = 0;
         for (size_t i = 0; i < face.size(); ++i) {
             size_t j = (i + 1) % face.size();
             auto oppositeEdge = std::make_pair(face[j], face[i]);
@@ -258,23 +255,10 @@ void GridMeshBuilder::removeCollapsedCycleFaces()
             size_t oppositeFaceSourceCycle = m_generatedFaceSourceCycles[oppositeFaceIndex];
             if (sourceCycle == oppositeFaceSourceCycle)
                 continue;
-            oppositeCycleEdges[oppositeFaceSourceCycle]++;
+            ++oppositeCycles;
         }
-        for (const auto &it: oppositeCycleEdges) {
-            if (it.second >= 2) {
-                auto edgeKey = std::make_pair(sourceCycle, it.first);
-                if (edgeKey.first > edgeKey.second)
-                    std::swap(edgeKey.first, edgeKey.second);
-                possibleInvalidNeighborCycles.insert(edgeKey);
-            }
-        }
-    }
-    for (const auto &it: possibleInvalidNeighborCycles) {
-        if (cycleEdgeNumMap[it.first] > cycleEdgeNumMap[it.second]) {
-            invalidCycles.insert(it.first);
-        } else {
-            invalidCycles.insert(it.second);
-        }
+        if (oppositeCycles > m_maxBigRingSize)
+            invalidCycles.insert(sourceCycle);
     }
     
     if (invalidCycles.empty())
@@ -285,7 +269,7 @@ void GridMeshBuilder::removeCollapsedCycleFaces()
     m_generatedFaces.clear();
     for (size_t faceIndex = 0; faceIndex < oldFaces.size(); ++faceIndex) {
         size_t sourceCycle = m_generatedFaceSourceCycles[faceIndex];
-        if (invalidCycles.find(sourceCycle) == invalidCycles.end())
+        if (invalidCycles.find(sourceCycle) != invalidCycles.end())
             continue;
         const auto &face = oldFaces[faceIndex];
         for (size_t i = 0; i < face.size(); ++i) {
@@ -299,7 +283,7 @@ void GridMeshBuilder::removeCollapsedCycleFaces()
 
 void GridMeshBuilder::extrude()
 {
-    removeCollapsedCycleFaces();
+    removeBigRingFaces();
     calculateNormals();
 
     bool hasHalfEdge = false;

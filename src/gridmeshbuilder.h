@@ -45,6 +45,7 @@ private:
     std::vector<QVector3D> m_nodeNormals;
     float m_polylineAngleChangeThreshold = 35;
     float m_meshTargetEdgeSize = 0.04;
+    size_t m_maxBigRingSize = 10;
     void prepareNodeVertices();
     void findCycles();
     void splitCycleToPolylines(const std::vector<size_t> &cycle,
@@ -52,7 +53,7 @@ private:
     void generateFaces();
     void extrude();
     void calculateNormals();
-    void removeCollapsedCycleFaces();
+    void removeBigRingFaces();
 };
 
 #endif
