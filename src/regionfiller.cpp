@@ -823,7 +823,6 @@ bool RegionFiller::resolveQuadrilateralRegionWithNonIntegerSolution(int m, int n
         };
         m_newRegions.push_back(region);
     }
-    
     {
         std::vector<std::vector<size_t>> region = {
             createPointsToMapBetween(g1Index, g2Index, aPlusB, &map),
@@ -832,7 +831,6 @@ bool RegionFiller::resolveQuadrilateralRegionWithNonIntegerSolution(int m, int n
         };
         m_newRegions.push_back(region);
     }
-    
     return true;
 }
 
@@ -1470,11 +1468,13 @@ bool RegionFiller::createCoonsPatchThreeSidedRegion(const std::vector<std::vecto
     auto d1 = std::vector<size_t>(region[c].begin() + region[c].size() - d0.size(), region[c].begin() + region[c].size());
     std::reverse(d1.begin(), d1.end());
     
+    bool fillTriangle = region[c].size() != region[a].size() &&
+        region[a].size() != region[b].size();
     if (c0.size() < d0.size()) {
-        if (!createCoonsPatchFrom(d0, d1, c0, c1, region[a].size() != region[b].size()))
+        if (!createCoonsPatchFrom(d0, d1, c0, c1, fillTriangle))
             return false;
     } else {
-        if (!createCoonsPatchFrom(c0, c1, d0, d1, region[a].size() != region[b].size()))
+        if (!createCoonsPatchFrom(c0, c1, d0, d1, fillTriangle))
             return false;
     }
     

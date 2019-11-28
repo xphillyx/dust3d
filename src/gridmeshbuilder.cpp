@@ -283,7 +283,7 @@ void GridMeshBuilder::removeBigRingFaces()
 
 void GridMeshBuilder::extrude()
 {
-    removeBigRingFaces();
+    //removeBigRingFaces();
     calculateNormals();
 
     bool hasHalfEdge = false;
