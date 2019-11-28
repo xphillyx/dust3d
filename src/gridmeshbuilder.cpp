@@ -240,6 +240,9 @@ void GridMeshBuilder::removeBigRingFaces()
         qDebug() << "Generated source cycles invalid";
         return;
     }
+    auto maxBigRingSize = m_maxBigRingSize;
+    if (m_subdived)
+        maxBigRingSize *= 2;
     std::set<size_t> invalidCycles;
     for (size_t faceIndex = 0; faceIndex < m_generatedFaces.size(); ++faceIndex) {
         const auto &face = m_generatedFaces[faceIndex];
@@ -257,7 +260,7 @@ void GridMeshBuilder::removeBigRingFaces()
                 continue;
             ++oppositeCycles;
         }
-        if (oppositeCycles > m_maxBigRingSize)
+        if (oppositeCycles > maxBigRingSize)
             invalidCycles.insert(sourceCycle);
     }
     
@@ -283,7 +286,7 @@ void GridMeshBuilder::removeBigRingFaces()
 
 void GridMeshBuilder::extrude()
 {
-    //removeBigRingFaces();
+    removeBigRingFaces();
     calculateNormals();
 
     bool hasHalfEdge = false;
@@ -413,9 +416,15 @@ void GridMeshBuilder::applyModifiers()
     }
 }
 
+void GridMeshBuilder::setSubdived(bool subdived)
+{
+    m_subdived = subdived;
+}
+
 void GridMeshBuilder::build()
 {
-    applyModifiers();
+    if (m_subdived)
+        applyModifiers();
     prepareNodeVertices();
     findCycles();
     generateFaces();

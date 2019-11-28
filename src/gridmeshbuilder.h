@@ -24,7 +24,7 @@ public:
 
     size_t addNode(const QVector3D &position, float radius);
     size_t addEdge(size_t firstNodeIndex, size_t secondNodeIndex);
-    void applyModifiers();
+    void setSubdived(bool subdived);
     void build();
     const std::vector<QVector3D> &getGeneratedPositions();
     const std::vector<size_t> &getGeneratedSources();
@@ -45,7 +45,9 @@ private:
     std::vector<QVector3D> m_nodeNormals;
     float m_polylineAngleChangeThreshold = 35;
     float m_meshTargetEdgeSize = 0.04;
-    size_t m_maxBigRingSize = 10;
+    size_t m_maxBigRingSize = 8;
+    bool m_subdived = false;
+    void applyModifiers();
     void prepareNodeVertices();
     void findCycles();
     void splitCycleToPolylines(const std::vector<size_t> &cycle,

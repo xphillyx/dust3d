@@ -578,6 +578,8 @@ nodemesh::Combiner::Mesh *MeshGenerator::combinePartMesh(const QString &partIdSt
             gridMeshBuilder->addEdge(findFromNodeIndex->second, findToNodeIndex->second);
         }
         
+        if (subdived)
+            gridMeshBuilder->setSubdived(true);
         gridMeshBuilder->build();
         buildSucceed = true;
         
