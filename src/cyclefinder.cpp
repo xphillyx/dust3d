@@ -34,7 +34,7 @@ void CycleFinder::prepareWeights()
     }
 }
 
-bool CycleFinder::validCycle(const std::vector<size_t> &cycle)
+bool CycleFinder::validateCycleByFlatness(const std::vector<size_t> &cycle)
 {
     // Validate cycle by mesaure the flatness of the face
     // Flatness = Average variation of corner normals
@@ -67,6 +67,20 @@ bool CycleFinder::validCycle(const std::vector<size_t> &cycle)
     return true;
 }
 
+int CycleFinder::calculateCycleLength(const std::vector<size_t> &cycle)
+{
+    float cycleLength = 0;
+    for (size_t i = 0; i < cycle.size(); ++i) {
+        size_t j = (i + 1) % cycle.size();
+        auto edge = std::make_pair(cycle[i], cycle[j]);
+        auto findEdgeLength = m_edgeLengthMap.find(edge);
+        if (findEdgeLength == m_edgeLengthMap.end())
+            continue;
+        cycleLength += findEdgeLength->second;
+    }
+    return cycleLength;
+}
+
 void CycleFinder::find()
 {
     prepareWeights();
@@ -86,7 +100,31 @@ void CycleFinder::find()
                 return false;
             }
         }
-        if (!validCycle(path))
+        std::map<size_t, int> oppositeCycleEdgeLengths;
+        for (size_t i = 0; i < path.size(); ++i) {
+            size_t j = (i + 1) % path.size();
+            auto oppositeEdge = std::make_pair(path[j], path[i]);
+            auto findOpposite = halfEdgeToCycleMap.find(oppositeEdge);
+            if (findOpposite == halfEdgeToCycleMap.end())
+                continue;
+            oppositeCycleEdgeLengths[findOpposite->second] += m_edgeLengthMap[oppositeEdge];
+        }
+        for (const auto &it: oppositeCycleEdgeLengths) {
+            if (it.first >= m_cycleLengths.size()) {
+                qDebug() << "Find cycle length failed, should not happen";
+                return false;
+            }
+            const auto &fullLength = m_cycleLengths[it.first];
+            if (fullLength <= 0) {
+                qDebug() << "Cycle length invalid, should not happen";
+                return false;
+            }
+            if ((float)it.second / fullLength >= 0.5) {
+                // Half of the edges (measured by sum of length) have been used by opposite face
+                return false;
+            }
+        }
+        if (!validateCycleByFlatness(path))
             return false;
         return true;
     };
@@ -97,9 +135,6 @@ void CycleFinder::find()
         edgeIndexMap.insert({edge, i});
         edgeIndexMap.insert({std::make_pair(edge.second, edge.first), i});
     }
-    
-    //float maxCycleLength = 0;
-    //int maxCycleIndex = -1;
     
     waitEdges.push(m_edges[0]);
     while (!waitEdges.empty()) {
@@ -116,22 +151,7 @@ void CycleFinder::find()
         if (!shortestPath(m_nodeNum, edges, weights, currentEdge.first, currentEdge.second, &path))
             continue;
         
-        //float cycleLength = 0;
-        //for (size_t i = 0; i < path.size(); ++i) {
-        //    size_t j = (i + 1) % path.size();
-        //    auto edge = std::make_pair(path[i], path[j]);
-        //    auto findEdgeLength = m_edgeLengthMap.find(edge);
-        //    if (findEdgeLength == m_edgeLengthMap.end())
-        //        continue;
-        //    cycleLength += findEdgeLength->second;
-        //}
-        
         bool isValid = isPathValid(path);
-        
-        //if (cycleLength > maxCycleLength) {
-        //    maxCycleLength = cycleLength;
-        //    maxCycleIndex = isValid ? m_cycles.size() : -1;
-        //}
         
         if (!isValid)
             continue;
@@ -144,6 +164,7 @@ void CycleFinder::find()
         }
         
         m_cycles.push_back(path);
+        m_cycleLengths.push_back(calculateCycleLength(path));
         
         // Update weights
         for (size_t i = 0; i < path.size(); ++i) {
@@ -162,10 +183,6 @@ void CycleFinder::find()
             waitEdges.push(oppositeEdge);
         }
     }
-    
-    //if (-1 != maxCycleIndex) {
-    //    m_cycles.erase(m_cycles.begin() + maxCycleIndex);
-    //}
 }
 
 const std::vector<std::vector<size_t>> &CycleFinder::getCycles()

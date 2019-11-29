@@ -18,6 +18,7 @@ private:
     std::vector<int> m_edgeLengths;
     std::map<std::pair<size_t, size_t>, int> m_edgeLengthMap;
     std::vector<std::vector<size_t>> m_cycles;
+    std::vector<int> m_cycleLengths;
     std::set<std::pair<size_t, size_t>> m_cycleEdges;
     std::set<std::pair<size_t, size_t>> m_halfEdges;
     float m_invalidFlatness = 1.0;
@@ -25,7 +26,8 @@ private:
         std::vector<std::pair<size_t, size_t>> *edges,
         std::vector<int> *edgeLengths);
     void prepareWeights();
-    bool validCycle(const std::vector<size_t> &cycle);
+    bool validateCycleByFlatness(const std::vector<size_t> &cycle);
+    int calculateCycleLength(const std::vector<size_t> &cycle);
 };
 
 #endif
