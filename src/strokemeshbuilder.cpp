@@ -18,6 +18,7 @@
 #include "meshstitcher.h"
 #include "boxmesh.h"
 #include "meshcombiner.h"
+#include "util.h"
 
 typedef CGAL::Exact_predicates_inexact_constructions_kernel InexactKernel;
 typedef CGAL::Surface_mesh<InexactKernel::Point_3> InexactMesh;
@@ -25,10 +26,7 @@ typedef CGAL::Surface_mesh<InexactKernel::Point_3> InexactMesh;
 #define WRAP_STEP_BACK_FACTOR   0.1     // 0.1 ~ 0.9
 #define WRAP_WELD_FACTOR        0.01    // Allowed distance: WELD_FACTOR * radius
 
-namespace nodemesh 
-{
-
-size_t Builder::addNode(const QVector3D &position, float radius, const std::vector<QVector2D> &cutTemplate, float cutRotation)
+size_t StrokeMeshBuilder::addNode(const QVector3D &position, float radius, const std::vector<QVector2D> &cutTemplate, float cutRotation)
 {
     size_t nodeIndex = m_nodes.size();
     Node node;
@@ -42,7 +40,7 @@ size_t Builder::addNode(const QVector3D &position, float radius, const std::vect
     return nodeIndex;
 }
 
-size_t Builder::addEdge(size_t firstNodeIndex, size_t secondNodeIndex)
+size_t StrokeMeshBuilder::addEdge(size_t firstNodeIndex, size_t secondNodeIndex)
 {
     size_t edgeIndex = m_edges.size();
     Edge edge;
@@ -54,22 +52,22 @@ size_t Builder::addEdge(size_t firstNodeIndex, size_t secondNodeIndex)
     return edgeIndex;
 }
 
-const std::vector<QVector3D> &Builder::generatedVertices()
+const std::vector<QVector3D> &StrokeMeshBuilder::generatedVertices()
 {
     return m_generatedVertices;
 }
 
-const std::vector<std::vector<size_t>> &Builder::generatedFaces()
+const std::vector<std::vector<size_t>> &StrokeMeshBuilder::generatedFaces()
 {
     return m_generatedFaces;
 }
 
-const std::vector<size_t> &Builder::generatedVerticesSourceNodeIndices()
+const std::vector<size_t> &StrokeMeshBuilder::generatedVerticesSourceNodeIndices()
 {
     return m_generatedVerticesSourceNodeIndices;
 }
 
-void Builder::layoutNodes()
+void StrokeMeshBuilder::layoutNodes()
 {
     std::unordered_set<size_t> processedNodes;
     std::queue<size_t> waitNodes;
@@ -182,12 +180,12 @@ void Builder::layoutNodes()
     m_sortedNodeIndices.insert(m_sortedNodeIndices.begin(), threeBranchNodes.begin(), threeBranchNodes.end());
 }
 
-void Builder::sortNodeIndices()
+void StrokeMeshBuilder::sortNodeIndices()
 {
     layoutNodes();
 }
 
-void Builder::prepareNode(size_t nodeIndex)
+void StrokeMeshBuilder::prepareNode(size_t nodeIndex)
 {
     auto &node = m_nodes[nodeIndex];
     node.raysToNeibors.resize(node.edges.size());
@@ -214,14 +212,14 @@ void Builder::prepareNode(size_t nodeIndex)
         node.initialBaseNormal = revisedBaseNormalAcordingToCutNormal(node.initialBaseNormal, node.traverseDirection);
 }
 
-void Builder::setNodeOriginInfo(size_t nodeIndex, int nearOriginNodeIndex, int farOriginNodeIndex)
+void StrokeMeshBuilder::setNodeOriginInfo(size_t nodeIndex, int nearOriginNodeIndex, int farOriginNodeIndex)
 {
     auto &node = m_nodes[nodeIndex];
     node.nearOriginNodeIndex = nearOriginNodeIndex;
     node.farOriginNodeIndex = farOriginNodeIndex;
 }
 
-QVector3D Builder::calculateBaseNormalFromTraverseDirection(const QVector3D &traverseDirection)
+QVector3D StrokeMeshBuilder::calculateBaseNormalFromTraverseDirection(const QVector3D &traverseDirection)
 {
     const std::vector<QVector3D> axisList = {
         QVector3D {1, 0, 0},
@@ -248,7 +246,7 @@ QVector3D Builder::calculateBaseNormalFromTraverseDirection(const QVector3D &tra
     return reversed ? -baseNormal : baseNormal;
 }
 
-void Builder::resolveBaseNormalRecursively(size_t nodeIndex)
+void StrokeMeshBuilder::resolveBaseNormalRecursively(size_t nodeIndex)
 {
     auto &node = m_nodes[nodeIndex];
     if (node.baseNormalResolved)
@@ -268,7 +266,7 @@ void Builder::resolveBaseNormalRecursively(size_t nodeIndex)
     }
 }
 
-void Builder::resolveBaseNormalForLeavesRecursively(size_t nodeIndex, const QVector3D &baseNormal)
+void StrokeMeshBuilder::resolveBaseNormalForLeavesRecursively(size_t nodeIndex, const QVector3D &baseNormal)
 {
     auto &node = m_nodes[nodeIndex];
     if (node.baseNormalResolved)
@@ -294,7 +292,7 @@ void Builder::resolveBaseNormalForLeavesRecursively(size_t nodeIndex, const QVec
     }
 }
 
-void Builder::resolveInitialTraverseDirectionRecursively(size_t nodeIndex, const QVector3D *from, std::set<size_t> *visited)
+void StrokeMeshBuilder::resolveInitialTraverseDirectionRecursively(size_t nodeIndex, const QVector3D *from, std::set<size_t> *visited)
 {
     if (visited->find(nodeIndex) != visited->end())
         return;
@@ -311,7 +309,7 @@ void Builder::resolveInitialTraverseDirectionRecursively(size_t nodeIndex, const
     }
 }
 
-void Builder::resolveTraverseDirection(size_t nodeIndex)
+void StrokeMeshBuilder::resolveTraverseDirection(size_t nodeIndex)
 {
     auto &node = m_nodes[nodeIndex];
     if (!node.hasInitialTraverseDirection) {
@@ -334,7 +332,7 @@ void Builder::resolveTraverseDirection(size_t nodeIndex)
     }
 }
 
-std::pair<QVector3D, bool> Builder::searchBaseNormalFromNeighborsRecursively(size_t nodeIndex)
+std::pair<QVector3D, bool> StrokeMeshBuilder::searchBaseNormalFromNeighborsRecursively(size_t nodeIndex)
 {
     auto &node = m_nodes[nodeIndex];
     node.baseNormalSearched = true;
@@ -363,7 +361,7 @@ std::pair<QVector3D, bool> Builder::searchBaseNormalFromNeighborsRecursively(siz
     return {{}, false};
 }
 
-bool Builder::build()
+bool StrokeMeshBuilder::build()
 {
     bool succeed = true;
     
@@ -375,7 +373,7 @@ bool Builder::build()
             int subdivideTimes = (node.cutTemplate.size() / 4) - 1;
             if (subdivideTimes < 0)
                 subdivideTimes = 0;
-            box(node.position, node.radius, subdivideTimes, m_generatedVertices, m_generatedFaces);
+            boxmesh(node.position, node.radius, subdivideTimes, m_generatedVertices, m_generatedFaces);
             m_generatedVerticesSourceNodeIndices.resize(m_generatedVertices.size(), 0);
         }
         return true;
@@ -438,7 +436,7 @@ bool Builder::build()
     return succeed;
 }
 
-void Builder::localAverageBaseNormals()
+void StrokeMeshBuilder::localAverageBaseNormals()
 {
     std::vector<QVector3D> localAverageNormals;
     for (size_t nodeIndex = 0; nodeIndex < m_nodes.size(); ++nodeIndex) {
@@ -457,7 +455,7 @@ void Builder::localAverageBaseNormals()
     }
 }
 
-bool Builder::validateNormal(const QVector3D &normal)
+bool StrokeMeshBuilder::validateNormal(const QVector3D &normal)
 {
     if (normal.isNull()) {
         return false;
@@ -468,27 +466,27 @@ bool Builder::validateNormal(const QVector3D &normal)
     return true;
 }
 
-void Builder::enableBaseNormalOnX(bool enabled)
+void StrokeMeshBuilder::enableBaseNormalOnX(bool enabled)
 {
     m_baseNormalOnX = enabled;
 }
 
-void Builder::enableBaseNormalOnY(bool enabled)
+void StrokeMeshBuilder::enableBaseNormalOnY(bool enabled)
 {
     m_baseNormalOnY = enabled;
 }
 
-void Builder::enableBaseNormalOnZ(bool enabled)
+void StrokeMeshBuilder::enableBaseNormalOnZ(bool enabled)
 {
     m_baseNormalOnZ = enabled;
 }
 
-void Builder::enableBaseNormalAverage(bool enabled)
+void StrokeMeshBuilder::enableBaseNormalAverage(bool enabled)
 {
     m_baseNormalAverageEnabled = enabled;
 }
 
-std::pair<QVector3D, bool> Builder::calculateBaseNormal(const std::vector<QVector3D> &inputDirects,
+std::pair<QVector3D, bool> StrokeMeshBuilder::calculateBaseNormal(const std::vector<QVector3D> &inputDirects,
         const std::vector<QVector3D> &inputPositions,
         const std::vector<float> &weights)
 {
@@ -569,7 +567,7 @@ std::pair<QVector3D, bool> Builder::calculateBaseNormal(const std::vector<QVecto
     }
 }
 
-void Builder::insertCutVertices(const std::vector<QVector3D> &cut,
+void StrokeMeshBuilder::insertCutVertices(const std::vector<QVector3D> &cut,
     std::vector<size_t> &vertices,
     size_t nodeIndex,
     const QVector3D &cutDirect,
@@ -593,7 +591,7 @@ void Builder::insertCutVertices(const std::vector<QVector3D> &cut,
     }
 }
 
-const Builder::CutFaceTransform *Builder::nodeAdjustableCutFaceTransform(size_t nodeIndex)
+const StrokeMeshBuilder::CutFaceTransform *StrokeMeshBuilder::nodeAdjustableCutFaceTransform(size_t nodeIndex)
 {
     if (nodeIndex >= m_nodes.size())
         return nullptr;
@@ -603,7 +601,7 @@ const Builder::CutFaceTransform *Builder::nodeAdjustableCutFaceTransform(size_t 
     return &node.cutFaceTransform;
 }
 
-bool Builder::generateCutsForNode(size_t nodeIndex)
+bool StrokeMeshBuilder::generateCutsForNode(size_t nodeIndex)
 {
     if (m_swallowedNodes.find(nodeIndex) != m_swallowedNodes.end()) {
         //qDebug() << "node" << nodeIndex << "ignore cuts generating because of been swallowed";
@@ -686,7 +684,7 @@ bool Builder::generateCutsForNode(size_t nodeIndex)
     return true;
 }
 
-bool Builder::tryWrapMultipleBranchesForNode(size_t nodeIndex, std::vector<float> &offsets, bool &offsetsChanged)
+bool StrokeMeshBuilder::tryWrapMultipleBranchesForNode(size_t nodeIndex, std::vector<float> &offsets, bool &offsetsChanged)
 {
     auto backupVertices = m_generatedVertices;
     auto backupFaces = m_generatedFaces;
@@ -749,7 +747,7 @@ bool Builder::tryWrapMultipleBranchesForNode(size_t nodeIndex, std::vector<float
         m_generatedVerticesInfos = backupVerticesInfos;
         return false;
     }
-    Stitcher stitcher;
+    MeshStitcher stitcher;
     stitcher.setVertices(&m_generatedVertices);
     std::vector<size_t> failedEdgeLoops;
     bool stitchSucceed = stitcher.stitch(cutsForWrapping);
@@ -758,13 +756,13 @@ bool Builder::tryWrapMultipleBranchesForNode(size_t nodeIndex, std::vector<float
         testFaces.push_back(cuts.first);
     }
     if (stitchSucceed) {
-        stitchSucceed = nodemesh::isManifold(testFaces);
+        stitchSucceed = isManifold(testFaces);
         if (!stitchSucceed) {
             //qDebug() << "Mesh stitch but not manifold";
         }
     }
     if (stitchSucceed) {
-        nodemesh::Combiner::Mesh mesh(m_generatedVertices, testFaces, false);
+        Combiner::Mesh mesh(m_generatedVertices, testFaces, false);
         if (mesh.isNull()) {
             //qDebug() << "Mesh stitched but not not pass test";
             //nodemesh::exportMeshAsObj(m_generatedVertices, testFaces, "/Users/jeremy/Desktop/test.obj");
@@ -832,7 +830,7 @@ bool Builder::tryWrapMultipleBranchesForNode(size_t nodeIndex, std::vector<float
     return true;
 }
 
-bool Builder::swallowEdgeForNode(size_t nodeIndex, size_t edgeOrder)
+bool StrokeMeshBuilder::swallowEdgeForNode(size_t nodeIndex, size_t edgeOrder)
 {
     auto &node = m_nodes[nodeIndex];
     size_t edgeIndex = node.edges[edgeOrder];
@@ -865,7 +863,7 @@ bool Builder::swallowEdgeForNode(size_t nodeIndex, size_t edgeOrder)
     return true;
 }
 
-void Builder::unifyBaseNormals()
+void StrokeMeshBuilder::unifyBaseNormals()
 {
     std::vector<size_t> nodeIndices(m_nodes.size());
     for (size_t i = 0; i < m_nodes.size(); ++i) {
@@ -882,7 +880,7 @@ void Builder::unifyBaseNormals()
     }
 }
 
-QVector3D Builder::revisedBaseNormalAcordingToCutNormal(const QVector3D &baseNormal, const QVector3D &cutNormal)
+QVector3D StrokeMeshBuilder::revisedBaseNormalAcordingToCutNormal(const QVector3D &baseNormal, const QVector3D &cutNormal)
 {
     QVector3D orientedBaseNormal = QVector3D::dotProduct(cutNormal, baseNormal) > 0 ?
         baseNormal : -baseNormal;
@@ -893,7 +891,7 @@ QVector3D Builder::revisedBaseNormalAcordingToCutNormal(const QVector3D &baseNor
     return orientedBaseNormal.normalized();
 }
 
-void Builder::makeCut(const QVector3D &position,
+void StrokeMeshBuilder::makeCut(const QVector3D &position,
         float radius,
         const std::vector<QVector2D> &cutTemplate,
         float cutRotation,
@@ -949,12 +947,12 @@ void Builder::makeCut(const QVector3D &position,
     }
 }
 
-void Builder::stitchEdgeCuts()
+void StrokeMeshBuilder::stitchEdgeCuts()
 {
     for (size_t edgeIndex = 0; edgeIndex < m_edges.size(); ++edgeIndex) {
         auto &edge = m_edges[edgeIndex];
         if (2 == edge.cuts.size()) {
-            Stitcher stitcher;
+            MeshStitcher stitcher;
             stitcher.setVertices(&m_generatedVertices);
             stitcher.stitch(edge.cuts);
             for (const auto &face: stitcher.newlyGeneratedFaces()) {
@@ -964,7 +962,7 @@ void Builder::stitchEdgeCuts()
     }
 }
 
-void Builder::applyWeld()
+void StrokeMeshBuilder::applyWeld()
 {
     if (m_weldMap.empty())
         return;
@@ -1015,32 +1013,32 @@ void Builder::applyWeld()
     m_generatedVerticesInfos = newVerticesInfos;
 }
 
-void Builder::setDeformThickness(float thickness)
+void StrokeMeshBuilder::setDeformThickness(float thickness)
 {
     m_deformThickness = thickness;
 }
 
-void Builder::setDeformWidth(float width)
+void StrokeMeshBuilder::setDeformWidth(float width)
 {
     m_deformWidth = width;
 }
 
-void Builder::setDeformMapImage(const QImage *image)
+void StrokeMeshBuilder::setDeformMapImage(const QImage *image)
 {
     m_deformMapImage = image;
 }
 
-void Builder::setHollowThickness(float hollowThickness)
+void StrokeMeshBuilder::setHollowThickness(float hollowThickness)
 {
     m_hollowThickness = hollowThickness;
 }
 
-void Builder::setDeformMapScale(float scale)
+void StrokeMeshBuilder::setDeformMapScale(float scale)
 {
     m_deformMapScale = scale;
 }
 
-QVector3D Builder::calculateDeformPosition(const QVector3D &vertexPosition, const QVector3D &ray, const QVector3D &deformNormal, float deformFactor)
+QVector3D StrokeMeshBuilder::calculateDeformPosition(const QVector3D &vertexPosition, const QVector3D &ray, const QVector3D &deformNormal, float deformFactor)
 {
     QVector3D revisedNormal = QVector3D::dotProduct(ray, deformNormal) < 0.0 ? -deformNormal : deformNormal;
     QVector3D projectRayOnRevisedNormal = revisedNormal * (QVector3D::dotProduct(ray, revisedNormal) / revisedNormal.lengthSquared());
@@ -1048,7 +1046,7 @@ QVector3D Builder::calculateDeformPosition(const QVector3D &vertexPosition, cons
     return vertexPosition + (scaledProjct - projectRayOnRevisedNormal);
 }
 
-void Builder::finalizeHollow()
+void StrokeMeshBuilder::finalizeHollow()
 {
     if (qFuzzyIsNull(m_hollowThickness))
         return;
@@ -1088,7 +1086,7 @@ void Builder::finalizeHollow()
     }
 }
 
-void Builder::applyDeform()
+void StrokeMeshBuilder::applyDeform()
 {
     for (size_t i = 0; i < m_generatedVertices.size(); ++i) {
         auto &position = m_generatedVertices[i];
@@ -1122,37 +1120,37 @@ void Builder::applyDeform()
     }
 }
 
-const QVector3D &Builder::nodeTraverseDirection(size_t nodeIndex) const
+const QVector3D &StrokeMeshBuilder::nodeTraverseDirection(size_t nodeIndex) const
 {
     return m_nodes[nodeIndex].traverseDirection;
 }
 
-const QVector3D &Builder::nodeBaseNormal(size_t nodeIndex) const
+const QVector3D &StrokeMeshBuilder::nodeBaseNormal(size_t nodeIndex) const
 {
     return m_nodes[nodeIndex].baseNormal;
 }
 
-size_t Builder::nodeTraverseOrder(size_t nodeIndex) const
+size_t StrokeMeshBuilder::nodeTraverseOrder(size_t nodeIndex) const
 {
     return m_nodes[nodeIndex].reversedTraverseOrder;
 }
 
-float nodemesh::radianToDegree(float r)
+float radianToDegree(float r)
 {
     return r * 180.0 / M_PI;
 }
 
-float nodemesh::angleBetween(const QVector3D &v1, const QVector3D &v2)
+float angleBetween(const QVector3D &v1, const QVector3D &v2)
 {
     return atan2(QVector3D::crossProduct(v1, v2).length(), QVector3D::dotProduct(v1, v2));
 }
 
-float nodemesh::degreeBetween(const QVector3D &v1, const QVector3D &v2)
+float degreeBetween(const QVector3D &v1, const QVector3D &v2)
 {
     return radianToDegree(angleBetween(v1, v2));
 }
 
-float nodemesh::degreeBetweenIn360(const QVector3D &a, const QVector3D &b, const QVector3D &direct)
+float degreeBetweenIn360(const QVector3D &a, const QVector3D &b, const QVector3D &direct)
 {
     auto angle = radianToDegree(angleBetween(a, b));
     auto c = QVector3D::crossProduct(a, b);
@@ -1162,7 +1160,7 @@ float nodemesh::degreeBetweenIn360(const QVector3D &a, const QVector3D &b, const
     return angle;
 }
 
-QVector3D nodemesh::polygonNormal(const std::vector<QVector3D> &vertices, const std::vector<size_t> &polygon)
+QVector3D polygonNormal(const std::vector<QVector3D> &vertices, const std::vector<size_t> &polygon)
 {
     QVector3D normal;
     for (size_t i = 0; i < polygon.size(); ++i) {
@@ -1176,7 +1174,7 @@ QVector3D nodemesh::polygonNormal(const std::vector<QVector3D> &vertices, const 
     return normal.normalized();
 }
 
-bool nodemesh::pointInTriangle(const QVector3D &a, const QVector3D &b, const QVector3D &c, const QVector3D &p)
+bool pointInTriangle(const QVector3D &a, const QVector3D &b, const QVector3D &c, const QVector3D &p)
 {
     auto u = b - a;
     auto v = c - a;
@@ -1197,7 +1195,7 @@ bool nodemesh::pointInTriangle(const QVector3D &a, const QVector3D &b, const QVe
     return r + t <= 1.0;
 }
 
-bool nodemesh::triangulate(std::vector<QVector3D> &vertices, const std::vector<std::vector<size_t>> &faces, std::vector<std::vector<size_t>> &triangles)
+bool triangulate(std::vector<QVector3D> &vertices, const std::vector<std::vector<size_t>> &faces, std::vector<std::vector<size_t>> &triangles)
 {
     auto cgalMesh = buildCgalMesh<InexactKernel>(vertices, faces);
     bool isSucceed = CGAL::Polygon_mesh_processing::triangulate_faces(*cgalMesh);
@@ -1272,7 +1270,7 @@ bool nodemesh::triangulate(std::vector<QVector3D> &vertices, const std::vector<s
     return isSucceed;
 }
 
-void nodemesh::exportMeshAsObj(const std::vector<QVector3D> &vertices, const std::vector<std::vector<size_t>> &faces, const QString &filename, const std::set<size_t> *excludeFacesOfVertices)
+void exportMeshAsObj(const std::vector<QVector3D> &vertices, const std::vector<std::vector<size_t>> &faces, const QString &filename, const std::set<size_t> *excludeFacesOfVertices)
 {
     QFile file(filename);
     if (file.open(QIODevice::WriteOnly)) {
@@ -1300,7 +1298,7 @@ void nodemesh::exportMeshAsObj(const std::vector<QVector3D> &vertices, const std
     }
 }
 
-void nodemesh::exportMeshAsObjWithNormals(const std::vector<QVector3D> &vertices, const std::vector<std::vector<size_t>> &faces, const QString &filename,
+void exportMeshAsObjWithNormals(const std::vector<QVector3D> &vertices, const std::vector<std::vector<size_t>> &faces, const QString &filename,
     const std::vector<QVector3D> &triangleVertexNormals)
 {
     QFile file(filename);
@@ -1325,14 +1323,7 @@ void nodemesh::exportMeshAsObjWithNormals(const std::vector<QVector3D> &vertices
     }
 }
 
-float nodemesh::areaOfTriangle(const QVector3D &a, const QVector3D &b, const QVector3D &c)
-{
-    auto ab = b - a;
-    auto ac = c - a;
-    return 0.5 * QVector3D::crossProduct(ab, ac).length();
-}
-
-void nodemesh::angleSmooth(const std::vector<QVector3D> &vertices,
+void angleSmooth(const std::vector<QVector3D> &vertices,
     const std::vector<std::vector<size_t>> &triangles,
     const std::vector<QVector3D> &triangleNormals,
     float thresholdAngleDegrees,
@@ -1390,7 +1381,7 @@ void nodemesh::angleSmooth(const std::vector<QVector3D> &vertices,
         item.normalize();
 }
 
-void nodemesh::recoverQuads(const std::vector<QVector3D> &vertices, const std::vector<std::vector<size_t>> &triangles, const std::set<std::pair<PositionKey, PositionKey>> &sharedQuadEdges, std::vector<std::vector<size_t>> &triangleAndQuads)
+void recoverQuads(const std::vector<QVector3D> &vertices, const std::vector<std::vector<size_t>> &triangles, const std::set<std::pair<PositionKey, PositionKey>> &sharedQuadEdges, std::vector<std::vector<size_t>> &triangleAndQuads)
 {
     std::vector<PositionKey> verticesPositionKeys;
     for (const auto &position: vertices) {
@@ -1436,7 +1427,7 @@ void nodemesh::recoverQuads(const std::vector<QVector3D> &vertices, const std::v
     }
 }
 
-size_t nodemesh::weldSeam(const std::vector<QVector3D> &sourceVertices, const std::vector<std::vector<size_t>> &sourceTriangles,
+size_t weldSeam(const std::vector<QVector3D> &sourceVertices, const std::vector<std::vector<size_t>> &sourceTriangles,
     float allowedSmallestDistance, const std::set<PositionKey> &excludePositions,
     std::vector<QVector3D> &destVertices, std::vector<std::vector<size_t>> &destTriangles)
 {
@@ -1564,7 +1555,7 @@ size_t nodemesh::weldSeam(const std::vector<QVector3D> &sourceVertices, const st
     return weldedCount;
 }
 
-bool nodemesh::isManifold(const std::vector<std::vector<size_t>> &faces)
+bool isManifold(const std::vector<std::vector<size_t>> &faces)
 {
     std::set<std::pair<size_t, size_t>> halfEdges;
     for (const auto &face: faces) {
@@ -1582,7 +1573,7 @@ bool nodemesh::isManifold(const std::vector<std::vector<size_t>> &faces)
     return true;
 }
 
-void nodemesh::trim(std::vector<QVector3D> *vertices, bool normalize)
+void trim(std::vector<QVector3D> *vertices, bool normalize)
 {
     float xLow = std::numeric_limits<float>::max();
     float xHigh = std::numeric_limits<float>::lowest();
@@ -1632,7 +1623,7 @@ void nodemesh::trim(std::vector<QVector3D> *vertices, bool normalize)
     }
 }
 
-void nodemesh::chamferFace2D(std::vector<QVector2D> *face)
+void chamferFace2D(std::vector<QVector2D> *face)
 {
     auto oldFace = *face;
     face->clear();
@@ -1643,4 +1634,3 @@ void nodemesh::chamferFace2D(std::vector<QVector2D> *face)
     }
 }
 
-}

@@ -10,9 +10,6 @@
 typedef CGAL::Exact_predicates_inexact_constructions_kernel CgalKernel;
 typedef CGAL::Surface_mesh<CgalKernel::Point_3> CgalMesh;
 
-namespace nodemesh 
-{
-
 Combiner::Mesh::Mesh(const std::vector<QVector3D> &vertices, const std::vector<std::vector<size_t>> &faces, bool removeSelfIntersects)
 {
     CgalMesh *cgalMesh = nullptr;
@@ -169,6 +166,4 @@ void Combiner::Mesh::validate()
         delete exactMesh;
         m_privateData = nullptr;
     }
-}
-
 }

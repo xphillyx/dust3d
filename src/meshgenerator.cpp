@@ -73,7 +73,7 @@ Outcome *MeshGenerator::takeOutcome()
     return outcome;
 }
 
-std::map<QUuid, nodemesh::Builder::CutFaceTransform> *MeshGenerator::takeCutFaceTransforms()
+std::map<QUuid, StrokeMeshBuilder::CutFaceTransform> *MeshGenerator::takeCutFaceTransforms()
 {
     auto cutFaceTransforms = m_cutFaceTransforms;
     m_cutFaceTransforms = nullptr;
@@ -339,7 +339,7 @@ static void exportAsObj(const std::vector<QVector3D> &positions,
 }
 #endif
 
-nodemesh::Combiner::Mesh *MeshGenerator::combinePartMesh(const QString &partIdString, bool *hasError, bool addIntermediateNodes)
+Combiner::Mesh *MeshGenerator::combinePartMesh(const QString &partIdString, bool *hasError, bool addIntermediateNodes)
 {
     auto findPart = m_snapshot->parts.find(partIdString);
     if (findPart == m_snapshot->parts.end()) {
@@ -369,7 +369,7 @@ nodemesh::Combiner::Mesh *MeshGenerator::combinePartMesh(const QString &partIdSt
     std::vector<QVector2D> cutTemplate;
     cutFaceStringToCutTemplate(cutFaceString, cutTemplate);
     if (chamfered)
-        nodemesh::chamferFace2D(&cutTemplate);
+        chamferFace2D(&cutTemplate);
     
     QString cutRotationString = valueOfKeyInMapOrEmpty(part, "cutRotation");
     if (!cutRotationString.isEmpty()) {
@@ -508,8 +508,8 @@ nodemesh::Combiner::Mesh *MeshGenerator::combinePartMesh(const QString &partIdSt
     bool buildSucceed = false;
     std::map<QString, int> nodeIdStringToIndexMap;
     std::map<int, QString> nodeIndexToIdStringMap;
-    nodemesh::Modifier *nodeMeshModifier = nullptr;
-    nodemesh::Builder *nodeMeshBuilder = nullptr;
+    StrokeModifier *nodeMeshModifier = nullptr;
+    StrokeMeshBuilder *nodeMeshBuilder = nullptr;
     GridMeshBuilder *gridMeshBuilder = nullptr;
     
     QString mirroredPartIdString;
@@ -592,7 +592,7 @@ nodemesh::Combiner::Mesh *MeshGenerator::combinePartMesh(const QString &partIdSt
             partCache.outcomeNodeVertices.push_back({position, {partIdString, nodeIdString}});
         }
     } else {
-        nodeMeshModifier = new nodemesh::Modifier;
+        nodeMeshModifier = new StrokeModifier;
         
         if (addIntermediateNodes)
             nodeMeshModifier->enableIntermediateAddition();
@@ -605,7 +605,7 @@ nodemesh::Combiner::Mesh *MeshGenerator::combinePartMesh(const QString &partIdSt
                 std::vector<QVector2D> nodeCutTemplate;
                 cutFaceStringToCutTemplate(nodeInfo.cutFace, nodeCutTemplate);
                 if (chamfered)
-                    nodemesh::chamferFace2D(&nodeCutTemplate);
+                    chamferFace2D(&nodeCutTemplate);
                 nodeIndex = nodeMeshModifier->addNode(nodeInfo.position, nodeInfo.radius, nodeCutTemplate, nodeInfo.cutRotation);
             } else {
                 nodeIndex = nodeMeshModifier->addNode(nodeInfo.position, nodeInfo.radius, cutTemplate, cutRotation);
@@ -643,7 +643,7 @@ nodemesh::Combiner::Mesh *MeshGenerator::combinePartMesh(const QString &partIdSt
         
         nodeMeshModifier->finalize();
         
-        nodeMeshBuilder = new nodemesh::Builder;
+        nodeMeshBuilder = new StrokeMeshBuilder;
         nodeMeshBuilder->setDeformThickness(deformThickness);
         nodeMeshBuilder->setDeformWidth(deformWidth);
         nodeMeshBuilder->setDeformMapScale(deformMapScale);
@@ -704,10 +704,10 @@ nodemesh::Combiner::Mesh *MeshGenerator::combinePartMesh(const QString &partIdSt
     }
     
     bool hasMeshError = false;
-    nodemesh::Combiner::Mesh *mesh = nullptr;
+    Combiner::Mesh *mesh = nullptr;
     
     if (buildSucceed) {
-        mesh = new nodemesh::Combiner::Mesh(partCache.vertices, partCache.faces, false);
+        mesh = new Combiner::Mesh(partCache.vertices, partCache.faces, false);
         if (!mesh->isNull()) {
             if (xMirrored) {
                 std::vector<QVector3D> xMirroredVertices;
@@ -734,9 +734,9 @@ nodemesh::Combiner::Mesh *MeshGenerator::combinePartMesh(const QString &partIdSt
                         it += xMirrorStart;
                     partCache.faces.push_back(newFace);
                 }
-                nodemesh::Combiner::Mesh *xMirroredMesh = new nodemesh::Combiner::Mesh(xMirroredVertices, xMirroredFaces);
-                nodemesh::Combiner::Mesh *newMesh = combineTwoMeshes(*mesh,
-                    *xMirroredMesh, nodemesh::Combiner::Method::Union);
+                Combiner::Mesh *xMirroredMesh = new Combiner::Mesh(xMirroredVertices, xMirroredFaces);
+                Combiner::Mesh *newMesh = combineTwoMeshes(*mesh,
+                    *xMirroredMesh, Combiner::Method::Union);
                 delete xMirroredMesh;
                 if (newMesh && !newMesh->isNull()) {
                     delete mesh;
@@ -763,13 +763,13 @@ nodemesh::Combiner::Mesh *MeshGenerator::combinePartMesh(const QString &partIdSt
     std::vector<QVector3D> partPreviewVertices;
     QColor partPreviewColor = partColor;
     if (nullptr != mesh) {
-        partCache.mesh = new nodemesh::Combiner::Mesh(*mesh);
+        partCache.mesh = new Combiner::Mesh(*mesh);
         mesh->fetch(partPreviewVertices, partCache.previewTriangles);
         partCache.isSucceed = true;
     }
     if (partCache.previewTriangles.empty()) {
         partPreviewVertices = partCache.vertices;
-        nodemesh::triangulate(partPreviewVertices, partCache.faces, partCache.previewTriangles);
+        triangulate(partPreviewVertices, partCache.faces, partCache.previewTriangles);
 #ifdef IN_DEVELOPMENT
         {
             QFile file("/Users/jeremy/Desktop/dust3d_debug.obj");
@@ -785,7 +785,7 @@ nodemesh::Combiner::Mesh *MeshGenerator::combinePartMesh(const QString &partIdSt
         partCache.isSucceed = false;
     }
     
-    nodemesh::trim(&partPreviewVertices, true);
+    trim(&partPreviewVertices, true);
     for (auto &it: partPreviewVertices) {
         it *= 2.0;
     }
@@ -890,9 +890,9 @@ QString MeshGenerator::componentColorName(const std::map<QString, QString> *comp
     return QString();
 }
 
-nodemesh::Combiner::Mesh *MeshGenerator::combineComponentMesh(const QString &componentIdString, CombineMode *combineMode)
+Combiner::Mesh *MeshGenerator::combineComponentMesh(const QString &componentIdString, CombineMode *combineMode)
 {
-    nodemesh::Combiner::Mesh *mesh = nullptr;
+    Combiner::Mesh *mesh = nullptr;
     
     QUuid componentId;
     const std::map<QString, QString> *component = &m_snapshot->rootComponent;
@@ -913,7 +913,7 @@ nodemesh::Combiner::Mesh *MeshGenerator::combineComponentMesh(const QString &com
     if (m_cacheEnabled) {
         if (m_dirtyComponentIds.find(componentIdString) == m_dirtyComponentIds.end()) {
             if (nullptr != componentCache.mesh)
-                return new nodemesh::Combiner::Mesh(*componentCache.mesh);
+                return new Combiner::Mesh(*componentCache.mesh);
         }
     }
     
@@ -977,7 +977,7 @@ nodemesh::Combiner::Mesh *MeshGenerator::combineComponentMesh(const QString &com
             combineGroups[currentGroupIndex].second.push_back({childIdString, colorName});
         }
         // Secondly, sub group by color
-        std::vector<std::tuple<nodemesh::Combiner::Mesh *, CombineMode, QString>> groupMeshes;
+        std::vector<std::tuple<Combiner::Mesh *, CombineMode, QString>> groupMeshes;
         for (const auto &group: combineGroups) {
             std::set<size_t> used;
             std::vector<std::vector<QString>> componentIdStrings;
@@ -1013,13 +1013,13 @@ nodemesh::Combiner::Mesh *MeshGenerator::combineComponentMesh(const QString &com
                     componentIdStrings[currentSubGroupIndex].push_back(group.second[j].first);
                 }
             }
-            std::vector<std::tuple<nodemesh::Combiner::Mesh *, CombineMode, QString>> multipleMeshes;
+            std::vector<std::tuple<Combiner::Mesh *, CombineMode, QString>> multipleMeshes;
             QStringList subGroupMeshIdStringList;
             for (const auto &it: componentIdStrings) {
                 QStringList componentChildGroupIdStringList;
                 for (const auto &componentChildGroupIdString: it)
                     componentChildGroupIdStringList += componentChildGroupIdString;
-                nodemesh::Combiner::Mesh *childMesh = combineComponentChildGroupMesh(it, componentCache);
+                Combiner::Mesh *childMesh = combineComponentChildGroupMesh(it, componentCache);
                 if (nullptr == childMesh)
                     continue;
                 if (childMesh->isNull()) {
@@ -1030,7 +1030,7 @@ nodemesh::Combiner::Mesh *MeshGenerator::combineComponentMesh(const QString &com
                 subGroupMeshIdStringList += componentChildGroupIdStringListString;
                 multipleMeshes.push_back(std::make_tuple(childMesh, CombineMode::Normal, componentChildGroupIdStringListString));
             }
-            nodemesh::Combiner::Mesh *subGroupMesh = combineMultipleMeshes(multipleMeshes, foundColorSolubilitySetting);
+            Combiner::Mesh *subGroupMesh = combineMultipleMeshes(multipleMeshes, foundColorSolubilitySetting);
             if (nullptr == subGroupMesh)
                 continue;
             groupMeshes.push_back(std::make_tuple(subGroupMesh, group.first, subGroupMeshIdStringList.join("&")));
@@ -1039,7 +1039,7 @@ nodemesh::Combiner::Mesh *MeshGenerator::combineComponentMesh(const QString &com
     }
     
     if (nullptr != mesh)
-        componentCache.mesh = new nodemesh::Combiner::Mesh(*mesh);
+        componentCache.mesh = new Combiner::Mesh(*mesh);
     
     if (nullptr != mesh && mesh->isNull()) {
         delete mesh;
@@ -1049,13 +1049,13 @@ nodemesh::Combiner::Mesh *MeshGenerator::combineComponentMesh(const QString &com
     return mesh;
 }
 
-nodemesh::Combiner::Mesh *MeshGenerator::combineMultipleMeshes(const std::vector<std::tuple<nodemesh::Combiner::Mesh *, CombineMode, QString>> &multipleMeshes, bool recombine)
+Combiner::Mesh *MeshGenerator::combineMultipleMeshes(const std::vector<std::tuple<Combiner::Mesh *, CombineMode, QString>> &multipleMeshes, bool recombine)
 {
-    nodemesh::Combiner::Mesh *mesh = nullptr;
+    Combiner::Mesh *mesh = nullptr;
     QString meshIdStrings;
     for (const auto &it: multipleMeshes) {
         const auto &childCombineMode = std::get<1>(it);
-        nodemesh::Combiner::Mesh *subMesh = std::get<0>(it);
+        Combiner::Mesh *subMesh = std::get<0>(it);
         const QString &subMeshIdString = std::get<2>(it);
         //qDebug() << "Combine mode:" << CombineModeToString(childCombineMode);
         if (nullptr == subMesh) {
@@ -1072,18 +1072,18 @@ nodemesh::Combiner::Mesh *MeshGenerator::combineMultipleMeshes(const std::vector
             meshIdStrings = subMeshIdString;
         } else {
             auto combinerMethod = childCombineMode == CombineMode::Inversion ?
-                    nodemesh::Combiner::Method::Diff : nodemesh::Combiner::Method::Union;
-            auto combinerMethodString = combinerMethod == nodemesh::Combiner::Method::Union ?
+                    Combiner::Method::Diff : Combiner::Method::Union;
+            auto combinerMethodString = combinerMethod == Combiner::Method::Union ?
                 "+" : "-";
             meshIdStrings += combinerMethodString + subMeshIdString;
             if (recombine)
                 meshIdStrings += "!";
-            nodemesh::Combiner::Mesh *newMesh = nullptr;
+            Combiner::Mesh *newMesh = nullptr;
             auto findCached = m_cacheContext->cachedCombination.find(meshIdStrings);
             if (findCached != m_cacheContext->cachedCombination.end()) {
                 if (nullptr != findCached->second) {
                     //qDebug() << "Use cached combination:" << meshIdStrings;
-                    newMesh = new nodemesh::Combiner::Mesh(*findCached->second);
+                    newMesh = new Combiner::Mesh(*findCached->second);
                 }
             } else {
                 newMesh = combineTwoMeshes(*mesh,
@@ -1092,7 +1092,7 @@ nodemesh::Combiner::Mesh *MeshGenerator::combineMultipleMeshes(const std::vector
                     recombine);
                 delete subMesh;
                 if (nullptr != newMesh)
-                    m_cacheContext->cachedCombination.insert({meshIdStrings, new nodemesh::Combiner::Mesh(*newMesh)});
+                    m_cacheContext->cachedCombination.insert({meshIdStrings, new Combiner::Mesh(*newMesh)});
                 else
                     m_cacheContext->cachedCombination.insert({meshIdStrings, nullptr});
                 //qDebug() << "Add cached combination:" << meshIdStrings;
@@ -1114,12 +1114,12 @@ nodemesh::Combiner::Mesh *MeshGenerator::combineMultipleMeshes(const std::vector
     return mesh;
 }
 
-nodemesh::Combiner::Mesh *MeshGenerator::combineComponentChildGroupMesh(const std::vector<QString> &componentIdStrings, GeneratedComponent &componentCache)
+Combiner::Mesh *MeshGenerator::combineComponentChildGroupMesh(const std::vector<QString> &componentIdStrings, GeneratedComponent &componentCache)
 {
-    std::vector<std::tuple<nodemesh::Combiner::Mesh *, CombineMode, QString>> multipleMeshes;
+    std::vector<std::tuple<Combiner::Mesh *, CombineMode, QString>> multipleMeshes;
     for (const auto &childIdString: componentIdStrings) {
         CombineMode childCombineMode = CombineMode::Normal;
-        nodemesh::Combiner::Mesh *subMesh = combineComponentMesh(childIdString, &childCombineMode);
+        Combiner::Mesh *subMesh = combineComponentMesh(childIdString, &childCombineMode);
         
         if (CombineMode::Uncombined == childCombineMode) {
             delete subMesh;
@@ -1148,29 +1148,29 @@ nodemesh::Combiner::Mesh *MeshGenerator::combineComponentChildGroupMesh(const st
     return combineMultipleMeshes(multipleMeshes);
 }
 
-nodemesh::Combiner::Mesh *MeshGenerator::combineTwoMeshes(const nodemesh::Combiner::Mesh &first, const nodemesh::Combiner::Mesh &second,
-    nodemesh::Combiner::Method method,
+Combiner::Mesh *MeshGenerator::combineTwoMeshes(const Combiner::Mesh &first, const Combiner::Mesh &second,
+    Combiner::Method method,
     bool recombine)
 {
     if (first.isNull() || second.isNull())
         return nullptr;
-    std::vector<std::pair<nodemesh::Combiner::Source, size_t>> combinedVerticesSources;
-    nodemesh::Combiner::Mesh *newMesh = nodemesh::Combiner::combine(first,
+    std::vector<std::pair<Combiner::Source, size_t>> combinedVerticesSources;
+    Combiner::Mesh *newMesh = Combiner::combine(first,
         second,
         method,
         &combinedVerticesSources);
     if (nullptr == newMesh)
         return nullptr;
     if (!newMesh->isNull() && recombine) {
-        nodemesh::Recombiner recombiner;
+        MeshRecombiner recombiner;
         std::vector<QVector3D> combinedVertices;
         std::vector<std::vector<size_t>> combinedFaces;
         newMesh->fetch(combinedVertices, combinedFaces);
         recombiner.setVertices(&combinedVertices, &combinedVerticesSources);
         recombiner.setFaces(&combinedFaces);
         if (recombiner.recombine()) {
-            if (nodemesh::isManifold(recombiner.regeneratedFaces())) {
-                nodemesh::Combiner::Mesh *reMesh = new nodemesh::Combiner::Mesh(recombiner.regeneratedVertices(), recombiner.regeneratedFaces(), false);
+            if (isManifold(recombiner.regeneratedFaces())) {
+                Combiner::Mesh *reMesh = new Combiner::Mesh(recombiner.regeneratedVertices(), recombiner.regeneratedFaces(), false);
                 if (!reMesh->isNull() && !reMesh->isSelfIntersected()) {
                     delete newMesh;
                     newMesh = reMesh;
@@ -1198,18 +1198,18 @@ void MeshGenerator::makeXmirror(const std::vector<QVector3D> &sourceVertices, co
 }
 
 void MeshGenerator::collectSharedQuadEdges(const std::vector<QVector3D> &vertices, const std::vector<std::vector<size_t>> &faces,
-        std::set<std::pair<nodemesh::PositionKey, nodemesh::PositionKey>> *sharedQuadEdges)
+        std::set<std::pair<PositionKey, PositionKey>> *sharedQuadEdges)
 {
     for (const auto &face: faces) {
         if (face.size() != 4)
             continue;
         sharedQuadEdges->insert({
-            nodemesh::PositionKey(vertices[face[0]]),
-            nodemesh::PositionKey(vertices[face[2]])
+            PositionKey(vertices[face[0]]),
+            PositionKey(vertices[face[2]])
         });
         sharedQuadEdges->insert({
-            nodemesh::PositionKey(vertices[face[1]]),
-            nodemesh::PositionKey(vertices[face[3]])
+            PositionKey(vertices[face[1]]),
+            PositionKey(vertices[face[3]])
         });
     }
 }
@@ -1322,7 +1322,7 @@ void MeshGenerator::generate()
         do {
             std::vector<QVector3D> weldedVertices;
             std::vector<std::vector<size_t>> weldedFaces;
-            affectedNum = nodemesh::weldSeam(combinedVertices, combinedFaces,
+            affectedNum = weldSeam(combinedVertices, combinedFaces,
                 0.025, componentCache.noneSeamVertices,
                 weldedVertices, weldedFaces);
             combinedVertices = weldedVertices;
@@ -1473,7 +1473,7 @@ void MeshGenerator::generateSmoothTriangleVertexNormals(const std::vector<QVecto
     std::vector<std::vector<QVector3D>> *triangleVertexNormals)
 {
     std::vector<QVector3D> smoothNormals;
-    nodemesh::angleSmooth(vertices,
+    angleSmooth(vertices,
         triangles,
         triangleNormals,
         m_smoothShadingThresholdAngleDegrees,

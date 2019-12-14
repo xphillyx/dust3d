@@ -1,10 +1,7 @@
-#ifndef NODEMESH_COMBINER_H
-#define NODEMESH_COMBINER_H
+#ifndef DUST3D_COMBINER_H
+#define DUST3D_COMBINER_H
 #include <QVector3D>
 #include <vector>
-
-namespace nodemesh 
-{
 
 class Combiner
 {
@@ -45,7 +42,5 @@ public:
     static Mesh *combine(const Mesh &firstMesh, const Mesh &secondMesh, Method method,
         std::vector<std::pair<Source, size_t>> *combinedVerticesComeFrom=nullptr);
 };
-
-}
 
 #endif

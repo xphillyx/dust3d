@@ -1,5 +1,5 @@
-#ifndef NODEMESH_BUILDER_H
-#define NODEMESH_BUILDER_H
+#ifndef DUST3D_BUILDER_H
+#define DUST3D_BUILDER_H
 #include <QVector3D>
 #include <QVector2D>
 #include <vector>
@@ -9,10 +9,7 @@
 #include <QImage>
 #include "positionkey.h"
 
-namespace nodemesh 
-{
-    
-class Builder
+class StrokeMeshBuilder
 {
 public:
     struct CutFaceTransform
@@ -189,7 +186,6 @@ bool triangulate(std::vector<QVector3D> &vertices, const std::vector<std::vector
 void exportMeshAsObj(const std::vector<QVector3D> &vertices, const std::vector<std::vector<size_t>> &faces, const QString &filename, const std::set<size_t> *excludeFacesOfVertices=nullptr);
 void exportMeshAsObjWithNormals(const std::vector<QVector3D> &vertices, const std::vector<std::vector<size_t>> &faces, const QString &filename,
     const std::vector<QVector3D> &triangleVertexNormals);
-float areaOfTriangle(const QVector3D &a, const QVector3D &b, const QVector3D &c);
 void angleSmooth(const std::vector<QVector3D> &vertices,
     const std::vector<std::vector<size_t>> &triangles,
     const std::vector<QVector3D> &triangleNormals,
@@ -202,7 +198,5 @@ size_t weldSeam(const std::vector<QVector3D> &sourceVertices, const std::vector<
 bool isManifold(const std::vector<std::vector<size_t>> &faces);
 void trim(std::vector<QVector3D> *vertices, bool normalize=false);
 void chamferFace2D(std::vector<QVector2D> *face);
-    
-}
 
 #endif

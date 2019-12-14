@@ -1,12 +1,9 @@
-#ifndef NODEMESH_MODIFIER_H
-#define NODEMESH_MODIFIER_H
+#ifndef DUST3D_MODIFIER_H
+#define DUST3D_MODIFIER_H
 #include <QVector3D>
 #include <vector>
 
-namespace nodemesh 
-{
-
-class Modifier
+class StrokeModifier
 {
 public:
     struct Node
@@ -49,7 +46,5 @@ private:
 };
 
 void subdivideFace2D(std::vector<QVector2D> *face);
-
-}
 
 #endif

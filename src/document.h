@@ -726,7 +726,7 @@ private: // need initialize
     bool m_isResultMeshObsolete;
     MeshGenerator *m_meshGenerator;
     MeshLoader *m_resultMesh;
-    std::map<QUuid, nodemesh::Builder::CutFaceTransform> *m_resultMeshCutFaceTransforms;
+    std::map<QUuid, StrokeMeshBuilder::CutFaceTransform> *m_resultMeshCutFaceTransforms;
     std::map<QUuid, std::map<QString, QVector2D>> *m_resultMeshNodesCutFaces;
     bool m_isMeshGenerationSucceed;
     int m_batchChangeRefCount;

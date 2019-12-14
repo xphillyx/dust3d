@@ -1,5 +1,5 @@
-#ifndef NODEMESH_CGAL_MESH_H
-#define NODEMESH_CGAL_MESH_H
+#ifndef DUST3D_CGAL_MESH_H
+#define DUST3D_CGAL_MESH_H
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Surface_mesh.h>
 #include <QVector3D>
@@ -31,20 +31,20 @@ template <class Kernel>
 typename CGAL::Surface_mesh<typename Kernel::Point_3> *buildCgalMesh(const std::vector<QVector3D> &positions, const std::vector<std::vector<size_t>> &indices)
 {
     typename CGAL::Surface_mesh<typename Kernel::Point_3> *mesh = new typename CGAL::Surface_mesh<typename Kernel::Point_3>;
-    std::map<nodemesh::PositionKey, typename CGAL::Surface_mesh<typename Kernel::Point_3>::Vertex_index> vertexIndices;
+    std::map<PositionKey, typename CGAL::Surface_mesh<typename Kernel::Point_3>::Vertex_index> vertexIndices;
     for (const auto &face: indices) {
         std::vector<typename CGAL::Surface_mesh<typename Kernel::Point_3>::Vertex_index> faceVertexIndices;
         bool faceValid = true;
-        std::vector<nodemesh::PositionKey> positionKeys;
+        std::vector<PositionKey> positionKeys;
         std::vector<QVector3D> positionsInKeys;
-        std::set<nodemesh::PositionKey> existedKeys;
+        std::set<PositionKey> existedKeys;
         for (const auto &index: face) {
             const auto &position = positions[index];
             if (!validatePosition(position)) {
                 faceValid = false;
                 break;
             }
-            auto positionKey = nodemesh::PositionKey(position);
+            auto positionKey = PositionKey(position);
             if (existedKeys.find(positionKey) != existedKeys.end()) {
                 continue;
             }

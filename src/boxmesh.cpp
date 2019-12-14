@@ -7,10 +7,7 @@
 typedef CGAL::Simple_cartesian<double>              SimpleKernel;
 typedef CGAL::Surface_mesh<SimpleKernel::Point_3>   PolygonMesh;
 
-namespace nodemesh
-{
-
-void box(const QVector3D position, float radius, size_t subdivideTimes, std::vector<QVector3D> &vertices, std::vector<std::vector<size_t>> &faces)
+void boxmesh(const QVector3D position, float radius, size_t subdivideTimes, std::vector<QVector3D> &vertices, std::vector<std::vector<size_t>> &faces)
 {
     std::vector<QVector3D> beginPlane = {
         {-radius, -radius,  radius},
@@ -69,6 +66,4 @@ void box(const QVector3D position, float radius, size_t subdivideTimes, std::vec
             delete cgalMesh;
         }
     }
-}
-
 }
