@@ -10,7 +10,7 @@
 #define MAX_EDGE_LOOP_LENGTH            1000
 
 void MeshRecombiner::setVertices(const std::vector<QVector3D> *vertices,
-    const std::vector<std::pair<Combiner::Source, size_t>> *verticesSourceIndices)
+    const std::vector<std::pair<MeshCombiner::Source, size_t>> *verticesSourceIndices)
 {
     m_vertices = vertices;
     m_verticesSourceIndices = verticesSourceIndices;
@@ -121,10 +121,10 @@ bool MeshRecombiner::recombine()
         for (size_t i = 0; i < face.size(); ++i) {
             const auto &index = face[i];
             auto source = (*m_verticesSourceIndices)[index];
-            if (Combiner::Source::None == source.first) {
+            if (MeshCombiner::Source::None == source.first) {
                 auto next = face[(i + 1) % face.size()];
                 auto nextSource = (*m_verticesSourceIndices)[next];
-                if (Combiner::Source::None == nextSource.first) {
+                if (MeshCombiner::Source::None == nextSource.first) {
                     seamLink[index].push_back(next);
                 }
             }
@@ -143,13 +143,13 @@ bool MeshRecombiner::recombine()
         for (size_t i = 0; i < face.size(); ++i) {
             const auto &index = face[i];
             auto source = (*m_verticesSourceIndices)[index];
-            if (Combiner::Source::None == source.first) {
+            if (MeshCombiner::Source::None == source.first) {
                 const auto &findIsland = seamVertexToIslandMap.find(index);
                 if (findIsland != seamVertexToIslandMap.end()) {
                     containsSeamVertex = true;
                     island = findIsland->second;
                 }
-            } else if (Combiner::Source::First == source.first) {
+            } else if (MeshCombiner::Source::First == source.first) {
                 inFirstGroup = true;
             }
         }
@@ -291,7 +291,7 @@ const std::vector<QVector3D> &MeshRecombiner::regeneratedVertices()
     return m_regeneratedVertices;
 }
 
-const std::vector<std::pair<Combiner::Source, size_t>> &MeshRecombiner::regeneratedVerticesSourceIndices()
+const std::vector<std::pair<MeshCombiner::Source, size_t>> &MeshRecombiner::regeneratedVerticesSourceIndices()
 {
     return m_regeneratedVerticesSourceIndices;
 }

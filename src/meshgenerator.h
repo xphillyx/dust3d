@@ -19,7 +19,7 @@ public:
     {
         delete mesh;
     };
-    Combiner::Mesh *mesh = nullptr;
+    MeshCombiner::Mesh *mesh = nullptr;
     std::vector<QVector3D> vertices;
     std::vector<std::vector<size_t>> faces;
     std::vector<OutcomeNode> outcomeNodes;
@@ -36,7 +36,7 @@ public:
     {
         delete mesh;
     };
-    Combiner::Mesh *mesh = nullptr;
+    MeshCombiner::Mesh *mesh = nullptr;
     std::set<std::pair<PositionKey, PositionKey>> sharedQuadEdges;
     std::set<PositionKey> noneSeamVertices;
     std::vector<OutcomeNode> outcomeNodes;
@@ -50,7 +50,7 @@ public:
     std::map<QString, GeneratedComponent> components;
     std::map<QString, GeneratedPart> parts;
     std::map<QString, QString> partMirrorIdMap;
-    std::map<QString, Combiner::Mesh *> cachedCombination;
+    std::map<QString, MeshCombiner::Mesh *> cachedCombination;
 };
 
 class MeshGenerator : public QObject
@@ -104,23 +104,23 @@ private:
     bool checkIsPartDirty(const QString &partIdString);
     bool checkIsPartDependencyDirty(const QString &partIdString);
     void checkDirtyFlags();
-    Combiner::Mesh *combinePartMesh(const QString &partIdString, bool *hasError, bool addIntermediateNodes=true);
-    Combiner::Mesh *combineComponentMesh(const QString &componentIdString, CombineMode *combineMode);
+    MeshCombiner::Mesh *combinePartMesh(const QString &partIdString, bool *hasError, bool addIntermediateNodes=true);
+    MeshCombiner::Mesh *combineComponentMesh(const QString &componentIdString, CombineMode *combineMode);
     void makeXmirror(const std::vector<QVector3D> &sourceVertices, const std::vector<std::vector<size_t>> &sourceFaces,
         std::vector<QVector3D> *destVertices, std::vector<std::vector<size_t>> *destFaces);
     void collectSharedQuadEdges(const std::vector<QVector3D> &vertices, const std::vector<std::vector<size_t>> &faces,
         std::set<std::pair<PositionKey, PositionKey>> *sharedQuadEdges);
-    Combiner::Mesh *combineTwoMeshes(const Combiner::Mesh &first, const Combiner::Mesh &second,
-        Combiner::Method method,
+    MeshCombiner::Mesh *combineTwoMeshes(const MeshCombiner::Mesh &first, const MeshCombiner::Mesh &second,
+        MeshCombiner::Method method,
         bool recombine=true);
     void generateSmoothTriangleVertexNormals(const std::vector<QVector3D> &vertices, const std::vector<std::vector<size_t>> &triangles,
         const std::vector<QVector3D> &triangleNormals,
         std::vector<std::vector<QVector3D>> *triangleVertexNormals);
     const std::map<QString, QString> *findComponent(const QString &componentIdString);
     CombineMode componentCombineMode(const std::map<QString, QString> *component);
-    Combiner::Mesh *combineComponentChildGroupMesh(const std::vector<QString> &componentIdStrings,
+    MeshCombiner::Mesh *combineComponentChildGroupMesh(const std::vector<QString> &componentIdStrings,
         GeneratedComponent &componentCache);
-    Combiner::Mesh *combineMultipleMeshes(const std::vector<std::tuple<Combiner::Mesh *, CombineMode, QString>> &multipleMeshes, bool recombine=true);
+    MeshCombiner::Mesh *combineMultipleMeshes(const std::vector<std::tuple<MeshCombiner::Mesh *, CombineMode, QString>> &multipleMeshes, bool recombine=true);
     QString componentColorName(const std::map<QString, QString> *component);
     void collectUncombinedComponent(const QString &componentIdString);
     void cutFaceStringToCutTemplate(const QString &cutFaceString, std::vector<QVector2D> &cutTemplate);

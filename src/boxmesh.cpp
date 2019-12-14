@@ -3,6 +3,7 @@
 #include "boxmesh.h"
 #include "booleanmesh.h"
 #include "strokemeshbuilder.h"
+#include "triangulate.h"
 
 typedef CGAL::Simple_cartesian<double>              SimpleKernel;
 typedef CGAL::Surface_mesh<SimpleKernel::Point_3>   PolygonMesh;

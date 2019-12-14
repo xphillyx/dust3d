@@ -1,6 +1,7 @@
 #include <QVector2D>
 #include <QDebug>
 #include "strokemodifier.h"
+#include "util.h"
 
 void StrokeModifier::enableIntermediateAddition()
 {
@@ -184,17 +185,5 @@ const std::vector<StrokeModifier::Node> &StrokeModifier::nodes()
 const std::vector<StrokeModifier::Edge> &StrokeModifier::edges()
 {
     return m_edges;
-}
-
-void subdivideFace2D(std::vector<QVector2D> *face)
-{
-    auto oldFace = *face;
-    face->resize(oldFace.size() * 2);
-    for (size_t i = 0, n = 0; i < oldFace.size(); ++i) {
-        size_t h = (i + oldFace.size() - 1) % oldFace.size();
-        size_t j = (i + 1) % oldFace.size();
-        (*face)[n++] = oldFace[h] * 0.125 + oldFace[i] * 0.75 + oldFace[j] * 0.125;
-        (*face)[n++] = (oldFace[i] + oldFace[j]) * 0.5;
-    }
 }
 

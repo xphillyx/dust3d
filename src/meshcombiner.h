@@ -3,7 +3,7 @@
 #include <QVector3D>
 #include <vector>
 
-class Combiner
+class MeshCombiner
 {
 public:
     enum class Method
@@ -30,7 +30,7 @@ public:
         bool isNull() const;
         bool isSelfIntersected() const;
         
-        friend Combiner;
+        friend MeshCombiner;
         
     private:
         void *m_privateData = nullptr;

@@ -33,7 +33,7 @@ Preferences::Preferences()
     {
         QString value = m_settings.value("flatShading").toString();
         if (value.isEmpty())
-            m_flatShading = true;
+            m_flatShading = false;
         else
             m_flatShading = isTrueValueString(value);
     }

@@ -471,6 +471,9 @@ HEADERS += src/boxmesh.h
 SOURCES += src/meshrecombiner.cpp
 HEADERS += src/meshrecombiner.h
 
+SOURCES += src/triangulate.cpp
+HEADERS += src/triangulate.h
+
 HEADERS += src/booleanmesh.h
 
 SOURCES += src/main.cpp
@@ -755,6 +758,25 @@ INCLUDEPATH += thirdparty/QtWaitingSpinner
 
 SOURCES += thirdparty/QtWaitingSpinner/waitingspinnerwidget.cpp
 HEADERS += thirdparty/QtWaitingSpinner/waitingspinnerwidget.h
+
+SOURCES += thirdparty/poly2tri/poly2tri/sweep/advancing_front.cc
+HEADERS += thirdparty/poly2tri/poly2tri/sweep/advancing_front.h
+
+SOURCES += thirdparty/poly2tri/poly2tri/sweep/cdt.cc
+HEADERS += thirdparty/poly2tri/poly2tri/sweep/cdt.h
+
+SOURCES += thirdparty/poly2tri/poly2tri/sweep/sweep_context.cc
+HEADERS += thirdparty/poly2tri/poly2tri/sweep/sweep_context.h
+
+SOURCES += thirdparty/poly2tri/poly2tri/sweep/sweep.cc
+HEADERS += thirdparty/poly2tri/poly2tri/sweep/sweep.h
+
+SOURCES += thirdparty/poly2tri/poly2tri/common/shapes.cc
+HEADERS += thirdparty/poly2tri/poly2tri/common/shapes.h
+
+HEADERS += thirdparty/poly2tri/poly2tri/common/utils.h
+
+HEADERS += thirdparty/poly2tri/poly2tri/poly2tri.h
 
 INCLUDEPATH += thirdparty/json
 

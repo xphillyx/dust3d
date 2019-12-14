@@ -10,7 +10,7 @@
 typedef CGAL::Exact_predicates_inexact_constructions_kernel CgalKernel;
 typedef CGAL::Surface_mesh<CgalKernel::Point_3> CgalMesh;
 
-Combiner::Mesh::Mesh(const std::vector<QVector3D> &vertices, const std::vector<std::vector<size_t>> &faces, bool removeSelfIntersects)
+MeshCombiner::Mesh::Mesh(const std::vector<QVector3D> &vertices, const std::vector<std::vector<size_t>> &faces, bool removeSelfIntersects)
 {
     CgalMesh *cgalMesh = nullptr;
     if (!faces.empty()) {
@@ -46,7 +46,7 @@ Combiner::Mesh::Mesh(const std::vector<QVector3D> &vertices, const std::vector<s
     validate();
 }
 
-Combiner::Mesh::Mesh(const Mesh &other)
+MeshCombiner::Mesh::Mesh(const Mesh &other)
 {
     if (other.m_privateData) {
         m_privateData = new CgalMesh(*(CgalMesh *)other.m_privateData);
@@ -54,13 +54,13 @@ Combiner::Mesh::Mesh(const Mesh &other)
     }
 }
 
-Combiner::Mesh::~Mesh()
+MeshCombiner::Mesh::~Mesh()
 {
     CgalMesh *cgalMesh = (CgalMesh *)m_privateData;
     delete cgalMesh;
 }
 
-void Combiner::Mesh::fetch(std::vector<QVector3D> &vertices, std::vector<std::vector<size_t>> &faces) const
+void MeshCombiner::Mesh::fetch(std::vector<QVector3D> &vertices, std::vector<std::vector<size_t>> &faces) const
 {
     CgalMesh *exactMesh = (CgalMesh *)m_privateData;
     if (nullptr == exactMesh)
@@ -69,17 +69,17 @@ void Combiner::Mesh::fetch(std::vector<QVector3D> &vertices, std::vector<std::ve
     fetchFromCgalMesh<CgalKernel>(exactMesh, vertices, faces);
 }
 
-bool Combiner::Mesh::isNull() const
+bool MeshCombiner::Mesh::isNull() const
 {
     return nullptr == m_privateData;
 }
 
-bool Combiner::Mesh::isSelfIntersected() const
+bool MeshCombiner::Mesh::isSelfIntersected() const
 {
     return m_isSelfIntersected;
 }
 
-Combiner::Mesh *Combiner::combine(const Mesh &firstMesh, const Mesh &secondMesh, Method method,
+MeshCombiner::Mesh *MeshCombiner::combine(const Mesh &firstMesh, const Mesh &secondMesh, Method method,
     std::vector<std::pair<Source, size_t>> *combinedVerticesComeFrom)
 {
     CgalMesh *resultCgalMesh = nullptr;
@@ -156,7 +156,7 @@ Combiner::Mesh *Combiner::combine(const Mesh &firstMesh, const Mesh &secondMesh,
     return mesh;
 }
 
-void Combiner::Mesh::validate()
+void MeshCombiner::Mesh::validate()
 {
     if (nullptr == m_privateData)
         return;
