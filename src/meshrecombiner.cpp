@@ -1,11 +1,11 @@
-#include <nodemesh/recombiner.h>
-#include <nodemesh/positionkey.h>
-#include <nodemesh/misc.h>
-#include <nodemesh/wrapper.h>
 #include <set>
 #include <QDebug>
 #include <cmath>
 #include <queue>
+#include "meshrecombiner.h"
+#include "positionkey.h"
+#include "meshwrapper.h"
+#include "util.h"
 
 #define MAX_EDGE_LOOP_LENGTH            1000
 
@@ -380,9 +380,9 @@ void Recombiner::fillPairs(const std::vector<size_t> &small, const std::vector<s
     while (smallIndex + 1 < small.size() ||
             largeIndex + 1 < large.size()) {
         if (smallIndex + 1 < small.size() && largeIndex + 1 < large.size()) {
-            float angleOnSmallEdgeLoop = angleBetween((*m_vertices)[large[largeIndex]] - (*m_vertices)[small[smallIndex]],
+            float angleOnSmallEdgeLoop = radianBetweenVectors((*m_vertices)[large[largeIndex]] - (*m_vertices)[small[smallIndex]],
                 (*m_vertices)[small[smallIndex + 1]] - (*m_vertices)[small[smallIndex]]);
-            float angleOnLargeEdgeLoop = angleBetween((*m_vertices)[small[smallIndex]] - (*m_vertices)[large[largeIndex]],
+            float angleOnLargeEdgeLoop = radianBetweenVectors((*m_vertices)[small[smallIndex]] - (*m_vertices)[large[largeIndex]],
                 (*m_vertices)[large[largeIndex + 1]] - (*m_vertices)[large[largeIndex]]);
             if (angleOnSmallEdgeLoop < angleOnLargeEdgeLoop) {
                 m_regeneratedFaces.push_back({

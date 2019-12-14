@@ -1,12 +1,11 @@
-#include <nodemesh/combiner.h>
-#include <nodemesh/misc.h>
-#include <nodemesh/positionkey.h>
-#include <nodemesh/cgalmesh.h>
 #include <CGAL/Polygon_mesh_processing/corefinement.h>
 #include <CGAL/Polygon_mesh_processing/repair.h>
 #include <CGAL/Polygon_mesh_processing/triangulate_faces.h>
 #include <QDebug>
 #include <map>
+#include "meshcombiner.h"
+#include "positionkey.h"
+#include "booleanmesh.h"
 
 typedef CGAL::Exact_predicates_inexact_constructions_kernel CgalKernel;
 typedef CGAL::Surface_mesh<CgalKernel::Point_3> CgalMesh;

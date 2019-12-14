@@ -1,7 +1,6 @@
-#include <nodemesh/stitcher.h>
-#include <nodemesh/misc.h>
 #include <memory>
 #include <QDebug>
+#include "meshstitcher.h"
 
 namespace nodemesh
 {

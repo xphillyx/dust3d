@@ -16,6 +16,7 @@
 #include <QDesktopServices>
 #include <QDockWidget>
 #include <QWidgetAction>
+#include <QGraphicsOpacityEffect>
 #include "documentwindow.h"
 #include "skeletongraphicswidget.h"
 #include "theme.h"
@@ -27,7 +28,6 @@
 #include "aboutwidget.h"
 #include "version.h"
 #include "glbfile.h"
-#include "graphicscontainerwidget.h"
 #include "parttreewidget.h"
 #include "rigwidget.h"
 #include "markiconcreator.h"
@@ -283,13 +283,23 @@ DocumentWindow::DocumentWindow() :
     containerLayout->addWidget(graphicsWidget);
     containerWidget->setLayout(containerLayout);
     containerWidget->setMinimumSize(400, 400);
+    
+    m_graphicsContainerWidget = containerWidget;
+    
+    //m_infoWidget = new QLabel(containerWidget);
+    //m_infoWidget->setAttribute(Qt::WA_TransparentForMouseEvents);
+    //QGraphicsOpacityEffect *graphicsOpacityEffect = new QGraphicsOpacityEffect(m_infoWidget);
+    //graphicsOpacityEffect->setOpacity(0.5);
+    //m_infoWidget->setGraphicsEffect(graphicsOpacityEffect);
+    //updateInfoWidgetPosition();
+    
+    //connect(containerWidget, &GraphicsContainerWidget::containerSizeChanged, this, &DocumentWindow::updateInfoWidgetPosition);
 
     m_modelRenderWidget = new ModelWidget(containerWidget);
     m_modelRenderWidget->setAttribute(Qt::WA_TransparentForMouseEvents);
     m_modelRenderWidget->setMinimumSize(DocumentWindow::m_modelRenderWidgetInitialSize, DocumentWindow::m_modelRenderWidgetInitialSize);
     m_modelRenderWidget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
     m_modelRenderWidget->move(DocumentWindow::m_modelRenderWidgetInitialX, DocumentWindow::m_modelRenderWidgetInitialY);
-    m_modelRenderWidget->toggleWireframe();
     
     m_modelRenderWidget->setMousePickRadius(m_document->mousePickRadius());
     
@@ -1861,3 +1871,9 @@ void DocumentWindow::checkExportWaitingList()
         }
     }
 }
+
+//void DocumentWindow::updateInfoWidgetPosition()
+//{
+//    m_infoWidget->move(0, m_graphicsContainerWidget->height() - m_infoWidget->height() - 5);
+//}
+

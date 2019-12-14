@@ -1,6 +1,6 @@
-#include <nodemesh/positionkey.h>
 #include <map>
 #include "trianglesourcenoderesolve.h"
+#include "positionkey.h"
 
 struct HalfColorEdge
 {

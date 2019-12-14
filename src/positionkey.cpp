@@ -1,4 +1,4 @@
-#include <nodemesh/positionkey.h>
+#include "positionkey.h"
 
 namespace nodemesh
 {

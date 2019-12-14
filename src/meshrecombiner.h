@@ -4,7 +4,7 @@
 #include <vector>
 #include <set>
 #include <map>
-#include <nodemesh/combiner.h>
+#include "meshcombiner.h"
 
 namespace nodemesh
 {

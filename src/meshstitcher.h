@@ -2,7 +2,7 @@
 #define NODEMESH_STITCHER_H
 #include <QVector3D>
 #include <vector>
-#include <nodemesh/wrapper.h>
+#include "meshwrapper.h"
 
 namespace nodemesh
 {

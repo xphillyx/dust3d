@@ -1,7 +1,6 @@
-#include <nodemesh/modifier.h>
-#include <nodemesh/misc.h>
 #include <QVector2D>
 #include <QDebug>
+#include "strokemodifier.h"
 
 namespace nodemesh
 {
@@ -188,6 +187,18 @@ const std::vector<Modifier::Node> &Modifier::nodes()
 const std::vector<Modifier::Edge> &Modifier::edges()
 {
     return m_edges;
+}
+
+void nodemesh::subdivideFace2D(std::vector<QVector2D> *face)
+{
+    auto oldFace = *face;
+    face->resize(oldFace.size() * 2);
+    for (size_t i = 0, n = 0; i < oldFace.size(); ++i) {
+        size_t h = (i + oldFace.size() - 1) % oldFace.size();
+        size_t j = (i + 1) % oldFace.size();
+        (*face)[n++] = oldFace[h] * 0.125 + oldFace[i] * 0.75 + oldFace[j] * 0.125;
+        (*face)[n++] = (oldFace[i] + oldFace[j]) * 0.5;
+    }
 }
 
 }

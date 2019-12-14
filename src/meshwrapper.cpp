@@ -1,7 +1,7 @@
-#include <nodemesh/wrapper.h>
-#include <nodemesh/misc.h>
 #include <cmath>
 #include <set>
+#include "meshwrapper.h"
+#include "util.h"
 
 namespace nodemesh
 {
@@ -154,7 +154,7 @@ float Wrapper::angleOfBaseFaceAndPoint(size_t itemIndex, size_t vertexIndex)
     auto vd1 = calculateFaceVector(item.p1, item.p2, item.baseNormal);
     auto normal = QVector3D::normal(v2.position, v1.position, vp.position);
     auto vd2 = calculateFaceVector(item.p1, item.p2, normal);
-    return radianToDegree(angleBetween(vd2, vd1));
+    return angleBetweenVectors(vd2, vd1);
 }
 
 std::pair<size_t, bool> Wrapper::findBestVertexOnTheLeft(size_t itemIndex)

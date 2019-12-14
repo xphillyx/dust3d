@@ -48,6 +48,8 @@ private:
     void createIntermediateCutTemplateEdges(std::vector<QVector2D> &cutTemplate, float averageCutTemplateLength);
 };
 
+void subdivideFace2D(std::vector<QVector2D> *face);
+
 }
 
 #endif

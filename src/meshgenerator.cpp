@@ -3,10 +3,9 @@
 #include <QVector2D>
 #include <QGuiApplication>
 #include <QMatrix4x4>
-#include <nodemesh/builder.h>
-#include <nodemesh/modifier.h>
-#include <nodemesh/misc.h>
-#include <nodemesh/recombiner.h>
+#include "strokemeshbuilder.h"
+#include "strokemodifier.h"
+#include "meshrecombiner.h"
 #include "meshgenerator.h"
 #include "util.h"
 #include "trianglesourcenoderesolve.h"

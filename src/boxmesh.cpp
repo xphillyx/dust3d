@@ -1,8 +1,8 @@
-#include <nodemesh/box.h>
-#include <nodemesh/misc.h>
-#include <nodemesh/cgalmesh.h>
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/subdivision_method_3.h>
+#include "boxmesh.h"
+#include "booleanmesh.h"
+#include "strokemeshbuilder.h"
 
 typedef CGAL::Simple_cartesian<double>              SimpleKernel;
 typedef CGAL::Surface_mesh<SimpleKernel::Point_3>   PolygonMesh;
@@ -56,7 +56,7 @@ void box(const QVector3D position, float radius, size_t subdivideTimes, std::vec
     for (auto &vertex: vertices) {
         vertex += position;
     }
-    
+
     if (subdivideTimes > 0) {
         std::vector<std::vector<size_t>> triangles;
         triangulate(vertices, faces, triangles);

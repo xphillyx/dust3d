@@ -3,10 +3,10 @@
 #include <QObject>
 #include <set>
 #include <QColor>
-#include <nodemesh/combiner.h>
-#include <nodemesh/positionkey.h>
-#include <nodemesh/builder.h>
 #include <tuple>
+#include "meshcombiner.h"
+#include "positionkey.h"
+#include "strokemeshbuilder.h"
 #include "outcome.h"
 #include "snapshot.h"
 #include "combinemode.h"

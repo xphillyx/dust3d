@@ -5,11 +5,27 @@
 #include <QVector3D>
 #include <vector>
 #include <cmath>
-#include <nodemesh/misc.h>
-#include <nodemesh/positionkey.h>
+#include "positionkey.h"
 
 typedef CGAL::Exact_predicates_inexact_constructions_kernel CgalKernel;
 typedef CGAL::Surface_mesh<CgalKernel::Point_3> CgalMesh;
+
+inline bool validatePosition(const QVector3D &position)
+{
+    if (std::isnan(position.x()))
+        return false;
+    if (std::isnan(position.y()))
+        return false;
+    if (std::isnan(position.z()))
+        return false;
+    if (std::isinf(position.x()))
+        return false;
+    if (std::isinf(position.y()))
+        return false;
+    if (std::isinf(position.z()))
+        return false;
+    return true;
+}
 
 template <class Kernel>
 typename CGAL::Surface_mesh<typename Kernel::Point_3> *buildCgalMesh(const std::vector<QVector3D> &positions, const std::vector<std::vector<size_t>> &indices)
@@ -24,7 +40,7 @@ typename CGAL::Surface_mesh<typename Kernel::Point_3> *buildCgalMesh(const std::
         std::set<nodemesh::PositionKey> existedKeys;
         for (const auto &index: face) {
             const auto &position = positions[index];
-            if (!nodemesh::validatePosition(position)) {
+            if (!validatePosition(position)) {
                 faceValid = false;
                 break;
             }
@@ -69,7 +85,7 @@ void fetchFromCgalMesh(typename CGAL::Surface_mesh<typename Kernel::Point_3> *me
         vertexIndicesMap[*vertexIt] = vertices.size();
         vertices.push_back(QVector3D(x, y, z));
     }
-    
+
     typename CGAL::Surface_mesh<typename Kernel::Point_3>::Face_range faceRage = mesh->faces();
     typename CGAL::Surface_mesh<typename Kernel::Point_3>::Face_range::iterator faceIt;
     for (faceIt = faceRage.begin(); faceIt != faceRage.end(); faceIt++) {
@@ -92,4 +108,3 @@ bool isNullCgalMesh(typename CGAL::Surface_mesh<typename Kernel::Point_3> *mesh)
 }
 
 #endif
-
