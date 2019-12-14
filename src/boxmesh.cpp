@@ -1,5 +1,4 @@
 #include "boxmesh.h"
-#include "booleanmesh.h"
 #include "strokemeshbuilder.h"
 #include "triangulate.h"
 

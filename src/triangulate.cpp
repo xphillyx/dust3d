@@ -1,121 +1,86 @@
 #include <QDebug>
-#include <thirdparty/poly2tri/poly2tri/poly2tri.h>
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <CGAL/Polygon_mesh_processing/triangulate_faces.h>
 #include <QVector2D>
 #include <QVector3D>
+#include "booleanmesh.h"
 #include "triangulate.h"
 #include "util.h"
 
-static std::vector<QVector2D> convertVerticesTo2D(std::vector<QVector3D> &vertices)
-{
-    std::vector<QVector2D> vertices2D;
-    if (vertices.empty())
-        return vertices2D;
-    std::vector<size_t> polyline;
-    QVector3D planeOrigin;
-    for (size_t i = 0; i < vertices.size(); ++i) {
-        polyline.push_back(i);
-        planeOrigin += vertices[i];
-    }
-    planeOrigin /= vertices.size();
-    auto maxDistance2 = std::numeric_limits<float>::min();
-    size_t pickVertexIndex = 0;
-    for (size_t i = 0; i < vertices.size(); ++i) {
-        auto distance2 = (vertices[i] - planeOrigin).lengthSquared();
-        if (distance2 > maxDistance2) {
-            maxDistance2 = distance2;
-            pickVertexIndex = i;
-        }
-    }
-    QVector3D planeNormal = polygonNormal(vertices, polyline);
-    auto planeX = (vertices[pickVertexIndex] - planeOrigin).normalized();
-    std::vector<QVector2D> points2D;
-    const QVector3D &normal = planeNormal;
-    const QVector3D &origin = planeOrigin;
-    const QVector3D &xAxis = planeX;
-    QVector3D yAxis = QVector3D::crossProduct(normal, xAxis);
-    for (const auto &it: vertices) {
-        QVector2D point2D;
-        QVector3D direction = it - origin;
-        vertices2D.push_back({QVector3D::dotProduct(direction, xAxis) * 1000,
-            QVector3D::dotProduct(direction, yAxis) * 1000
-        });
-    }
-    return vertices2D;
-}
-
-template <class C> void FreeClear( C & cntr )
-{
-    for ( typename C::iterator it = cntr.begin();
-              it != cntr.end(); ++it ) {
-        delete * it;
-    }
-    cntr.clear();
-}
+typedef CGAL::Exact_predicates_inexact_constructions_kernel InexactKernel;
+typedef CGAL::Surface_mesh<InexactKernel::Point_3> InexactMesh;
 
 bool triangulate(std::vector<QVector3D> &vertices, const std::vector<std::vector<size_t>> &faces, std::vector<std::vector<size_t>> &triangles)
 {
-    bool succeed = true;
+    auto cgalMesh = buildCgalMesh<InexactKernel>(vertices, faces);
+    bool isSucceed = CGAL::Polygon_mesh_processing::triangulate_faces(*cgalMesh);
+    if (isSucceed) {
+        vertices.clear();
+        fetchFromCgalMesh<InexactKernel>(cgalMesh, vertices, triangles);
+        delete cgalMesh;
+        return true;
+    }
+    delete cgalMesh;
     
-    auto fetchTriangulatedResult = [&](const std::vector<p2t::Triangle *> &triangles,
-            const std::map<p2t::Point *, size_t> &pointToIndexMap) {
-        std::vector<std::vector<size_t>> newFaces;
-        bool foundBadTriangle = false;
-        for (const auto &it: triangles) {
-            std::vector<size_t> face;
-            face.reserve(3);
-            for (int i = 0; i < 3; ++i) {
-                p2t::Point *point = it->GetPoint(i);
-                auto findIndex = pointToIndexMap.find(point);
-                if (findIndex == pointToIndexMap.end()) {
-                    continue;
-                }
-                face.push_back(findIndex->second);
-            }
-            if (face.size() != 3) {
-                qDebug() << "Ignore triangle";
-                foundBadTriangle = true;
-                continue;
-            }
-            newFaces.push_back(face);
-        }
-        if (foundBadTriangle)
-            return std::vector<std::vector<size_t>>();
-        return newFaces;
-    };
-    
+    // fallback to our own imeplementation
+
+    isSucceed = true;
+    std::vector<std::vector<size_t>> rings;
     for (const auto &face: faces) {
         if (face.size() > 3) {
-            std::vector<QVector3D> vertices3D;
-            vertices3D.reserve(face.size());
-            std::vector<size_t> oldIndices;
-            oldIndices.reserve(face.size());
-            for (const auto &i: face) {
-                oldIndices.push_back(i);
-                vertices3D.push_back(vertices[i]);
-            }
-            auto vertices2D = convertVerticesTo2D(vertices3D);
-            std::vector<p2t::Point*> polyline;
-            polyline.reserve(vertices2D.size());
-            std::map<p2t::Point *, size_t> pointToIndexMap;
-            for (size_t i = 0; i < vertices2D.size(); ++i) {
-                const auto &vertex2D = vertices2D[i];
-                p2t::Point *point = new p2t::Point(vertex2D.x(), vertex2D.y());
-                pointToIndexMap.insert({point, oldIndices[i]});
-                polyline.push_back(point);
-            }
-            p2t::CDT *cdt = new p2t::CDT(polyline);
-            cdt->Triangulate();
-            std::vector<std::vector<size_t>> holeFaces = fetchTriangulatedResult(cdt->GetTriangles(),
-                pointToIndexMap);
-            if (holeFaces.empty())
-                succeed = false;
-            triangles.insert(triangles.end(), holeFaces.begin(), holeFaces.end());
-            FreeClear(polyline);
-            delete cdt;
+            rings.push_back(face);
         } else {
             triangles.push_back(face);
         }
     }
-    
-    return succeed;
+    for (const auto &ring: rings) {
+        std::vector<size_t> fillRing = ring;
+        QVector3D direct = polygonNormal(vertices, fillRing);
+        while (fillRing.size() > 3) {
+            bool newFaceGenerated = false;
+            for (decltype(fillRing.size()) i = 0; i < fillRing.size(); ++i) {
+                auto j = (i + 1) % fillRing.size();
+                auto k = (i + 2) % fillRing.size();
+                const auto &enter = vertices[fillRing[i]];
+                const auto &cone = vertices[fillRing[j]];
+                const auto &leave = vertices[fillRing[k]];
+                auto angle = angleInRangle360BetweenTwoVectors(cone - enter, leave - cone, direct);
+                if (angle >= 1.0 && angle <= 179.0) {
+                    bool isEar = true;
+                    for (size_t x = 0; x < fillRing.size() - 3; ++x) {
+                        auto fourth = vertices[(i + 3 + k) % fillRing.size()];
+                        if (pointInTriangle(enter, cone, leave, fourth)) {
+                            isEar = false;
+                            break;
+                        }
+                    }
+                    if (isEar) {
+                        std::vector<size_t> newFace = {
+                            fillRing[i],
+                            fillRing[j],
+                            fillRing[k],
+                        };
+                        triangles.push_back(newFace);
+                        fillRing.erase(fillRing.begin() + j);
+                        newFaceGenerated = true;
+                        break;
+                    }
+                }
+            }
+            if (!newFaceGenerated)
+                break;
+        }
+        if (fillRing.size() == 3) {
+            std::vector<size_t> newFace = {
+                fillRing[0],
+                fillRing[1],
+                fillRing[2],
+            };
+            triangles.push_back(newFace);
+        } else {
+            qDebug() << "Triangulate failed, ring size:" << fillRing.size();
+            isSucceed = false;
+        }
+    }
+    return isSucceed;
 }

@@ -11,7 +11,6 @@
 #include <QTextStream>
 #include <QDebug>
 #include <unordered_map>
-#include "booleanmesh.h"
 #include "strokemeshbuilder.h"
 #include "meshstitcher.h"
 #include "boxmesh.h"
@@ -453,9 +452,6 @@ void StrokeMeshBuilder::localAverageBaseNormals()
 bool StrokeMeshBuilder::validateNormal(const QVector3D &normal)
 {
     if (normal.isNull()) {
-        return false;
-    }
-    if (!validatePosition(normal)) {
         return false;
     }
     return true;
