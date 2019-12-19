@@ -1,4 +1,5 @@
 #include "turnaroundloader.h"
+#include "imageskeletonextractor.h"
 
 TurnaroundLoader::TurnaroundLoader(const QString &filename, QSize viewSize) :
     m_resultImage(nullptr)
@@ -27,6 +28,13 @@ QImage *TurnaroundLoader::takeResultImage()
 
 void TurnaroundLoader::process()
 {
+    ImageSkeletonExtractor skeletonExtractor;
+    skeletonExtractor.setImage(new QImage(m_inputImage));
+    skeletonExtractor.extract();
+    QImage *grayscaleImage = skeletonExtractor.takeResultGrayscaleImage();
+    m_inputImage = *grayscaleImage;
+    delete grayscaleImage;
+    
     if (m_inputImage.isNull()) {
         QImage image(m_filename);
         m_resultImage = new QImage(image.scaled(m_viewSize, Qt::KeepAspectRatio));
