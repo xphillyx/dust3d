@@ -40,7 +40,7 @@ private:
     
     bool isBlack(int i, int j)
     {
-        return QColor(m_grayscaleImage->pixel(i, j)).black() > 10;
+        return QColor(m_grayscaleImage->pixel(i, j)).black() > 0;
     }
     
     bool isWhite(int i, int j)
