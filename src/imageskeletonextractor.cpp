@@ -4,6 +4,8 @@
 // <A Fast Parallel Algorithm for Thinning Digital Patterns>
 // T. Y. ZHANG and C. Y. SUEN
 
+const int ImageSkeletonExtractor::m_targetHeight = 256;
+
 ImageSkeletonExtractor::~ImageSkeletonExtractor()
 {
     delete m_image;
@@ -71,7 +73,9 @@ bool ImageSkeletonExtractor::secondSubiterationSatisfied(int i, int j)
 
 void ImageSkeletonExtractor::extract()
 {
-    m_grayscaleImage = new QImage(m_image->convertToFormat(QImage::Format_Grayscale8));
+    m_grayscaleImage = new QImage(m_image->convertToFormat(
+        QImage::Format_Grayscale8).scaled(
+            QSize(m_targetHeight, m_targetHeight), Qt::KeepAspectRatio));
     
     while (true) {
         std::vector<std::pair<int, int>> firstSatisfied;
@@ -94,5 +98,7 @@ void ImageSkeletonExtractor::extract()
             setWhite(it.first, it.second);
         if (firstSatisfied.empty() && secondSatisfied.empty())
             break;
+        printf("firstSatisfied:%d\r\n", firstSatisfied.size());
+        printf("secondSatisfied:%d\r\n", secondSatisfied.size());
     }
 }

@@ -36,10 +36,11 @@ public:
 private:
     QImage *m_image = nullptr;
     QImage *m_grayscaleImage = nullptr;
+    static const int m_targetHeight;
     
     bool isBlack(int i, int j)
     {
-        return m_grayscaleImage->pixel(i, j) != Qt::white;
+        return QColor(m_grayscaleImage->pixel(i, j)).black() > 10;
     }
     
     bool isWhite(int i, int j)
@@ -49,7 +50,7 @@ private:
     
     void setWhite(int i, int j)
     {
-        m_grayscaleImage->setPixel(i, j, Qt::white);
+        m_grayscaleImage->setPixel(i, j, qRgb(255, 255, 255));
     }
     
     int countNeighborTransitions(int i, int j)
