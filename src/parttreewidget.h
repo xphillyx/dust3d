@@ -42,6 +42,7 @@ signals:
     void setPartColorState(QUuid partId, bool hasColor, QColor color);
     void setComponentCombineMode(QUuid componentId, CombineMode combineMode);
     void setComponentClothStiffness(QUuid componentId, float clothStiffness);
+    void setComponentClothForce(QUuid componentId, ClothForce force);
     void hideDescendantComponents(QUuid componentId);
     void showDescendantComponents(QUuid componentId);
     void lockDescendantComponents(QUuid componentId);

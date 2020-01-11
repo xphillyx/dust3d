@@ -1086,6 +1086,14 @@ Tips:
         <source>Cloth</source>
         <translation>衣服</translation>
     </message>
+    <message>
+        <source>Gravitational</source>
+        <translation>重力</translation>
+    </message>
+    <message>
+        <source>Centripetal</source>
+        <translation>向心力</translation>
+    </message>
 </context>
 <context>
     <name>RigWidget</name>
