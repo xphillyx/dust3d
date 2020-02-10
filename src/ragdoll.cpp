@@ -37,8 +37,9 @@ RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones,
     }
     
     for (const auto &bone: m_bones) {
-        auto radius = qMax(bone.headRadius, bone.tailRadius);
-        m_stepBonePositions.push_back(std::make_tuple(bone.headPosition, bone.tailPosition, radius));
+        auto radius = (bone.headRadius + bone.tailRadius) * 0.5;
+        m_stepBonePositions.push_back(std::make_tuple(bone.headPosition,
+            bone.tailPosition, bone.headRadius, bone.tailRadius, bone.color));
         float groundY = bone.headPosition.y() - radius;
         if (groundY < m_groundY)
             m_groundY = groundY;
@@ -331,9 +332,9 @@ bool RagDoll::stepSimulation(float amount)
         }
     };
     for (size_t index = 1; index < m_stepBonePositions.size(); ++index) {
-        if (m_bones[index].name.startsWith("Virtual") ||
-                m_bones[index].name.startsWith("Spine01"))
-            continue;
+        //if (m_bones[index].name.startsWith("Virtual") ||
+        //        m_bones[index].name.startsWith("Spine01"))
+        //    continue;
         QQuaternion rotation;
         const auto &oldDirection = directions[index];
         QVector3D newDirection = std::get<1>(m_stepBonePositions[index]) - std::get<0>(m_stepBonePositions[index]);
@@ -351,7 +352,7 @@ const JointNodeTree &RagDoll::getStepJointNodeTree()
     return m_stepJointNodeTree;
 }
 
-const std::vector<std::tuple<QVector3D, QVector3D, float>> &RagDoll::getStepBonePositions()
+const std::vector<std::tuple<QVector3D, QVector3D, float, float, QColor>> &RagDoll::getStepBonePositions()
 {
     return m_stepBonePositions;
 }

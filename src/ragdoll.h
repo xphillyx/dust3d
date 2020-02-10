@@ -16,6 +16,7 @@
 #include <map>
 #include <tuple>
 #include <QStringList>
+#include <QColor>
 #include "rigger.h"
 #include "jointnodetree.h"
 
@@ -28,7 +29,7 @@ public:
     ~RagDoll();
     bool stepSimulation(float amount);
     const JointNodeTree &getStepJointNodeTree();
-    const std::vector<std::tuple<QVector3D, QVector3D, float>> &getStepBonePositions();
+    const std::vector<std::tuple<QVector3D, QVector3D, float, float, QColor>> &getStepBonePositions();
 
 private:
     btDefaultCollisionConfiguration *m_collisionConfiguration = nullptr;
@@ -51,7 +52,7 @@ private:
     JointNodeTree m_jointNodeTree;
     JointNodeTree m_stepJointNodeTree;
     std::vector<RiggerBone> m_bones;
-    std::vector<std::tuple<QVector3D, QVector3D, float>> m_stepBonePositions;
+    std::vector<std::tuple<QVector3D, QVector3D, float, float, QColor>> m_stepBonePositions;
     
     std::map<QString, int> m_boneNameToIndexMap;
     std::map<QString, std::vector<QString>> m_chains;
