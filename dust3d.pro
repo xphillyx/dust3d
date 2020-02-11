@@ -567,8 +567,8 @@ HEADERS += thirdparty/bullet3/src/BulletCollision/CollisionShapes/btConvexShape.
 SOURCES += thirdparty/bullet3/src/BulletCollision/CollisionShapes/btConvexInternalShape.cpp
 HEADERS += thirdparty/bullet3/src/BulletCollision/CollisionShapes/btConvexInternalShape.h
 
-SOURCES += thirdparty/bullet3/src/BulletDynamics/ConstraintSolver/btHingeConstraint.cpp
-HEADERS += thirdparty/bullet3/src/BulletDynamics/ConstraintSolver/btHingeConstraint.h
+SOURCES += thirdparty/bullet3/src/BulletDynamics/ConstraintSolver/btGeneric6DofConstraint.cpp
+HEADERS += thirdparty/bullet3/src/BulletDynamics/ConstraintSolver/btGeneric6DofConstraint.h
 
 SOURCES += thirdparty/bullet3/src/BulletDynamics/ConstraintSolver/btConeTwistConstraint.cpp
 HEADERS += thirdparty/bullet3/src/BulletDynamics/ConstraintSolver/btConeTwistConstraint.h

@@ -3,14 +3,12 @@
 #include <LinearMath/btDefaultMotionState.h>
 #include <LinearMath/btAlignedAllocator.h>
 #include <BulletCollision/CollisionShapes/btCapsuleShape.h>
-#include <BulletDynamics/ConstraintSolver/btHingeConstraint.h>
-#include <BulletDynamics/ConstraintSolver/btConeTwistConstraint.h>
-#include <BulletDynamics/ConstraintSolver/btPoint2PointConstraint.h>
-#include <BulletDynamics/ConstraintSolver/btFixedConstraint.h>
+#include <BulletDynamics/ConstraintSolver/btGeneric6DofConstraint.h>
 #include <BulletDynamics/ConstraintSolver/btTypedConstraint.h>
 #include <QQuaternion>
 #include <QtMath>
 #include <QMatrix4x4>
+#include <iostream>
 #include "ragdoll.h"
 #include "poser.h"
 
@@ -71,6 +69,9 @@ RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones,
     std::set<std::pair<QString, QString>> constraintPairs;
     
     for (const auto &bone: m_bones) {
+        if (0 == bone.index)
+            continue;
+
         const auto &headPosition = bonePositions[bone.index].first;
         const auto &tailPosition = bonePositions[bone.index].second;
         float height = m_boneLengthMap[bone.name];
@@ -98,51 +99,27 @@ RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones,
         transform.getBasis().setRotation(btRotation);
         
         btRigidBody *body = createRigidBody(btScalar(mass), transform, shape);
+        
+        body->setDamping(btScalar(0.05), btScalar(0.85));
+        body->setDeactivationTime(btScalar(0.8));
+        body->setSleepingThresholds(btScalar(1.6), btScalar(2.5));
+        
         m_boneBodies[bone.name] = body;
     }
     
-    // Setup some damping on the m_bodies
     for (const auto &bone: m_bones) {
-        m_boneBodies[bone.name]->setDamping(btScalar(0.05), btScalar(0.85));
-        m_boneBodies[bone.name]->setDeactivationTime(btScalar(0.8));
-        m_boneBodies[bone.name]->setSleepingThresholds(btScalar(1.6), btScalar(2.5));
-    }
-    
-    for (const auto &it: m_chains) {
-        for (size_t i = 1; i < it.second.size(); ++i) {
-            const auto &parent = (*rigBones)[m_boneNameToIndexMap[it.second[i - 1]]];
-            const auto &child = (*rigBones)[m_boneNameToIndexMap[it.second[i]]];
-            if (constraintPairs.find(std::make_pair(parent.name, child.name)) == constraintPairs.end()) {
-                constraintPairs.insert(std::make_pair(parent.name, child.name));
-                if (parent.name.startsWith("Spine")) {
-                    addFixedConstraint(parent, child);
-                } else {
-                    addFreeConstraint(parent, child);
-                }
-            }
-        }
-    }
-    
-    for (const auto &parent: m_bones) {
-        for (const auto &childIndex: parent.children) {
-            const auto &child = m_bones[childIndex];
-            if (parent.children.size() <= 1 && !child.name.startsWith("Virtual"))
+        if (0 == bone.index || -1 == bone.parent)
+            continue;
+        if (0 == bone.parent) {
+            if ("Spine1" == bone.name)
                 continue;
-            if (constraintPairs.find(std::make_pair(parent.name, child.name)) == constraintPairs.end()) {
-                constraintPairs.insert(std::make_pair(parent.name, child.name));
-                addFixedConstraint(parent, child);
-            }
+            auto findFirstSpine = m_boneNameToIndexMap.find("Spine1");
+            if (findFirstSpine == m_boneNameToIndexMap.end())
+                continue;
+            addConstraint(bone, m_bones[findFirstSpine->second]);
+            continue;
         }
-    }
-    
-    for (const auto &parent: m_bones) {
-        for (const auto &childIndex: parent.children) {
-            const auto &child = m_bones[childIndex];
-            if (constraintPairs.find(std::make_pair(parent.name, child.name)) == constraintPairs.end()) {
-                constraintPairs.insert(std::make_pair(parent.name, child.name));
-                addFreeConstraint(parent, child);
-            }
-        }
+        addConstraint(bone, m_bones[bone.parent]);
     }
     
     for (const auto &bone: m_bones) {
@@ -172,7 +149,7 @@ RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones,
     }
 }
 
-void RagDoll::addFreeConstraint(const RiggerBone &parent, const RiggerBone &child)
+void RagDoll::addConstraint(const RiggerBone &parent, const RiggerBone &child)
 {
     btRigidBody *parentBoneBody = m_boneBodies[parent.name];
     btRigidBody *childBoneBody = m_boneBodies[child.name];
@@ -182,39 +159,41 @@ void RagDoll::addFreeConstraint(const RiggerBone &parent, const RiggerBone &chil
     
     float parentLength = m_boneLengthMap[parent.name];
     float childLength = m_boneLengthMap[child.name];
-    const btVector3 btPivotA(0, parentLength * 0.5, 0.0f);
-    const btVector3 btPivotB(0, -childLength * 0.5, 0.0f);
-    
-    btPoint2PointConstraint *constraint = new btPoint2PointConstraint(*parentBoneBody, *childBoneBody,
-        btPivotA, btPivotB);
-    m_world->addConstraint(constraint, true);
-    m_boneConstraints.push_back(constraint);
-}
-
-void RagDoll::addFixedConstraint(const RiggerBone &parent, const RiggerBone &child)
-{
-    btRigidBody *parentBoneBody = m_boneBodies[parent.name];
-    btRigidBody *childBoneBody = m_boneBodies[child.name];
-    
-    if (nullptr == parentBoneBody || nullptr == childBoneBody)
-        return;
-    
-    float parentLength = m_boneLengthMap[parent.name];
-    float childLength = m_boneLengthMap[child.name];
-    const btVector3 btPivotA(0, parentLength * 0.5, 0.0f);
-    const btVector3 btPivotB(0, -childLength * 0.5, 0.0f);
+    const btVector3 btPivotA(0, -parentLength * 0.5, 0.0f);
+    const btVector3 btPivotB(0, childLength * 0.5, 0.0f);
     
     btTransform localA;
     btTransform localB;
+    bool useLinearReferenceFrameA = true;
     
-    btFixedConstraint *constraint = nullptr;
+    btGeneric6DofConstraint *constraint = nullptr;
     
     localA.setIdentity();
     localB.setIdentity();
     localA.setOrigin(btPivotA);
     localB.setOrigin(btPivotB);
     
-    constraint = new btFixedConstraint(*parentBoneBody, *childBoneBody, localA, localB);
+    constraint = new btGeneric6DofConstraint(*parentBoneBody, *childBoneBody, localA, localB, useLinearReferenceFrameA);
+    if ("Neck_Joint1" == child.name) {
+        constraint->setAngularLowerLimit(btVector3(-SIMD_PI * 0.3f, -SIMD_EPSILON, -SIMD_PI * 0.3f));
+        constraint->setAngularUpperLimit(btVector3(SIMD_PI * 0.5f, SIMD_EPSILON, SIMD_PI * 0.3f));
+    } else if ("LeftLimb1_Joint1" == parent.name || "RightLimb1_Joint1" == parent.name) {
+        constraint->setAngularLowerLimit(btVector3(-SIMD_EPSILON, -SIMD_EPSILON, -SIMD_EPSILON));
+        constraint->setAngularUpperLimit(btVector3(SIMD_PI * 0.7f, SIMD_EPSILON, SIMD_EPSILON));
+    } else if ("LeftLimb1_Joint1" == child.name) {
+        constraint->setAngularLowerLimit(btVector3(-SIMD_HALF_PI * 0.5, -SIMD_EPSILON, -SIMD_EPSILON));
+        constraint->setAngularUpperLimit(btVector3(SIMD_HALF_PI * 0.8, SIMD_EPSILON, SIMD_HALF_PI * 0.6f));
+    } else if ("RightLimb1_Joint1" == child.name) {
+        constraint->setAngularLowerLimit(btVector3(-SIMD_HALF_PI * 0.5, -SIMD_EPSILON, -SIMD_HALF_PI * 0.6f));
+        constraint->setAngularUpperLimit(btVector3(SIMD_HALF_PI * 0.8, SIMD_EPSILON, SIMD_EPSILON));
+    } else {
+        constraint->setAngularLowerLimit(btVector3(-SIMD_EPSILON, -SIMD_EPSILON, -SIMD_EPSILON));
+        constraint->setAngularUpperLimit(btVector3(SIMD_EPSILON, SIMD_EPSILON, SIMD_EPSILON));
+    }
+    
+    parentBoneBody->setIgnoreCollisionCheck(childBoneBody, true);
+    childBoneBody->setIgnoreCollisionCheck(parentBoneBody, true);
+    
     m_world->addConstraint(constraint, true);
     m_boneConstraints.push_back(constraint);
 }

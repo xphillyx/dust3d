@@ -59,8 +59,7 @@ private:
  
     btRigidBody *createRigidBody(btScalar mass, const btTransform &startTransform, btCollisionShape *shape);
     void createDynamicsWorld();
-    void addFixedConstraint(const RiggerBone &parent, const RiggerBone &child);
-    void addFreeConstraint(const RiggerBone &parent, const RiggerBone &child);
+    void addConstraint(const RiggerBone &parent, const RiggerBone &child);
 };
 
 #endif
