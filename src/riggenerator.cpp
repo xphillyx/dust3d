@@ -299,9 +299,9 @@ void RigGenerator::buildBoneNodeChain()
         } else if (BoneMark::Tail == node.boneMark) {
             m_tailChains.push_back(i);
         } else if (BoneMark::Limb == node.boneMark) {
-            if (node.origin.x() < 0) {
+            if (node.origin.x() > 0) {
                 m_leftLimbChains.push_back(i);
-            } else if (node.origin.x() > 0) {
+            } else if (node.origin.x() < 0) {
                 m_rightLimbChains.push_back(i);
             }
         }

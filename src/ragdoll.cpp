@@ -4,6 +4,7 @@
 #include <LinearMath/btAlignedAllocator.h>
 #include <BulletCollision/CollisionShapes/btCapsuleShape.h>
 #include <BulletDynamics/ConstraintSolver/btGeneric6DofConstraint.h>
+#include <BulletDynamics/ConstraintSolver/btFixedConstraint.h>
 #include <BulletDynamics/ConstraintSolver/btTypedConstraint.h>
 #include <QQuaternion>
 #include <QtMath>
@@ -58,7 +59,7 @@ RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones,
     for (const auto &bone: *rigBones) {
         const auto &headPosition = bonePositions[bone.index].first;
         const auto &tailPosition = bonePositions[bone.index].second;
-        float radius = (bone.headRadius + bone.tailRadius) * 0.5;
+        float radius = qMin(bone.headRadius, bone.tailRadius);
         float height = headPosition.distanceToPoint(tailPosition);
         QVector3D middlePosition = (headPosition + tailPosition) * 0.5;
         m_boneLengthMap[bone.name] = height;
@@ -149,53 +150,61 @@ RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones,
     }
 }
 
-void RagDoll::addConstraint(const RiggerBone &parent, const RiggerBone &child)
+void RagDoll::addConstraint(const RiggerBone &child, const RiggerBone &parent)
 {
+    std::cout << "addConstraint parent:" << parent.name.toUtf8().constData() << " child:" << child.name.toUtf8().constData() << std::endl;
+
     btRigidBody *parentBoneBody = m_boneBodies[parent.name];
     btRigidBody *childBoneBody = m_boneBodies[child.name];
     
     if (nullptr == parentBoneBody || nullptr == childBoneBody)
         return;
     
+    bool reversed = "Spine1" == parent.name && "Spine01" == child.name;
+    
     float parentLength = m_boneLengthMap[parent.name];
     float childLength = m_boneLengthMap[child.name];
-    const btVector3 btPivotA(0, -parentLength * 0.5, 0.0f);
-    const btVector3 btPivotB(0, childLength * 0.5, 0.0f);
+    const btVector3 btPivotA(0, (reversed ? -1 : 1) * parentLength * 0.5, 0.0f);
+    const btVector3 btPivotB(0, -childLength * 0.5, 0.0f);
     
     btTransform localA;
     btTransform localB;
-    bool useLinearReferenceFrameA = true;
-    
-    btGeneric6DofConstraint *constraint = nullptr;
     
     localA.setIdentity();
     localB.setIdentity();
     localA.setOrigin(btPivotA);
     localB.setOrigin(btPivotB);
     
-    constraint = new btGeneric6DofConstraint(*parentBoneBody, *childBoneBody, localA, localB, useLinearReferenceFrameA);
-    if ("Neck_Joint1" == child.name) {
-        constraint->setAngularLowerLimit(btVector3(-SIMD_PI * 0.3f, -SIMD_EPSILON, -SIMD_PI * 0.3f));
-        constraint->setAngularUpperLimit(btVector3(SIMD_PI * 0.5f, SIMD_EPSILON, SIMD_PI * 0.3f));
-    } else if ("LeftLimb1_Joint1" == parent.name || "RightLimb1_Joint1" == parent.name) {
-        constraint->setAngularLowerLimit(btVector3(-SIMD_EPSILON, -SIMD_EPSILON, -SIMD_EPSILON));
-        constraint->setAngularUpperLimit(btVector3(SIMD_PI * 0.7f, SIMD_EPSILON, SIMD_EPSILON));
-    } else if ("LeftLimb1_Joint1" == child.name) {
-        constraint->setAngularLowerLimit(btVector3(-SIMD_HALF_PI * 0.5, -SIMD_EPSILON, -SIMD_EPSILON));
-        constraint->setAngularUpperLimit(btVector3(SIMD_HALF_PI * 0.8, SIMD_EPSILON, SIMD_HALF_PI * 0.6f));
-    } else if ("RightLimb1_Joint1" == child.name) {
-        constraint->setAngularLowerLimit(btVector3(-SIMD_HALF_PI * 0.5, -SIMD_EPSILON, -SIMD_HALF_PI * 0.6f));
-        constraint->setAngularUpperLimit(btVector3(SIMD_HALF_PI * 0.8, SIMD_EPSILON, SIMD_EPSILON));
+    //if (child.name.startsWith("Spine") || child.name.startsWith("Neck") || child.name.startsWith("Virtual")) {
+    //    btFixedConstraint *fixedConstraint = new btFixedConstraint(*parentBoneBody, *childBoneBody,
+    //        localA, localB);
+    //    m_world->addConstraint(fixedConstraint, true);
+    //    m_boneConstraints.push_back(fixedConstraint);
+    //    return;
+    //}
+
+    btGeneric6DofConstraint *g6dConstraint = nullptr;
+    bool useLinearReferenceFrameA = true;
+    g6dConstraint = new btGeneric6DofConstraint(*parentBoneBody, *childBoneBody, localA, localB, useLinearReferenceFrameA);
+    if ("LeftLimb1_Joint1" == parent.name || "LeftLimb2_Joint1" == parent.name) {
+        g6dConstraint->setAngularLowerLimit(btVector3(SIMD_EPSILON, -SIMD_EPSILON, -SIMD_EPSILON));
+        g6dConstraint->setAngularUpperLimit(btVector3(-SIMD_PI * 0.7f, SIMD_EPSILON, SIMD_EPSILON));
+    } else if ("RightLimb1_Joint1" == parent.name || "RightLimb2_Joint1" == parent.name) {
+        g6dConstraint->setAngularLowerLimit(btVector3(SIMD_EPSILON, -SIMD_EPSILON, -SIMD_EPSILON));
+        g6dConstraint->setAngularUpperLimit(btVector3(SIMD_PI * 0.7f, SIMD_EPSILON, SIMD_EPSILON));
+    } else if ("LeftLimb1_Joint1" == child.name || "LeftLimb2_Joint1" == child.name) {
+        g6dConstraint->setAngularLowerLimit(btVector3(-SIMD_HALF_PI * 0.5, -SIMD_EPSILON, -SIMD_EPSILON));
+        g6dConstraint->setAngularUpperLimit(btVector3(SIMD_HALF_PI * 0.8, SIMD_EPSILON, SIMD_HALF_PI * 0.6f));
+    } else if ("RightLimb1_Joint1" == child.name || "RightLimb2_Joint1" == child.name) {
+        g6dConstraint->setAngularLowerLimit(btVector3(-SIMD_HALF_PI * 0.5, -SIMD_EPSILON, -SIMD_HALF_PI * 0.6f));
+        g6dConstraint->setAngularUpperLimit(btVector3(SIMD_HALF_PI * 0.8, SIMD_EPSILON, SIMD_EPSILON));
     } else {
-        constraint->setAngularLowerLimit(btVector3(-SIMD_EPSILON, -SIMD_EPSILON, -SIMD_EPSILON));
-        constraint->setAngularUpperLimit(btVector3(SIMD_EPSILON, SIMD_EPSILON, SIMD_EPSILON));
+        g6dConstraint->setAngularLowerLimit(btVector3(-SIMD_EPSILON, -SIMD_EPSILON, -SIMD_EPSILON));
+        g6dConstraint->setAngularUpperLimit(btVector3(SIMD_EPSILON, SIMD_EPSILON, SIMD_EPSILON));
     }
     
-    parentBoneBody->setIgnoreCollisionCheck(childBoneBody, true);
-    childBoneBody->setIgnoreCollisionCheck(parentBoneBody, true);
-    
-    m_world->addConstraint(constraint, true);
-    m_boneConstraints.push_back(constraint);
+    m_world->addConstraint(g6dConstraint, true);
+    m_boneConstraints.push_back(g6dConstraint);
 }
 
 RagDoll::~RagDoll()
@@ -311,9 +320,8 @@ bool RagDoll::stepSimulation(float amount)
         }
     };
     for (size_t index = 1; index < m_stepBonePositions.size(); ++index) {
-        //if (m_bones[index].name.startsWith("Virtual") ||
-        //        m_bones[index].name.startsWith("Spine01"))
-        //    continue;
+        if (m_bones[index].name.startsWith("Virtual"))
+            continue;
         QQuaternion rotation;
         const auto &oldDirection = directions[index];
         QVector3D newDirection = std::get<1>(m_stepBonePositions[index]) - std::get<0>(m_stepBonePositions[index]);
