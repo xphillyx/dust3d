@@ -117,7 +117,7 @@ RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones,
             auto findFirstSpine = m_boneNameToIndexMap.find("Spine1");
             if (findFirstSpine == m_boneNameToIndexMap.end())
                 continue;
-            addConstraint(bone, m_bones[findFirstSpine->second]);
+            addConstraint(bone, m_bones[findFirstSpine->second], true);
             continue;
         }
         addConstraint(bone, m_bones[bone.parent]);
@@ -150,17 +150,17 @@ RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones,
     }
 }
 
-void RagDoll::addConstraint(const RiggerBone &child, const RiggerBone &parent)
+void RagDoll::addConstraint(const RiggerBone &child, const RiggerBone &parent, bool isBorrowedParent)
 {
-    std::cout << "addConstraint parent:" << parent.name.toUtf8().constData() << " child:" << child.name.toUtf8().constData() << std::endl;
-
     btRigidBody *parentBoneBody = m_boneBodies[parent.name];
     btRigidBody *childBoneBody = m_boneBodies[child.name];
     
     if (nullptr == parentBoneBody || nullptr == childBoneBody)
         return;
     
-    bool reversed = "Spine1" == parent.name && "Spine01" == child.name;
+    bool reversed = isBorrowedParent;
+    
+    //std::cout << "addConstraint parent:" << parent.name.toUtf8().constData() << " child:" << child.name.toUtf8().constData() << " reversed:" << reversed << std::endl;
     
     float parentLength = m_boneLengthMap[parent.name];
     float childLength = m_boneLengthMap[child.name];
@@ -192,12 +192,12 @@ void RagDoll::addConstraint(const RiggerBone &child, const RiggerBone &parent)
     } else if ("RightLimb1_Joint1" == parent.name || "RightLimb2_Joint1" == parent.name) {
         g6dConstraint->setAngularLowerLimit(btVector3(SIMD_EPSILON, -SIMD_EPSILON, -SIMD_EPSILON));
         g6dConstraint->setAngularUpperLimit(btVector3(SIMD_PI * 0.7f, SIMD_EPSILON, SIMD_EPSILON));
-    } else if ("LeftLimb1_Joint1" == child.name || "LeftLimb2_Joint1" == child.name) {
-        g6dConstraint->setAngularLowerLimit(btVector3(-SIMD_HALF_PI * 0.5, -SIMD_EPSILON, -SIMD_EPSILON));
-        g6dConstraint->setAngularUpperLimit(btVector3(SIMD_HALF_PI * 0.8, SIMD_EPSILON, SIMD_HALF_PI * 0.6f));
-    } else if ("RightLimb1_Joint1" == child.name || "RightLimb2_Joint1" == child.name) {
-        g6dConstraint->setAngularLowerLimit(btVector3(-SIMD_HALF_PI * 0.5, -SIMD_EPSILON, -SIMD_HALF_PI * 0.6f));
-        g6dConstraint->setAngularUpperLimit(btVector3(SIMD_HALF_PI * 0.8, SIMD_EPSILON, SIMD_EPSILON));
+    //} else if ("LeftLimb1_Joint1" == child.name || "LeftLimb2_Joint1" == child.name) {
+    //    g6dConstraint->setAngularLowerLimit(btVector3(-SIMD_HALF_PI * 0.5, -SIMD_EPSILON, -SIMD_EPSILON));
+    //    g6dConstraint->setAngularUpperLimit(btVector3(SIMD_HALF_PI * 0.8, SIMD_EPSILON, SIMD_HALF_PI * 0.6f));
+    //} else if ("RightLimb1_Joint1" == child.name || "RightLimb2_Joint1" == child.name) {
+    //    g6dConstraint->setAngularLowerLimit(btVector3(-SIMD_HALF_PI * 0.5, -SIMD_EPSILON, -SIMD_HALF_PI * 0.6f));
+    //    g6dConstraint->setAngularUpperLimit(btVector3(SIMD_HALF_PI * 0.8, SIMD_EPSILON, SIMD_EPSILON));
     } else {
         g6dConstraint->setAngularLowerLimit(btVector3(-SIMD_EPSILON, -SIMD_EPSILON, -SIMD_EPSILON));
         g6dConstraint->setAngularUpperLimit(btVector3(SIMD_EPSILON, SIMD_EPSILON, SIMD_EPSILON));

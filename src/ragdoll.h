@@ -59,7 +59,7 @@ private:
  
     btRigidBody *createRigidBody(btScalar mass, const btTransform &startTransform, btCollisionShape *shape);
     void createDynamicsWorld();
-    void addConstraint(const RiggerBone &child, const RiggerBone &parent);
+    void addConstraint(const RiggerBone &child, const RiggerBone &parent, bool isBorrowedParent=false);
 };
 
 #endif
