@@ -868,23 +868,8 @@ void RigGenerator::extractJoints(const size_t &fromNodeIndex,
     if (checkLastNoneMarkedNode &&
             !jointIndices.empty() &&
             jointIndices[jointIndices.size() - 1] + 1 != nodeIndicesAndDistance2Array.size()) {
-        size_t lastIndex = fromNodeIndex;
-        float sumOfDistances = 0.0f;
-        for (const auto &itemIndex: jointIndices) {
-            const auto &item = nodeIndicesAndDistance2Array[itemIndex];
-            const auto &currentNode = m_outcome->bodyNodes[item.first];
-            const auto &lastNode = m_outcome->bodyNodes[lastIndex];
-            lastIndex = item.first;
-            sumOfDistances += (currentNode.origin - lastNode.origin).length();
-        }
-        float averageDistance = sumOfDistances / jointIndices.size();
-        const auto &lastItem = nodeIndicesAndDistance2Array[nodeIndicesAndDistance2Array.size() - 1];
-        float distance = (m_outcome->bodyNodes[lastItem.first].origin -
-            m_outcome->bodyNodes[lastIndex].origin).length();
-        // FIXME: replace the hardcoded value
-        if (distance >= averageDistance * 0.5) {
+        if (jointIndices.empty())
             appendLastJoint = true;
-        }
     }
     if (jointIndices.empty() || appendLastJoint) {
         jointIndices.push_back(nodeIndicesAndDistance2Array.size() - 1);
