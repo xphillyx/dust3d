@@ -16,33 +16,37 @@
 RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones,
         const JointNodeTree *initialJointNodeTree) :
     m_jointNodeTree(rigBones),
-    m_stepJointNodeTree(rigBones)
+    m_stepJointNodeTree(nullptr == initialJointNodeTree ? rigBones : *initialJointNodeTree)
 {
     if (nullptr == rigBones || rigBones->empty())
         return;
     
+    if (m_stepJointNodeTree.nodes().size() != m_jointNodeTree.nodes().size())
+        return;
+    
     m_bones = *rigBones;
     
-    std::vector<std::pair<QVector3D, QVector3D>> bonePositions;
     if (nullptr != initialJointNodeTree) {
-        m_jointNodeTree.calculateBonePositions(&bonePositions,
+        m_jointNodeTree.calculateBonePositions(&m_boneInitialPositions,
+            initialJointNodeTree,
             rigBones);
     } else {
-        bonePositions.resize(m_bones.size());
+        m_boneInitialPositions.resize(m_bones.size());
         for (size_t i = 0; i < m_bones.size(); ++i) {
             const auto &bone = m_bones[i];
-            bonePositions[i] = std::make_pair(bone.headPosition, bone.tailPosition);
+            m_boneInitialPositions[i] = std::make_pair(bone.headPosition, bone.tailPosition);
         }
     }
     
     for (const auto &bone: m_bones) {
+        const auto &bonePosition = m_boneInitialPositions[bone.index];
         auto radius = (bone.headRadius + bone.tailRadius) * 0.5;
-        m_stepBonePositions.push_back(std::make_tuple(bone.headPosition,
-            bone.tailPosition, bone.headRadius, bone.tailRadius, bone.color));
-        float groundY = bone.headPosition.y() - radius;
+        m_stepBonePositions.push_back(std::make_tuple(bonePosition.first,
+            bonePosition.second, bone.headRadius, bone.tailRadius, bone.color));
+        float groundY = bonePosition.first.y() - radius;
         if (groundY < m_groundY)
             m_groundY = groundY;
-        groundY = bone.tailPosition.y() - radius;
+        groundY = bonePosition.second.y() - radius;
         if (groundY < m_groundY)
             m_groundY = groundY;
     }
@@ -57,8 +61,8 @@ RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones,
     Poser::fetchChains(boneNames, m_chains);
     
     for (const auto &bone: *rigBones) {
-        const auto &headPosition = bonePositions[bone.index].first;
-        const auto &tailPosition = bonePositions[bone.index].second;
+        const auto &headPosition = m_boneInitialPositions[bone.index].first;
+        const auto &tailPosition = m_boneInitialPositions[bone.index].second;
         float radius = qMin(bone.headRadius, bone.tailRadius);
         float height = headPosition.distanceToPoint(tailPosition);
         QVector3D middlePosition = (headPosition + tailPosition) * 0.5;
@@ -73,11 +77,11 @@ RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones,
         if (0 == bone.index)
             continue;
 
-        const auto &headPosition = bonePositions[bone.index].first;
-        const auto &tailPosition = bonePositions[bone.index].second;
+        const auto &headPosition = m_boneInitialPositions[bone.index].first;
+        const auto &tailPosition = m_boneInitialPositions[bone.index].second;
         float height = m_boneLengthMap[bone.name];
         float radius = m_boneRadiusMap[bone.name];
-        float mass = 1.0;
+        float mass = bone.name.startsWith("Spine") ? 5.0 : 1.0;
 
         btCollisionShape *shape = new btCapsuleShape(btScalar(radius), btScalar(height));
         shape->setUserIndex(bone.index);
@@ -192,12 +196,12 @@ void RagDoll::addConstraint(const RiggerBone &child, const RiggerBone &parent, b
     } else if ("RightLimb1_Joint1" == parent.name || "RightLimb2_Joint1" == parent.name) {
         g6dConstraint->setAngularLowerLimit(btVector3(SIMD_EPSILON, -SIMD_EPSILON, -SIMD_EPSILON));
         g6dConstraint->setAngularUpperLimit(btVector3(SIMD_PI * 0.7f, SIMD_EPSILON, SIMD_EPSILON));
-    //} else if ("LeftLimb1_Joint1" == child.name || "LeftLimb2_Joint1" == child.name) {
-    //    g6dConstraint->setAngularLowerLimit(btVector3(-SIMD_HALF_PI * 0.5, -SIMD_EPSILON, -SIMD_EPSILON));
-    //    g6dConstraint->setAngularUpperLimit(btVector3(SIMD_HALF_PI * 0.8, SIMD_EPSILON, SIMD_HALF_PI * 0.6f));
-    //} else if ("RightLimb1_Joint1" == child.name || "RightLimb2_Joint1" == child.name) {
-    //    g6dConstraint->setAngularLowerLimit(btVector3(-SIMD_HALF_PI * 0.5, -SIMD_EPSILON, -SIMD_HALF_PI * 0.6f));
-    //    g6dConstraint->setAngularUpperLimit(btVector3(SIMD_HALF_PI * 0.8, SIMD_EPSILON, SIMD_EPSILON));
+    } else if ("LeftLimb1_Joint1" == child.name || "LeftLimb2_Joint1" == child.name) {
+        g6dConstraint->setAngularLowerLimit(btVector3(-SIMD_HALF_PI * 0.5, -SIMD_EPSILON, -SIMD_EPSILON));
+        g6dConstraint->setAngularUpperLimit(btVector3(SIMD_HALF_PI * 0.8, SIMD_EPSILON, SIMD_HALF_PI * 0.6f));
+    } else if ("RightLimb1_Joint1" == child.name || "RightLimb2_Joint1" == child.name) {
+        g6dConstraint->setAngularLowerLimit(btVector3(-SIMD_HALF_PI * 0.5, -SIMD_EPSILON, -SIMD_HALF_PI * 0.6f));
+        g6dConstraint->setAngularUpperLimit(btVector3(SIMD_HALF_PI * 0.8, SIMD_EPSILON, SIMD_EPSILON));
     } else {
         g6dConstraint->setAngularLowerLimit(btVector3(-SIMD_EPSILON, -SIMD_EPSILON, -SIMD_EPSILON));
         g6dConstraint->setAngularUpperLimit(btVector3(SIMD_EPSILON, SIMD_EPSILON, SIMD_EPSILON));
@@ -308,8 +312,10 @@ bool RagDoll::stepSimulation(float amount)
     
     std::vector<QVector3D> directions(m_stepBonePositions.size());
     for (size_t index = 0; index < m_stepBonePositions.size(); ++index) {
-        const auto &bone = m_bones[index];
-        directions[index] = bone.tailPosition - bone.headPosition;
+        if (index >= m_bones.size())
+            continue;
+        const auto &boneNode = m_bones[index];
+        directions[index] = boneNode.tailPosition - boneNode.headPosition;
     }
     std::function<void(size_t index, const QQuaternion &rotation)> rotateChildren;
     rotateChildren = [&](size_t index, const QQuaternion &rotation) {

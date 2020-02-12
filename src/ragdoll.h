@@ -40,6 +40,7 @@ private:
     btCollisionShape *m_groundShape = nullptr;
     btRigidBody *m_groundBody = nullptr;
     float m_groundY = 0;
+    std::vector<std::pair<QVector3D, QVector3D>> m_boneInitialPositions;
     
     std::map<QString, btCollisionShape *> m_boneShapes;
     std::map<QString, btRigidBody *> m_boneBodies;
