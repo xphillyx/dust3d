@@ -3,6 +3,7 @@
 #include <QVector2D>
 #include <QGuiApplication>
 #include <QMatrix4x4>
+#include <iostream>
 #include "strokemeshbuilder.h"
 #include "strokemodifier.h"
 #include "meshrecombiner.h"
@@ -1487,6 +1488,13 @@ void MeshGenerator::generate()
         
         std::vector<std::pair<QUuid, QUuid>> sourceNodes;
         triangleSourceNodeResolve(*outcome, sourceNodes, &outcome->vertexSourceNodes);
+        {
+            for (const auto &it: outcome->vertexSourceNodes) {
+                if (!it.first.isNull() && !it.second.isNull())
+                    continue;
+                std::cout << "source node:" << it.first.toString().toUtf8().constData() << " " << it.second.toString().toUtf8().constData() << std::endl;
+            }
+        }
         outcome->setTriangleSourceNodes(sourceNodes);
         
         std::map<std::pair<QUuid, QUuid>, QColor> sourceNodeToColorMap;

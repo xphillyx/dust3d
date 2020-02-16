@@ -105,9 +105,9 @@ RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones,
         
         btRigidBody *body = createRigidBody(btScalar(mass), transform, shape);
         
-        body->setDamping(btScalar(0.05), btScalar(0.85));
-        body->setDeactivationTime(btScalar(0.8));
-        body->setSleepingThresholds(btScalar(1.6), btScalar(2.5));
+        //body->setDamping(btScalar(0.05), btScalar(0.85));
+        //body->setDeactivationTime(btScalar(0.8));
+        //body->setSleepingThresholds(btScalar(1.6), btScalar(2.5));
         
         m_boneBodies[bone.name] = body;
     }
@@ -179,7 +179,7 @@ void RagDoll::addConstraint(const RiggerBone &child, const RiggerBone &parent, b
     localA.setOrigin(btPivotA);
     localB.setOrigin(btPivotB);
     
-    //if (child.name.startsWith("Spine") || child.name.startsWith("Neck") || child.name.startsWith("Virtual")) {
+    //if (child.name.startsWith("Spine") || child.name.startsWith("Virtual")) {
     //    btFixedConstraint *fixedConstraint = new btFixedConstraint(*parentBoneBody, *childBoneBody,
     //        localA, localB);
     //    m_world->addConstraint(fixedConstraint, true);

@@ -446,7 +446,8 @@ void RigGenerator::buildSkeleton()
         bone.tailPosition = nextNode.origin;
         bone.headRadius = currentNode.radius;
         bone.tailRadius = nextNode.radius;
-        bone.color = 0 == (spineJointIndex - rootSpineJointIndex) % 2 ? Theme::white : BoneMarkToColor(BoneMark::Joint);
+        //bone.color = 0 == (spineJointIndex - rootSpineJointIndex) % 2 ? Theme::white : BoneMarkToColor(BoneMark::Joint);
+        bone.color = 0 == (spineJointIndex - rootSpineJointIndex) % 2 ? Qt::green : Qt::blue;
         bone.name = QString("Spine") + QString::number(spineJointIndex + 1 - rootSpineJointIndex);
         bone.index = m_resultBones->size();
         bone.parent = attachedBoneIndex(spineJointIndex);
@@ -932,42 +933,6 @@ void RigGenerator::extractSpineJoints()
         m_spineJoints.push_back(findNeck->second[0]);
     }
 }
-
-/*
-void RigGenerator::extractSpineJoints()
-{
-    auto &spine = m_boneNodeChain[m_spineChains[0]];
-    auto findTail = m_branchNodesMapByMark.find((int)BoneMark::Tail);
-    if (findTail != m_branchNodesMapByMark.end()) {
-        m_spineJoints.push_back(findTail->second[0]);
-    } else {
-        std::reverse(spine.nodeChain.begin(), spine.nodeChain.end());
-        std::reverse(spine.nodeIsJointFlags.begin(), spine.nodeIsJointFlags.end());
-        std::reverse(m_attachLimbsToSpineChainPositions.begin(), m_attachLimbsToSpineChainPositions.end());
-        for (auto &it: m_attachLimbsToSpineChainPositions) {
-            it = spine.nodeChain.size() - 1 - it;
-        }
-    }
-    m_attachLimbsToSpineJointIndices.resize(m_attachLimbsToSpineChainPositions.size());
-    for (size_t i = 0; i < spine.nodeChain.size(); ++i) {
-        bool limbsAttached = false;
-        for (size_t j = 0; j < m_attachLimbsToSpineChainPositions.size(); ++j) {
-            if (i == m_attachLimbsToSpineChainPositions[j]) {
-                m_attachLimbsToSpineJointIndices[j] = m_spineJoints.size();
-                limbsAttached = true;
-            }
-        }
-        if (limbsAttached || spine.nodeIsJointFlags[i]) {
-            m_spineJoints.push_back(spine.nodeChain[i]);
-            continue;
-        }
-    }
-    auto findNeck = m_branchNodesMapByMark.find((int)BoneMark::Neck);
-    if (findNeck != m_branchNodesMapByMark.end()) {
-        m_spineJoints.push_back(findNeck->second[0]);
-    }
-}
-*/
 
 void RigGenerator::splitByNodeIndex(size_t nodeIndex,
         std::unordered_set<size_t> *left,
