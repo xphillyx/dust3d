@@ -3,6 +3,7 @@
 #include <LinearMath/btDefaultMotionState.h>
 #include <LinearMath/btAlignedAllocator.h>
 #include <BulletCollision/CollisionShapes/btCapsuleShape.h>
+#include <BulletCollision/CollisionShapes/btBoxShape.h>
 #include <BulletDynamics/ConstraintSolver/btGeneric6DofConstraint.h>
 #include <BulletDynamics/ConstraintSolver/btFixedConstraint.h>
 #include <BulletDynamics/ConstraintSolver/btTypedConstraint.h>
@@ -83,7 +84,14 @@ RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones,
         float radius = m_boneRadiusMap[bone.name];
         float mass = bone.name.startsWith("Spine") ? 5.0 : 1.0;
 
-        btCollisionShape *shape = new btCapsuleShape(btScalar(radius), btScalar(height));
+        btCollisionShape *shape = nullptr;
+        
+        if (bone.name.startsWith("Spine")) {
+            shape = new btBoxShape(btVector3(radius, height * 0.5, radius));
+        } else {
+            shape = new btCapsuleShape(btScalar(radius), btScalar(height));
+        }
+        
         shape->setUserIndex(bone.index);
         
         m_boneShapes[bone.name] = shape;

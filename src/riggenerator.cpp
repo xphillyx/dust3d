@@ -446,8 +446,7 @@ void RigGenerator::buildSkeleton()
         bone.tailPosition = nextNode.origin;
         bone.headRadius = currentNode.radius;
         bone.tailRadius = nextNode.radius;
-        //bone.color = 0 == (spineJointIndex - rootSpineJointIndex) % 2 ? Theme::white : BoneMarkToColor(BoneMark::Joint);
-        bone.color = 0 == (spineJointIndex - rootSpineJointIndex) % 2 ? Qt::green : Qt::blue;
+        bone.color = 0 == (spineJointIndex - rootSpineJointIndex) % 2 ? Theme::white : BoneMarkToColor(BoneMark::Joint);
         bone.name = QString("Spine") + QString::number(spineJointIndex + 1 - rootSpineJointIndex);
         bone.index = m_resultBones->size();
         bone.parent = attachedBoneIndex(spineJointIndex);
@@ -668,6 +667,20 @@ void RigGenerator::computeSkinWeights()
     for (size_t nodeIndex = 0; nodeIndex < m_outcome->bodyNodes.size(); ++nodeIndex) {
         const auto &node = m_outcome->bodyNodes[nodeIndex];
         nodeIdToIndexMap[{node.partId, node.nodeId}] = nodeIndex;
+    }
+    if (!m_outcome->bodyNodes.empty()) {
+        for (size_t clothNodeIndex = 0; clothNodeIndex < m_outcome->clothNodes.size(); ++clothNodeIndex) {
+            const auto &clothNode = m_outcome->clothNodes[clothNodeIndex];
+            std::vector<std::pair<size_t, float>> distance2s(m_outcome->bodyNodes.size());
+            for (size_t nodeIndex = 0; nodeIndex < m_outcome->bodyNodes.size(); ++nodeIndex) {
+                distance2s[nodeIndex] = std::make_pair(nodeIndex,
+                    (clothNode.origin - m_outcome->bodyNodes[nodeIndex].origin).lengthSquared());
+            }
+            nodeIdToIndexMap[{clothNode.partId, clothNode.nodeId}] = std::min_element(distance2s.begin(), distance2s.end(), [](const std::pair<size_t, float> &first,
+                    const std::pair<size_t, float> &second) {
+                return first.second < second.second;
+            })->first;
+        }
     }
     for (size_t vertexIndex = 0; vertexIndex < m_outcome->vertices.size(); ++vertexIndex) {
         const auto &vertexSourceId = m_outcome->vertexSourceNodes[vertexIndex];

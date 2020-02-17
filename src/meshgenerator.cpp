@@ -1669,6 +1669,7 @@ void MeshGenerator::collectClothComponent(const QString &componentIdString)
         clothMesh.clothStiffness = componentClothStiffness(component);
         clothMesh.clothIteration = componentClothIteration(component);
         clothMesh.outcomeNodeVertices = &componentCache.outcomeNodeVertices;
+        m_outcome->clothNodes.insert(m_outcome->clothNodes.end(), componentCache.outcomeNodes.begin(), componentCache.outcomeNodes.end());
         m_outcome->nodes.insert(m_outcome->nodes.end(), componentCache.outcomeNodes.begin(), componentCache.outcomeNodes.end());
         m_outcome->edges.insert(m_outcome->edges.end(), componentCache.outcomeEdges.begin(), componentCache.outcomeEdges.end());
     }
