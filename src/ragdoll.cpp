@@ -82,12 +82,15 @@ RagDoll::RagDoll(const std::vector<RiggerBone> *rigBones,
         const auto &tailPosition = m_boneInitialPositions[bone.index].second;
         float height = m_boneLengthMap[bone.name];
         float radius = m_boneRadiusMap[bone.name];
-        float mass = bone.name.startsWith("Spine") ? 5.0 : 1.0;
+        float mass = radius * height;
 
         btCollisionShape *shape = nullptr;
         
         if (bone.name.startsWith("Spine")) {
-            shape = new btBoxShape(btVector3(radius, height * 0.5, radius));
+            float halfHeight = height * 0.5f;
+            float revisedRadius = radius < halfHeight ? radius : halfHeight;
+            mass *= 5.0f;
+            shape = new btBoxShape(btVector3(revisedRadius, halfHeight, revisedRadius * 0.1f));
         } else {
             shape = new btCapsuleShape(btScalar(radius), btScalar(height));
         }
@@ -172,7 +175,7 @@ void RagDoll::addConstraint(const RiggerBone &child, const RiggerBone &parent, b
     
     bool reversed = isBorrowedParent;
     
-    //std::cout << "addConstraint parent:" << parent.name.toUtf8().constData() << " child:" << child.name.toUtf8().constData() << " reversed:" << reversed << std::endl;
+    std::cout << "addConstraint parent:" << parent.name.toUtf8().constData() << " child:" << child.name.toUtf8().constData() << " reversed:" << reversed << std::endl;
     
     float parentLength = m_boneLengthMap[parent.name];
     float childLength = m_boneLengthMap[child.name];
@@ -187,13 +190,13 @@ void RagDoll::addConstraint(const RiggerBone &child, const RiggerBone &parent, b
     localA.setOrigin(btPivotA);
     localB.setOrigin(btPivotB);
     
-    //if (child.name.startsWith("Spine") || child.name.startsWith("Virtual")) {
-    //    btFixedConstraint *fixedConstraint = new btFixedConstraint(*parentBoneBody, *childBoneBody,
-    //        localA, localB);
-    //    m_world->addConstraint(fixedConstraint, true);
-    //    m_boneConstraints.push_back(fixedConstraint);
-    //    return;
-    //}
+    if (child.name.startsWith("Spine") || child.name.startsWith("Virtual")) {
+        btFixedConstraint *fixedConstraint = new btFixedConstraint(*parentBoneBody, *childBoneBody,
+            localA, localB);
+        m_world->addConstraint(fixedConstraint, true);
+        m_boneConstraints.push_back(fixedConstraint);
+        return;
+    }
 
     btGeneric6DofConstraint *g6dConstraint = nullptr;
     bool useLinearReferenceFrameA = true;
