@@ -3,6 +3,7 @@
 #include <QMutexLocker>
 #include <QtCore/qbuffer.h>
 #include <QFile>
+#include <QFileInfo>
 #include "fileforever.h"
 
 struct FileForeverItem
@@ -51,4 +52,17 @@ void FileForever::remove(const QUuid &id)
         return;
     delete findFile->second.byteArray;
     g_foreverMap.erase(id);
+}
+
+QUuid FileForever::addFile(const QString &filename)
+{
+    QFileInfo fileInfo(filename);
+    QString name = fileInfo.fileName();
+    
+    QFile file(filename);
+    if (!file.open(QIODevice::ReadOnly))
+        return QUuid();
+
+    const QByteArray data = file.readAll();
+    return add(name, data);
 }

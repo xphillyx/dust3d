@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\jhu\sideprojects\dust3d\thirdparty\assimp\assimp-5.0.1\build\CMakeFiles\2e1e7c238e6405ab7d829c923f14ee6f\INSTALL_force.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{602A38FD-73EB-365F-81E4-57A959AF1409}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

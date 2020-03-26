@@ -1,0 +1,14 @@
+C:/Users/jhu/sideprojects/dust3d/thirdparty/assimp/assimp-5.0.1/build/CMakeFiles/uninstall.dir
+C:/Users/jhu/sideprojects/dust3d/thirdparty/assimp/assimp-5.0.1/build/CMakeFiles/UpdateAssimpLibsDebugSymbolsAndDLLs.dir
+C:/Users/jhu/sideprojects/dust3d/thirdparty/assimp/assimp-5.0.1/build/CMakeFiles/INSTALL.dir
+C:/Users/jhu/sideprojects/dust3d/thirdparty/assimp/assimp-5.0.1/build/CMakeFiles/ALL_BUILD.dir
+C:/Users/jhu/sideprojects/dust3d/thirdparty/assimp/assimp-5.0.1/build/CMakeFiles/ZERO_CHECK.dir
+C:/Users/jhu/sideprojects/dust3d/thirdparty/assimp/assimp-5.0.1/build/contrib/zlib/CMakeFiles/zlib.dir
+C:/Users/jhu/sideprojects/dust3d/thirdparty/assimp/assimp-5.0.1/build/contrib/zlib/CMakeFiles/zlibstatic.dir
+C:/Users/jhu/sideprojects/dust3d/thirdparty/assimp/assimp-5.0.1/build/contrib/zlib/CMakeFiles/INSTALL.dir
+C:/Users/jhu/sideprojects/dust3d/thirdparty/assimp/assimp-5.0.1/build/contrib/zlib/CMakeFiles/ALL_BUILD.dir
+C:/Users/jhu/sideprojects/dust3d/thirdparty/assimp/assimp-5.0.1/build/contrib/CMakeFiles/INSTALL.dir
+C:/Users/jhu/sideprojects/dust3d/thirdparty/assimp/assimp-5.0.1/build/contrib/irrXML/CMakeFiles/IrrXML.dir
+C:/Users/jhu/sideprojects/dust3d/thirdparty/assimp/assimp-5.0.1/build/contrib/irrXML/CMakeFiles/INSTALL.dir
+C:/Users/jhu/sideprojects/dust3d/thirdparty/assimp/assimp-5.0.1/build/code/CMakeFiles/assimp.dir
+C:/Users/jhu/sideprojects/dust3d/thirdparty/assimp/assimp-5.0.1/build/code/CMakeFiles/INSTALL.dir

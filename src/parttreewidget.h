@@ -19,6 +19,7 @@ signals:
     void checkPart(QUuid partId);
     void createNewComponentAndMoveThisIn(QUuid componentId);
     void createNewChildComponent(QUuid parentComponentId);
+    void importPart(QUuid parentComponentId, QUuid fileId);
     void renameComponent(QUuid componentId, QString name);
     void setComponentExpandState(QUuid componentId, bool expanded);
     void setComponentSmoothAll(QUuid componentId, float toSmoothAll);

@@ -10,6 +10,7 @@ public:
     static const QString *getName(const QUuid &id);
     static const QByteArray *getContent(const QUuid &id);
     static QUuid add(const QString &name, const QByteArray &content, QUuid toId=QUuid());
+    static QUuid addFile(const QString &filename);
     static void remove(const QUuid &id);
 };
 

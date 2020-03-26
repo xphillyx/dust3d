@@ -9,8 +9,6 @@
 #include <QSizePolicy>
 #include <QCheckBox>
 #include <QLabel>
-#include <QComboBox>
-#include <QStackedWidget>
 #include "partwidget.h"
 #include "theme.h"
 #include "floatnumberwidget.h"
@@ -612,33 +610,12 @@ void PartWidget::showCutRotationSettingPopup(const QPoint &pos)
     standardFacesLayout->addStretch();
     updateCutFaceButtonState((size_t)part->cutFace);
     
-    QWidget *cutFaceGroupWidget = new QWidget;
-    QVBoxLayout *cutFaceGroupLayout = new QVBoxLayout;
-    cutFaceGroupLayout->addLayout(hollowThicknessLayout);
-    cutFaceGroupLayout->addLayout(standardFacesLayout);
-    cutFaceGroupLayout->addWidget(cutFaceListWidget);
-    cutFaceGroupWidget->setLayout(cutFaceGroupLayout);
-    
-    QWidget *importGroupWidget = new QWidget;
-    
-    QStackedWidget *stackedWidget = new QStackedWidget;
-    stackedWidget->addWidget(cutFaceGroupWidget);
-    stackedWidget->addWidget(importGroupWidget);
-    
-    QComboBox *groupBox = new QComboBox;
-    groupBox->addItem(tr("Continuous"));
-    groupBox->addItem(tr("Segmented"));
-    connect(groupBox, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged), stackedWidget, &QStackedWidget::setCurrentIndex);
-    
-    QHBoxLayout *groupLayout = new QHBoxLayout;
-    groupLayout->addWidget(groupBox);
-    groupLayout->addStretch();
-    
     QVBoxLayout *popupLayout = new QVBoxLayout;
     popupLayout->addLayout(rotationLayout);
     popupLayout->addWidget(Theme::createHorizontalLineWidget());
-    popupLayout->addLayout(groupLayout);
-    popupLayout->addWidget(stackedWidget);
+    popupLayout->addLayout(hollowThicknessLayout);
+    popupLayout->addLayout(standardFacesLayout);
+    popupLayout->addWidget(cutFaceListWidget);
     
     popup->setLayout(popupLayout);
     

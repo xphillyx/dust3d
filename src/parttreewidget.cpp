@@ -11,11 +11,14 @@
 #include <QClipboard>
 #include <QMimeData>
 #include <QApplication>
+#include <QFileDialog>
 #include "parttreewidget.h"
 #include "partwidget.h"
 #include "skeletongraphicswidget.h"
 #include "floatnumberwidget.h"
 #include "intnumberwidget.h"
+#include "partimporter.h"
+#include "fileforever.h"
 
 PartTreeWidget::PartTreeWidget(const Document *document, QWidget *parent) :
     QTreeWidget(parent),
@@ -763,6 +766,21 @@ void PartTreeWidget::showContextMenu(const QPoint &pos, bool shorted)
         emit createNewChildComponent(nullptr == component ? QUuid() : component->id);
     });
     contextMenu.addAction(&newGroupAction);
+    
+    contextMenu.addSeparator();
+    
+    QAction importPartAction(tr("Import..."), this);
+    connect(&importPartAction, &QAction::triggered, [=]() {
+        QString filename = QFileDialog::getOpenFileName(this, QString(), QString(),
+            tr("3D Mesh") + " (" + PartImporter::getExtensionList() + ")");
+        if (filename.isEmpty())
+            return;
+        QUuid fileId = FileForever::addFile(filename);
+        if (fileId.isNull())
+            return;
+        emit importPart(nullptr == component ? QUuid() : component->id, fileId);
+    });
+    contextMenu.addAction(&importPartAction);
     
     contextMenu.addSeparator();
     

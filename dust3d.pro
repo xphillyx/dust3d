@@ -511,9 +511,18 @@ HEADERS += src/ddsfile.h
 SOURCES += src/fileforever.cpp
 HEADERS += src/fileforever.h
 
+SOURCES += src/partimporter.cpp
+HEADERS += src/partimporter.h
+
 SOURCES += src/main.cpp
 
 HEADERS += src/version.h
+
+INCLUDEPATH += thirdparty/assimp/assimp-5.0.1/build/include
+INCLUDEPATH += thirdparty/assimp/assimp-5.0.1/include
+win32 {
+    LIBS += -Lthirdparty/assimp/assimp-5.0.1/build/code/Release -lassimp-vc141-mt
+}
 
 INCLUDEPATH += thirdparty/FastMassSpring/ClothApp
 SOURCES += thirdparty/FastMassSpring/ClothApp/MassSpringSolver.cpp
