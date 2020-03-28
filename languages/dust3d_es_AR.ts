@@ -761,6 +761,14 @@ Consejos:
         <source>Seam</source>
         <translation>Costura</translation>
     </message>
+    <message>
+        <source>Import...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>3D Mesh</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>PartWidget</name>

@@ -520,6 +520,11 @@ HEADERS += src/version.h
 
 INCLUDEPATH += thirdparty/assimp/assimp-5.0.1/build/include
 INCLUDEPATH += thirdparty/assimp/assimp-5.0.1/include
+unix {
+	LIBS += -Lthirdparty/assimp/assimp-5.0.1/build/code -lassimp
+	LIBS += -Lthirdparty/assimp/assimp-5.0.1/build/contrib/irrXML -lIrrXML
+	LIBS += -lz
+}
 win32 {
     LIBS += -Lthirdparty/assimp/assimp-5.0.1/build/code/Release -lassimp-vc141-mt
 }

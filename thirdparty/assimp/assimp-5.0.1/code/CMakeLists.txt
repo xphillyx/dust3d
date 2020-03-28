@@ -1102,7 +1102,11 @@ IF (ASSIMP_BUILD_NONFREE_C4D_IMPORTER)
   INCLUDE_DIRECTORIES(${C4D_INCLUDES})
 ENDIF (ASSIMP_BUILD_NONFREE_C4D_IMPORTER)
 
-ADD_LIBRARY( assimp ${assimp_src} )
+if(MSVC)
+  ADD_LIBRARY( assimp ${assimp_src} )
+else()
+  ADD_LIBRARY( assimp STATIC ${assimp_src} )
+endif()
 ADD_LIBRARY(assimp::assimp ALIAS assimp)
 
 TARGET_INCLUDE_DIRECTORIES ( assimp PUBLIC

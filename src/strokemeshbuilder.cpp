@@ -437,11 +437,13 @@ bool StrokeMeshBuilder::prepare()
         if (m_isRing) {
             for (size_t i = 0; i < prePos; ++i) {
                 auto &node = m_nodes[m_nodeIndices[i]];
-                updateInBetweenBaseNormal(preNode, afterNode, node);
+                node.baseNormal = preBaseNormal;
+                reviseNodeBaseNormal(node);
             }
             for (size_t i = afterPos + 1; i < m_nodeIndices.size(); ++i) {
                 auto &node = m_nodes[m_nodeIndices[i]];
-                updateInBetweenBaseNormal(preNode, afterNode, node);
+                node.baseNormal = afterBaseNormal;
+                reviseNodeBaseNormal(node);
             }
         } else {
             for (size_t i = 0; i < prePos; ++i) {
