@@ -769,21 +769,6 @@ void PartTreeWidget::showContextMenu(const QPoint &pos, bool shorted)
     
     contextMenu.addSeparator();
     
-    QAction importPartAction(tr("Import..."), this);
-    connect(&importPartAction, &QAction::triggered, [=]() {
-        QString filename = QFileDialog::getOpenFileName(this, QString(), QString(),
-            tr("3D Mesh") + " (" + PartImporter::getExtensionList() + ")");
-        if (filename.isEmpty())
-            return;
-        QUuid fileId = FileForever::addFile(filename);
-        if (fileId.isNull())
-            return;
-        emit importPart(nullptr == component ? QUuid() : component->id, fileId);
-    });
-    contextMenu.addAction(&importPartAction);
-    
-    contextMenu.addSeparator();
-    
     std::vector<QAction *> groupsActions;
     QAction renameAction(tr("Rename"), this);
     QAction deleteAction(tr("Delete"), this);
@@ -885,6 +870,21 @@ void PartTreeWidget::showContextMenu(const QPoint &pos, bool shorted)
         });
         contextMenu.addAction(&deleteAction);
     }
+    
+    QAction importPartAction(tr("Import..."), this);
+    connect(&importPartAction, &QAction::triggered, [=]() {
+        QString filename = QFileDialog::getOpenFileName(this, QString(), QString(),
+            tr("3D Mesh") + " (" + PartImporter::getExtensionList() + ")");
+        if (filename.isEmpty())
+            return;
+        QUuid fileId = FileForever::addFile(filename);
+        if (fileId.isNull())
+            return;
+        emit importPart(nullptr == component ? QUuid() : component->id, fileId);
+    });
+    contextMenu.addAction(&importPartAction);
+    
+    contextMenu.addSeparator();
     
     auto globalPos = mapToGlobal(pos);
     globalPos.setX(globalPos.x() - contextMenu.sizeHint().width() - pos.x());

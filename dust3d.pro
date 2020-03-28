@@ -134,6 +134,9 @@ include(thirdparty/QtAwesome/QtAwesome/QtAwesome.pri)
 
 INCLUDEPATH += src
 
+SOURCES += src/strokemeshbuilder.cpp
+HEADERS += src/strokemeshbuilder.h
+
 SOURCES += src/modelshaderprogram.cpp
 HEADERS += src/modelshaderprogram.h
 
@@ -453,9 +456,6 @@ HEADERS += src/meshwrapper.h
 
 SOURCES += src/meshstitcher.cpp
 HEADERS += src/meshstitcher.h
-
-SOURCES += src/strokemeshbuilder.cpp
-HEADERS += src/strokemeshbuilder.h
 
 SOURCES += src/meshcombiner.cpp
 HEADERS += src/meshcombiner.h
