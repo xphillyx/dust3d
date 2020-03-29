@@ -86,7 +86,7 @@ uniform samplerCube environmentIrradianceMapId;
 uniform int environmentIrradianceMapEnabled;
 uniform samplerCube environmentSpecularMapId;
 uniform int environmentSpecularMapEnabled;
-uniform int tongShadingEnabled;
+uniform int toonShadingEnabled;
 
 const int MAX_LIGHTS = 8;
 const int TYPE_POINT = 0;
@@ -385,7 +385,7 @@ vec4 metalRoughFunction(const in vec4 baseColor,
     // Remap roughness for a perceptually more linear correspondence
     float alpha = remapRoughness(roughness);
     
-    if (tongShadingEnabled != 1) {
+    if (toonShadingEnabled != 1) {
         if (environmentIrradianceMapEnabled == 1) {
             cLinear += pbrIblModel(worldNormal,
                 worldView,

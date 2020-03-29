@@ -969,7 +969,7 @@ Tips:
         <translation>纹理大小：</translation>
     </message>
     <message>
-        <source>Tong shading:</source>
+        <source>Toon shading:</source>
         <translation>卡通渲染</translation>
     </message>
 </context>

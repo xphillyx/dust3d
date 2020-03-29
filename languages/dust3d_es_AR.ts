@@ -969,7 +969,7 @@ Consejos:
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Tong shading:</source>
+        <source>Toon shading:</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

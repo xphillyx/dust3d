@@ -80,7 +80,7 @@ uniform int ambientOcclusionMapEnabled;
 uniform int mousePickEnabled;
 uniform vec3 mousePickTargetPosition;
 uniform float mousePickRadius;
-uniform int tongShadingEnabled;
+uniform int toonShadingEnabled;
 
 const int MAX_LIGHTS = 8;
 const int TYPE_POINT = 0;
@@ -281,7 +281,7 @@ vec4 metalRoughFunction(const in vec4 baseColor,
     // Remap roughness for a perceptually more linear correspondence
     float alpha = remapRoughness(roughness);
     
-    if (tongShadingEnabled != 1) {
+    if (toonShadingEnabled != 1) {
         for (int i = 0; i < lightCount; ++i) {
             cLinear += pbrModel(i,
                                 worldPosition,
