@@ -42,6 +42,7 @@
 #include "scriptwidget.h"
 #include "variablesxml.h"
 #include "updatescheckwidget.h"
+#include "modelofflinerender.h"
 
 int DocumentWindow::m_modelRenderWidgetInitialX = 16;
 int DocumentWindow::m_modelRenderWidgetInitialY = 16;
@@ -1118,6 +1119,13 @@ DocumentWindow::DocumentWindow() :
         if (m_modelRemoveColor && resultTextureMesh)
             resultTextureMesh->removeColor();
         m_modelRenderWidget->updateMesh(resultTextureMesh);
+        {
+            ModelOfflineRender *offlineRender = new ModelOfflineRender();
+            offlineRender->updateMesh(m_document->takeResultTextureMesh());
+            QImage image = offlineRender->toImage(m_modelRenderWidget->size());
+            image.save("test.png");
+            delete offlineRender;
+        }
     });
     
     connect(m_document, &Document::resultMeshChanged, [=]() {

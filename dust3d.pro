@@ -134,6 +134,9 @@ include(thirdparty/QtAwesome/QtAwesome/QtAwesome.pri)
 
 INCLUDEPATH += src
 
+SOURCES += src/modelofflinerender.cpp
+HEADERS += src/modelofflinerender.h
+
 SOURCES += src/modelshaderprogram.cpp
 HEADERS += src/modelshaderprogram.h
 
