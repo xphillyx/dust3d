@@ -59,6 +59,12 @@ ModelShaderProgram::ModelShaderProgram(bool isCoreProfile)
     m_mousePickTargetPositionLoc = this->uniformLocation("mousePickTargetPosition");
     m_mousePickRadiusLoc = this->uniformLocation("mousePickRadius");
     m_toonShadingEnabledLoc = this->uniformLocation("toonShadingEnabled");
+    m_renderPurposeLoc = this->uniformLocation("renderPurpose");
+    m_toonEdgeEnabledLoc = this->uniformLocation("toonEdgeEnabled");
+    m_screenWidthLoc = this->uniformLocation("screenWidth");
+    m_screenHeightLoc = this->uniformLocation("screenHeight");
+    m_toonNormalMapIdLoc = this->uniformLocation("toonNormalMapId");
+    m_toonDepthMapIdLoc = this->uniformLocation("toonDepthMapId");
     if (m_isCoreProfile) {
         m_environmentIrradianceMapIdLoc = this->uniformLocation("environmentIrradianceMapId");
         m_environmentIrradianceMapEnabledLoc = this->uniformLocation("environmentIrradianceMapEnabled");
@@ -170,4 +176,34 @@ int ModelShaderProgram::environmentSpecularMapEnabledLoc()
 int ModelShaderProgram::toonShadingEnabledLoc()
 {
     return m_toonShadingEnabledLoc;
+}
+
+int ModelShaderProgram::renderPurposeLoc()
+{
+    return m_renderPurposeLoc;
+}
+
+int ModelShaderProgram::toonEdgeEnabledLoc()
+{
+    return m_toonEdgeEnabledLoc;
+}
+
+int ModelShaderProgram::screenWidthLoc()
+{
+    return m_screenWidthLoc;
+}
+
+int ModelShaderProgram::screenHeightLoc()
+{
+    return m_screenHeightLoc;
+}
+
+int ModelShaderProgram::toonNormalMapIdLoc()
+{
+    return m_toonNormalMapIdLoc;
+}
+
+int ModelShaderProgram::toonDepthMapIdLoc()
+{
+    return m_toonDepthMapIdLoc;
 }

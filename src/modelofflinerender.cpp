@@ -54,6 +54,11 @@ void ModelOfflineRender::setZRotation(int angle)
     m_zRot = angle;
 }
 
+void ModelOfflineRender::setRenderPurpose(int purpose)
+{
+    m_renderPurpose = purpose;
+}
+
 QImage ModelOfflineRender::toImage(const QSize &size)
 {
     QImage image;
@@ -121,6 +126,13 @@ QImage ModelOfflineRender::toImage(const QSize &size)
         program->setUniformValue(program->textureEnabledLoc(), 0);
         program->setUniformValue(program->normalMapEnabledLoc(), 0);
         program->setUniformValue(program->mousePickEnabledLoc(), 0);
+        program->setUniformValue(program->renderPurposeLoc(), m_renderPurpose);
+        
+        program->setUniformValue(program->toonEdgeEnabledLoc(), 0);
+        program->setUniformValue(program->screenWidthLoc(), 0);
+        program->setUniformValue(program->screenHeightLoc(), 0);
+        program->setUniformValue(program->toonNormalMapIdLoc(), 0);
+        program->setUniformValue(program->toonDepthMapIdLoc(), 0);
 
         meshBinder.updateMesh(m_mesh);
         meshBinder.paint(program);

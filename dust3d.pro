@@ -134,6 +134,9 @@ include(thirdparty/QtAwesome/QtAwesome/QtAwesome.pri)
 
 INCLUDEPATH += src
 
+SOURCES += src/normalanddepthmapsgenerator.cpp
+HEADERS += src/normalanddepthmapsgenerator.h
+
 SOURCES += src/modelofflinerender.cpp
 HEADERS += src/modelofflinerender.h
 

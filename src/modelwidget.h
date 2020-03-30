@@ -23,6 +23,7 @@ signals:
     void mousePressed();
     void mouseReleased();
     void addMouseRadius(float radius);
+    void renderParametersChanged();
 public:
     ModelWidget(QWidget *parent = 0);
     ~ModelWidget();
@@ -48,6 +49,7 @@ public:
     bool inputWheelEventFromOtherWidget(QWheelEvent *event);
     bool inputMouseReleaseEventFromOtherWidget(QMouseEvent *event);
     QPoint convertInputPosFromOtherWidget(QMouseEvent *event);
+    void updateToonNormalAndDepthMaps(QOpenGLTexture *normalMap, QOpenGLTexture *depthMap);
 public slots:
     void setXRotation(int angle);
     void setYRotation(int angle);

@@ -10,6 +10,7 @@
 #include <map>
 #include <QStringList>
 #include <QLabel>
+#include <QTimer>
 #include "document.h"
 #include "modelwidget.h"
 #include "exportpreviewwidget.h"
@@ -18,6 +19,7 @@
 #include "posemanagewidget.h"
 #include "preferenceswidget.h"
 #include "graphicscontainerwidget.h"
+#include "normalanddepthmapsgenerator.h"
 
 class SkeletonGraphicsWidget;
 
@@ -83,6 +85,9 @@ public slots:
     void exportGlbToFilename(const QString &filename);
     void toggleRotation();
     //void updateInfoWidgetPosition();
+    void generateNormalAndDepthMaps();
+    void delayedGenerateNormalAndDepthMaps();
+    void normalAndDepthMapsReady();
 private:
     void initLockButton(QPushButton *button);
     void setCurrentFilename(const QString &filename);
@@ -199,6 +204,10 @@ private:
     QPushButton *m_radiusLockButton;
     
     QMetaObject::Connection m_partListDockerVisibleSwitchConnection;
+    
+    NormalAndDepthMapsGenerator *m_normalAndDepthMapsGenerator = nullptr;
+    QTimer *m_normalAndDepthMapsDelayTimer = nullptr;
+    bool m_isNormalAndDepthMapsObsolete = false;
 public:
     static int m_modelRenderWidgetInitialX;
     static int m_modelRenderWidgetInitialY;

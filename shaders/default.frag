@@ -82,6 +82,7 @@ uniform int mousePickEnabled;
 uniform vec3 mousePickTargetPosition;
 uniform float mousePickRadius;
 uniform int toonShadingEnabled;
+uniform int renderPurpose;
 
 const int MAX_LIGHTS = 8;
 const int TYPE_POINT = 0;
@@ -394,12 +395,18 @@ void main()
     
     roughness = min(0.99, roughness);
     metalness = min(0.99, metalness);
-
-    gl_FragColor = metalRoughFunction(vec4(color, alpha),
-                                      metalness,
-                                      roughness,
-                                      ambientOcclusion,
-                                      vert,
-                                      normalize(cameraPos - vert),
-                                      normal);
+    
+    if (renderPurpose == 0) {
+        gl_FragColor = metalRoughFunction(vec4(color, alpha),
+                                          metalness,
+                                          roughness,
+                                          ambientOcclusion,
+                                          vert,
+                                          normalize(cameraPos - vert),
+                                          normal);
+    } else if (renderPurpose == 1) {
+        fragColor = vec4(normal, 1.0);
+    } else if (renderPurpose == 2) {
+        fragColor = vec4(vec3(gl_FragCoord.w), 1.0);
+    }
 }

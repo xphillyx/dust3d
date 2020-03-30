@@ -342,6 +342,8 @@ DocumentWindow::DocumentWindow() :
         m_modelRenderWidget->setMousePickTargetPositionInModelSpace(m_document->mouseTargetPosition());
     });
     
+    connect(m_modelRenderWidget, &ModelWidget::renderParametersChanged, this, &DocumentWindow::delayedGenerateNormalAndDepthMaps);
+    
     m_graphicsWidget->setModelWidget(m_modelRenderWidget);
     containerWidget->setModelWidget(m_modelRenderWidget);
     
@@ -1119,16 +1121,18 @@ DocumentWindow::DocumentWindow() :
         if (m_modelRemoveColor && resultTextureMesh)
             resultTextureMesh->removeColor();
         m_modelRenderWidget->updateMesh(resultTextureMesh);
-        //{
-        //    ModelOfflineRender *offlineRender = new ModelOfflineRender(m_modelRenderWidget->format());
-        //    offlineRender->setXRotation(m_modelRenderWidget->xRot());
-        //    offlineRender->setYRotation(m_modelRenderWidget->yRot());
-        //    offlineRender->setZRotation(m_modelRenderWidget->zRot());
-        //    offlineRender->updateMesh(m_document->takeResultTextureMesh());
-        //    QImage image = offlineRender->toImage(m_modelRenderWidget->size());
-        //    image.save("test.png");
-        //    delete offlineRender;
-        //}
+        /*
+        {
+            ModelOfflineRender *offlineRender = new ModelOfflineRender(m_modelRenderWidget->format());
+            offlineRender->setXRotation(m_modelRenderWidget->xRot());
+            offlineRender->setYRotation(m_modelRenderWidget->yRot());
+            offlineRender->setZRotation(m_modelRenderWidget->zRot());
+            offlineRender->updateMesh(m_document->takeResultTextureMesh());
+            offlineRender->setRenderPurpose(2);
+            QImage image = offlineRender->toImage(m_modelRenderWidget->size());
+            image.save("test.png");
+            delete offlineRender;
+        }*/
     });
     
     connect(m_document, &Document::resultMeshChanged, [=]() {
@@ -1950,4 +1954,52 @@ void DocumentWindow::checkExportWaitingList()
 //{
 //    m_infoWidget->move(0, m_graphicsContainerWidget->height() - m_infoWidget->height() - 5);
 //}
+
+void DocumentWindow::normalAndDepthMapsReady()
+{
+    QOpenGLTexture *normalMap = m_normalAndDepthMapsGenerator->takeNormalMap();
+    QOpenGLTexture *depthMap = m_normalAndDepthMapsGenerator->takeDepthMap();
+    
+    m_modelRenderWidget->updateToonNormalAndDepthMaps(normalMap, depthMap);
+    
+    delete m_normalAndDepthMapsGenerator;
+    m_normalAndDepthMapsGenerator = nullptr;
+    
+    if (m_isNormalAndDepthMapsObsolete) {
+        generateNormalAndDepthMaps();
+    }
+}
+
+void DocumentWindow::generateNormalAndDepthMaps()
+{
+    if (nullptr != m_normalAndDepthMapsGenerator) {
+        m_isNormalAndDepthMapsObsolete = true;
+        return;
+    }
+    
+    m_isNormalAndDepthMapsObsolete = false;
+    
+    QThread *thread = new QThread;
+    m_normalAndDepthMapsGenerator = new NormalAndDepthMapsGenerator(m_modelRenderWidget);
+    m_normalAndDepthMapsGenerator->moveToThread(thread);
+    connect(thread, &QThread::started, m_normalAndDepthMapsGenerator, &NormalAndDepthMapsGenerator::process);
+    connect(m_normalAndDepthMapsGenerator, &NormalAndDepthMapsGenerator::finished, this, &DocumentWindow::normalAndDepthMapsReady);
+    connect(m_normalAndDepthMapsGenerator, &NormalAndDepthMapsGenerator::finished, thread, &QThread::quit);
+    connect(thread, &QThread::finished, thread, &QThread::deleteLater);
+    thread->start();
+}
+
+void DocumentWindow::delayedGenerateNormalAndDepthMaps()
+{
+    if (!Preferences::instance().toonShading())
+        return;
+    
+    delete m_normalAndDepthMapsDelayTimer;
+    m_normalAndDepthMapsDelayTimer = new QTimer(this);
+    m_normalAndDepthMapsDelayTimer->setInterval(250);
+    connect(m_normalAndDepthMapsDelayTimer, &QTimer::timeout, [=] {
+        generateNormalAndDepthMaps();
+    });
+    m_normalAndDepthMapsDelayTimer->start();
+}
 

@@ -18,6 +18,7 @@ public:
     void setXRotation(int angle);
     void setYRotation(int angle);
     void setZRotation(int angle);
+    void setRenderPurpose(int purpose);
     void setRenderThread(QThread *thread);
     void updateMesh(MeshLoader *mesh);
     QImage toImage(const QSize &size);
@@ -25,6 +26,7 @@ private:
     int m_xRot = 0;
     int m_yRot = 0;
     int m_zRot = 0;
+    int m_renderPurpose = 0;
     QOpenGLContext *m_context = nullptr;
     MeshLoader *m_mesh = nullptr;
 };

@@ -53,6 +53,7 @@ ModelWidget::ModelWidget(QWidget *parent) :
 
 void ModelWidget::reRender()
 {
+    emit renderParametersChanged();
     update();
 }
 
@@ -82,6 +83,7 @@ void ModelWidget::setXRotation(int angle)
     if (angle != m_xRot) {
         m_xRot = angle;
         emit xRotationChanged(angle);
+        emit renderParametersChanged();
         update();
     }
 }
@@ -92,6 +94,7 @@ void ModelWidget::setYRotation(int angle)
     if (angle != m_yRot) {
         m_yRot = angle;
         emit yRotationChanged(angle);
+        emit renderParametersChanged();
         update();
     }
 }
@@ -102,6 +105,7 @@ void ModelWidget::setZRotation(int angle)
     if (angle != m_zRot) {
         m_zRot = angle;
         emit zRotationChanged(angle);
+        emit renderParametersChanged();
         update();
     }
 }
@@ -189,6 +193,13 @@ void ModelWidget::paintGL()
     m_program->setUniformValue(m_program->viewMatrixLoc(), m_camera);
     m_program->setUniformValue(m_program->textureEnabledLoc(), 0);
     m_program->setUniformValue(m_program->normalMapEnabledLoc(), 0);
+    m_program->setUniformValue(m_program->renderPurposeLoc(), 0);
+    
+    m_program->setUniformValue(m_program->toonEdgeEnabledLoc(), 0);
+    m_program->setUniformValue(m_program->screenWidthLoc(), width());
+    m_program->setUniformValue(m_program->screenHeightLoc(), height());
+    m_program->setUniformValue(m_program->toonNormalMapIdLoc(), 0);
+    m_program->setUniformValue(m_program->toonDepthMapIdLoc(), 0);
     
     if (m_mousePickingEnabled && !m_mousePickTargetPositionInModelSpace.isNull()) {
         m_program->setUniformValue(m_program->mousePickEnabledLoc(), 1);
@@ -209,6 +220,7 @@ void ModelWidget::resizeGL(int w, int h)
 {
     m_projection.setToIdentity();
     m_projection.perspective(45.0f, GLfloat(w) / h, 0.01f, 100.0f);
+    emit renderParametersChanged();
 }
 
 std::pair<QVector3D, QVector3D> ModelWidget::screenPositionToMouseRay(const QPoint &screenPosition)
@@ -383,6 +395,7 @@ void ModelWidget::zoom(float delta)
         }
     }
     setGeometry(geometry().marginsAdded(margins));
+    emit renderParametersChanged();
 }
 
 void ModelWidget::setMousePickTargetPositionInModelSpace(QVector3D position)
@@ -400,6 +413,12 @@ void ModelWidget::setMousePickRadius(float radius)
 void ModelWidget::updateMesh(MeshLoader *mesh)
 {
     m_meshBinder.updateMesh(mesh);
+    update();
+}
+
+void ModelWidget::updateToonNormalAndDepthMaps(QOpenGLTexture *normalMap, QOpenGLTexture *depthMap)
+{
+    m_meshBinder.updateToonNormalAndDepthMaps(normalMap, depthMap);
     update();
 }
 
