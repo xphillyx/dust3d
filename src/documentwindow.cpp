@@ -1119,13 +1119,16 @@ DocumentWindow::DocumentWindow() :
         if (m_modelRemoveColor && resultTextureMesh)
             resultTextureMesh->removeColor();
         m_modelRenderWidget->updateMesh(resultTextureMesh);
-        {
-            ModelOfflineRender *offlineRender = new ModelOfflineRender();
-            offlineRender->updateMesh(m_document->takeResultTextureMesh());
-            QImage image = offlineRender->toImage(m_modelRenderWidget->size());
-            image.save("test.png");
-            delete offlineRender;
-        }
+        //{
+        //    ModelOfflineRender *offlineRender = new ModelOfflineRender(m_modelRenderWidget->format());
+        //    offlineRender->setXRotation(m_modelRenderWidget->xRot());
+        //    offlineRender->setYRotation(m_modelRenderWidget->yRot());
+        //    offlineRender->setZRotation(m_modelRenderWidget->zRot());
+        //    offlineRender->updateMesh(m_document->takeResultTextureMesh());
+        //    QImage image = offlineRender->toImage(m_modelRenderWidget->size());
+        //    image.save("test.png");
+        //    delete offlineRender;
+        //}
     });
     
     connect(m_document, &Document::resultMeshChanged, [=]() {

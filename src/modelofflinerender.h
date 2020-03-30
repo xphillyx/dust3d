@@ -13,14 +13,20 @@
 class ModelOfflineRender : QOffscreenSurface
 {
 public:
-    ModelOfflineRender(QScreen *targetScreen = Q_NULLPTR);
+    ModelOfflineRender(const QSurfaceFormat &format, QScreen *targetScreen = Q_NULLPTR);
     ~ModelOfflineRender();
+    void setXRotation(int angle);
+    void setYRotation(int angle);
+    void setZRotation(int angle);
     void setRenderThread(QThread *thread);
     void updateMesh(MeshLoader *mesh);
     QImage toImage(const QSize &size);
 private:
-    QOpenGLContext *m_context;
-    MeshLoader *m_mesh;
+    int m_xRot = 0;
+    int m_yRot = 0;
+    int m_zRot = 0;
+    QOpenGLContext *m_context = nullptr;
+    MeshLoader *m_mesh = nullptr;
 };
 
 #endif

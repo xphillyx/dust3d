@@ -3,23 +3,19 @@
 #include <QDebug>
 #include "modelofflinerender.h"
 
-ModelOfflineRender::ModelOfflineRender(QScreen *targetScreen) :
+ModelOfflineRender::ModelOfflineRender(const QSurfaceFormat &format, QScreen *targetScreen) :
     QOffscreenSurface(targetScreen),
     m_context(nullptr),
     m_mesh(nullptr)
 {
-    m_context = new QOpenGLContext();
-    
-    QSurfaceFormat fmt = format();
-    fmt.setAlphaBufferSize(8);
-    fmt.setSamples(4);
-    setFormat(fmt);
+    setFormat(format);
     
     create();
     if (!isValid())
         qDebug() << "ModelOfflineRender is invalid";
     
-    m_context->setFormat(fmt);
+    m_context = new QOpenGLContext();
+    m_context->setFormat(format);
     if (!m_context->create())
         qDebug() << "QOpenGLContext create failed";
 }
@@ -43,6 +39,21 @@ void ModelOfflineRender::setRenderThread(QThread *thread)
     m_context->moveToThread(thread);
 }
 
+void ModelOfflineRender::setXRotation(int angle)
+{
+    m_xRot = angle;
+}
+
+void ModelOfflineRender::setYRotation(int angle)
+{
+    m_yRot = angle;
+}
+
+void ModelOfflineRender::setZRotation(int angle)
+{
+    m_zRot = angle;
+}
+
 QImage ModelOfflineRender::toImage(const QSize &size)
 {
     QImage image;
@@ -55,31 +66,29 @@ QImage ModelOfflineRender::toImage(const QSize &size)
     QOpenGLFramebufferObjectFormat format;
     format.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);
     format.setSamples(4);
+    format.setTextureTarget(GL_TEXTURE_2D);
+    format.setInternalTextureFormat(GL_RGBA32F_ARB);
     QOpenGLFramebufferObject *renderFbo = new QOpenGLFramebufferObject(size, format);
     renderFbo->bind();
     m_context->functions()->glViewport(0, 0, size.width(), size.height());
     
     if (nullptr != m_mesh) {
-        int xRot = 0;
-        int yRot = 0;
-        int zRot = 0;
         QMatrix4x4 projection;
         QMatrix4x4 world;
+        QMatrix4x4 camera;
         
         bool isCoreProfile = false;
         const char *versionString = (const char *)m_context->functions()->glGetString(GL_VERSION);
         if (nullptr != versionString &&
                 '\0' != versionString[0] &&
                 0 == strstr(versionString, "Mesa")) {
-            isCoreProfile = QSurfaceFormat::defaultFormat().profile() == QSurfaceFormat::CoreProfile;
+            isCoreProfile = m_context->format().profile() == QSurfaceFormat::CoreProfile;
         }
 
         ModelShaderProgram *program = new ModelShaderProgram(isCoreProfile);
         ModelMeshBinder meshBinder;
         meshBinder.initialize();
         meshBinder.hideWireframes();
-
-        program->setUniformValue(program->lightPosLoc(), QVector3D(0, 0, 70));
 		
         m_context->functions()->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         m_context->functions()->glEnable(GL_BLEND);
@@ -91,21 +100,26 @@ QImage ModelOfflineRender::toImage(const QSize &size)
 #endif
 
         world.setToIdentity();
-        world.rotate(xRot / 16.0f, 1, 0, 0);
-        world.rotate(yRot / 16.0f, 0, 1, 0);
-        world.rotate(zRot / 16.0f, 0, 0, 1);
+        world.rotate(m_xRot / 16.0f, 1, 0, 0);
+        world.rotate(m_yRot / 16.0f, 0, 1, 0);
+        world.rotate(m_zRot / 16.0f, 0, 0, 1);
 
         projection.setToIdentity();
         projection.perspective(45.0f, GLfloat(size.width()) / size.height(), 0.01f, 100.0f);
-
+        
+        camera.setToIdentity();
+        camera.translate(QVector3D(0, 0, -4.0));
+        
         program->bind();
+        program->setUniformValue(program->lightPosLoc(), QVector3D(0, 0, 70));
+        program->setUniformValue(program->toonShadingEnabledLoc(), 0);
         program->setUniformValue(program->projectionMatrixLoc(), projection);
         program->setUniformValue(program->modelMatrixLoc(), world);
         QMatrix3x3 normalMatrix = world.normalMatrix();
         program->setUniformValue(program->normalMatrixLoc(), normalMatrix);
+        program->setUniformValue(program->viewMatrixLoc(), camera);
         program->setUniformValue(program->textureEnabledLoc(), 0);
         program->setUniformValue(program->normalMapEnabledLoc(), 0);
-        
         program->setUniformValue(program->mousePickEnabledLoc(), 0);
 
         meshBinder.updateMesh(m_mesh);

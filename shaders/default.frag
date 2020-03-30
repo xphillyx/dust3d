@@ -1,3 +1,4 @@
+#version 120
 /****************************************************************************
 **
 ** Copyright (C) 2017 Klaralvdalens Datakonsult AB (KDAB).

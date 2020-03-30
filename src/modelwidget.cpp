@@ -141,7 +141,7 @@ void ModelWidget::initializeGL()
     if (nullptr != versionString &&
             '\0' != versionString[0] &&
             0 == strstr(versionString, "Mesa")) {
-        isCoreProfile = QSurfaceFormat::defaultFormat().profile() == QSurfaceFormat::CoreProfile;
+        isCoreProfile = format().profile() == QSurfaceFormat::CoreProfile;
     }
         
     m_program = new ModelShaderProgram(isCoreProfile);
