@@ -2,7 +2,8 @@
 
 NormalAndDepthMapsGenerator::NormalAndDepthMapsGenerator(ModelWidget *modelWidget)
 {
-    m_viewPortSize = modelWidget->size() * 2;
+    m_viewPortSize = QSize(modelWidget->widthInPixels(),
+		modelWidget->heightInPixels());
     m_normalMapRender = createOfflineRender(modelWidget, 1);
     m_depthMapRender = createOfflineRender(modelWidget, 2);
 }

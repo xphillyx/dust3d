@@ -50,6 +50,8 @@ public:
     bool inputMouseReleaseEventFromOtherWidget(QMouseEvent *event);
     QPoint convertInputPosFromOtherWidget(QMouseEvent *event);
     void updateToonNormalAndDepthMaps(QImage *normalMap, QImage *depthMap);
+    int widthInPixels();
+    int heightInPixels();
 public slots:
     void setXRotation(int angle);
     void setYRotation(int angle);
@@ -100,6 +102,8 @@ private:
     QRect m_moveStartGeometry;
     int m_modelInitialHeight = 0;
     QTimer *m_rotationTimer = nullptr;
+    int m_widthInPixels = 0;
+    int m_heightInPixels = 0;
     std::pair<QVector3D, QVector3D> screenPositionToMouseRay(const QPoint &screenPosition);
 public:
     static int m_defaultXRotation;

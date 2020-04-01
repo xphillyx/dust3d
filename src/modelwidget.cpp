@@ -46,6 +46,10 @@ ModelWidget::ModelWidget(QWidget *parent) :
         setFormat(fmt);
     }
     setContextMenuPolicy(Qt::CustomContextMenu);
+    
+    m_widthInPixels = width() * window()->devicePixelRatio();
+	m_heightInPixels = height() * window()->devicePixelRatio();
+	
     zoom(200);
     
     connect(&Preferences::instance(), &Preferences::toonShadingChanged, this, &ModelWidget::reRender);
@@ -178,7 +182,7 @@ void ModelWidget::paintGL()
 #ifdef GL_LINE_SMOOTH
     glEnable(GL_LINE_SMOOTH);
 #endif
-	glViewport(0, 0, width() * 2, height() * 2);
+	glViewport(0, 0, m_widthInPixels, m_heightInPixels);
 
     m_world.setToIdentity();
     m_world.rotate(m_xRot / 16.0f, 1, 0, 0);
@@ -197,8 +201,8 @@ void ModelWidget::paintGL()
     m_program->setUniformValue(m_program->renderPurposeLoc(), 0);
     
     m_program->setUniformValue(m_program->toonEdgeEnabledLoc(), 0);
-    m_program->setUniformValue(m_program->screenWidthLoc(), (GLfloat)width() * 2);
-    m_program->setUniformValue(m_program->screenHeightLoc(), (GLfloat)height() * 2);
+    m_program->setUniformValue(m_program->screenWidthLoc(), (GLfloat)m_widthInPixels);
+    m_program->setUniformValue(m_program->screenHeightLoc(), (GLfloat)m_heightInPixels);
     m_program->setUniformValue(m_program->toonNormalMapIdLoc(), 0);
     m_program->setUniformValue(m_program->toonDepthMapIdLoc(), 0);
     
@@ -219,6 +223,8 @@ void ModelWidget::paintGL()
 
 void ModelWidget::resizeGL(int w, int h)
 {
+	m_widthInPixels = w * window()->devicePixelRatio();
+	m_heightInPixels = h * window()->devicePixelRatio();
     m_projection.setToIdentity();
     m_projection.perspective(45.0f, GLfloat(w) / h, 0.01f, 100.0f);
     emit renderParametersChanged();
@@ -422,6 +428,16 @@ void ModelWidget::updateToonNormalAndDepthMaps(QImage *normalMap, QImage *depthM
 {
     m_meshBinder.updateToonNormalAndDepthMaps(normalMap, depthMap);
     update();
+}
+
+int ModelWidget::widthInPixels()
+{
+	return m_widthInPixels;
+}
+
+int ModelWidget::heightInPixels()
+{
+	return m_heightInPixels;
 }
 
 void ModelWidget::enableMove(bool enabled)
