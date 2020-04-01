@@ -71,8 +71,8 @@ Tips:
   - Make multiple parts instead of one single part for whole model</source>
         <translation>Generazione mesh non riuscita, annulla o modifica i nodi modificati di recente
 Suggerimenti:
-   - Non lasciare che la mesh generata si intersechi in se stessa
-   - Crea più parti invece di una singola parte per l&apos;intero modello</translation>
+&#xa0;&#xa0; - Non lasciare che la mesh generata si intersechi in se stessa
+&#xa0;&#xa0; - Crea più parti invece di una singola parte per l&apos;intero modello</translation>
     </message>
     <message>
         <source>Parts</source>

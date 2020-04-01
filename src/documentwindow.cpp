@@ -1986,7 +1986,6 @@ void DocumentWindow::generateNormalAndDepthMaps()
     if (nullptr == resultMesh)
 		return;
     
-    /*
     QThread *thread = new QThread;
     m_normalAndDepthMapsGenerator = new NormalAndDepthMapsGenerator(m_modelRenderWidget);
     m_normalAndDepthMapsGenerator->updateMesh(resultMesh);
@@ -1997,12 +1996,11 @@ void DocumentWindow::generateNormalAndDepthMaps()
     connect(m_normalAndDepthMapsGenerator, &NormalAndDepthMapsGenerator::finished, thread, &QThread::quit);
     connect(thread, &QThread::finished, thread, &QThread::deleteLater);
     thread->start();
-    */
     
-    m_normalAndDepthMapsGenerator = new NormalAndDepthMapsGenerator(m_modelRenderWidget);
-    m_normalAndDepthMapsGenerator->updateMesh(resultMesh);
-    connect(m_normalAndDepthMapsGenerator, &NormalAndDepthMapsGenerator::finished, this, &DocumentWindow::normalAndDepthMapsReady);
-    m_normalAndDepthMapsGenerator->process();
+    //m_normalAndDepthMapsGenerator = new NormalAndDepthMapsGenerator(m_modelRenderWidget);
+    //m_normalAndDepthMapsGenerator->updateMesh(resultMesh);
+    //connect(m_normalAndDepthMapsGenerator, &NormalAndDepthMapsGenerator::finished, this, &DocumentWindow::normalAndDepthMapsReady);
+    //m_normalAndDepthMapsGenerator->process();
 }
 
 void DocumentWindow::delayedGenerateNormalAndDepthMaps()
@@ -2010,13 +2008,13 @@ void DocumentWindow::delayedGenerateNormalAndDepthMaps()
     if (!Preferences::instance().toonShading())
         return;
     
-    delete m_normalAndDepthMapsDelayTimer;
-    m_normalAndDepthMapsDelayTimer = new QTimer(this);
-    m_normalAndDepthMapsDelayTimer->setSingleShot(true);
-    m_normalAndDepthMapsDelayTimer->setInterval(250);
-    connect(m_normalAndDepthMapsDelayTimer, &QTimer::timeout, [=] {
+    //delete m_normalAndDepthMapsDelayTimer;
+    //m_normalAndDepthMapsDelayTimer = new QTimer(this);
+    //m_normalAndDepthMapsDelayTimer->setSingleShot(true);
+    //m_normalAndDepthMapsDelayTimer->setInterval(250);
+    //connect(m_normalAndDepthMapsDelayTimer, &QTimer::timeout, [=] {
         generateNormalAndDepthMaps();
-    });
-    m_normalAndDepthMapsDelayTimer->start();
+    //});
+    //m_normalAndDepthMapsDelayTimer->start();
 }
 

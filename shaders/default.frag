@@ -139,16 +139,17 @@ float normalEdgeSobel()
     float sx = 1.0 / screenWidth;
 	float sy = 1.0 / screenHeight;
     float n[9];
+    vec3 ref = vec3(1.0, 1.0, 1.0);
     
-    n[0] = length(texture2D(toonNormalMapId, vec2(coord.x - sx, coord.y - sy)).rgb);
-    n[1] = length(texture2D(toonNormalMapId, vec2(coord.x, coord.y - sy)).rgb);
-    n[2] = length(texture2D(toonNormalMapId, vec2(coord.x + sx, coord.y - sy)).rgb);
-    n[3] = length(texture2D(toonNormalMapId, vec2(coord.x - sx, coord.y)).rgb);
-    n[4] = length(texture2D(toonNormalMapId, vec2(coord.x, coord.y)).rgb);
-    n[5] = length(texture2D(toonNormalMapId, vec2(coord.x + sx, coord.y)).rgb);
-    n[6] = length(texture2D(toonNormalMapId, vec2(coord.x - sx, coord.y + sy)).rgb);
-    n[7] = length(texture2D(toonNormalMapId, vec2(coord.x, coord.y + sy)).rgb);
-    n[8] = length(texture2D(toonNormalMapId, vec2(coord.x + sx, coord.y + sy)).rgb);
+    n[0] = dot(texture2D(toonNormalMapId, vec2(coord.x - sx, coord.y - sy)).rgb, ref);
+    n[1] = dot(texture2D(toonNormalMapId, vec2(coord.x, coord.y - sy)).rgb, ref);
+    n[2] = dot(texture2D(toonNormalMapId, vec2(coord.x + sx, coord.y - sy)).rgb, ref);
+    n[3] = dot(texture2D(toonNormalMapId, vec2(coord.x - sx, coord.y)).rgb, ref);
+    n[4] = dot(texture2D(toonNormalMapId, vec2(coord.x, coord.y)).rgb, ref);
+    n[5] = dot(texture2D(toonNormalMapId, vec2(coord.x + sx, coord.y)).rgb, ref);
+    n[6] = dot(texture2D(toonNormalMapId, vec2(coord.x - sx, coord.y + sy)).rgb, ref);
+    n[7] = dot(texture2D(toonNormalMapId, vec2(coord.x, coord.y + sy)).rgb, ref);
+    n[8] = dot(texture2D(toonNormalMapId, vec2(coord.x + sx, coord.y + sy)).rgb, ref);
     
     float v, h;
 
@@ -427,7 +428,7 @@ vec4 metalRoughFunction(const in vec4 baseColor,
         if (toonEdgeEnabled == 1) {
             float depthEdge = depthEdgeSobel();
             float normalEdge = normalEdgeSobel();
-            if (depthEdge >= 0.009 || normalEdge >= 0.9) {
+            if (depthEdge >= 0.009 || normalEdge >= 0.6) {
                 cLinear = hsv2rgb(vec3(hsv.r, hsv.g, hsv.b * 0.02));
             }
         }

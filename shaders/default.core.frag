@@ -138,22 +138,23 @@ float normalEdgeSobel()
     sobel_h[8] = 1.0;
 
     // vec2 coord = gl_TexCoord[0].st;
-    vec2 coord = vec2(gl_FragCoord.x / screenWidth - 1.0, 1.0 - gl_FragCoord.y / screenHeight);
+    vec2 coord = vec2(gl_FragCoord.x / screenWidth, 1.0 - gl_FragCoord.y / screenHeight);
     //float len = length(coord);
     
     float sx = 1.0 / screenWidth;
 	float sy = 1.0 / screenHeight;
     float n[9];
+    vec3 ref = vec3(1.0, 1.0, 1.0);
     
-    n[0] = length(texture(toonNormalMapId, vec2(coord.x - sx, coord.y - sy)).rgb);
-    n[1] = length(texture(toonNormalMapId, vec2(coord.x, coord.y - sy)).rgb);
-    n[2] = length(texture(toonNormalMapId, vec2(coord.x + sx, coord.y - sy)).rgb);
-    n[3] = length(texture(toonNormalMapId, vec2(coord.x - sx, coord.y)).rgb);
-    n[4] = length(texture(toonNormalMapId, vec2(coord.x, coord.y)).rgb);
-    n[5] = length(texture(toonNormalMapId, vec2(coord.x + sx, coord.y)).rgb);
-    n[6] = length(texture(toonNormalMapId, vec2(coord.x - sx, coord.y + sy)).rgb);
-    n[7] = length(texture(toonNormalMapId, vec2(coord.x, coord.y + sy)).rgb);
-    n[8] = length(texture(toonNormalMapId, vec2(coord.x + sx, coord.y + sy)).rgb);
+    n[0] = dot(texture(toonNormalMapId, vec2(coord.x - sx, coord.y - sy)).rgb, ref);
+    n[1] = dot(texture(toonNormalMapId, vec2(coord.x, coord.y - sy)).rgb, ref);
+    n[2] = dot(texture(toonNormalMapId, vec2(coord.x + sx, coord.y - sy)).rgb, ref);
+    n[3] = dot(texture(toonNormalMapId, vec2(coord.x - sx, coord.y)).rgb, ref);
+    n[4] = dot(texture(toonNormalMapId, vec2(coord.x, coord.y)).rgb, ref);
+    n[5] = dot(texture(toonNormalMapId, vec2(coord.x + sx, coord.y)).rgb, ref);
+    n[6] = dot(texture(toonNormalMapId, vec2(coord.x - sx, coord.y + sy)).rgb, ref);
+    n[7] = dot(texture(toonNormalMapId, vec2(coord.x, coord.y + sy)).rgb, ref);
+    n[8] = dot(texture(toonNormalMapId, vec2(coord.x + sx, coord.y + sy)).rgb, ref);
     
     float v, h;
 
@@ -194,7 +195,7 @@ float depthEdgeSobel()
     sobel_h[8] = 1;
 
     // vec2 coord = gl_TexCoord[0].st;
-    vec2 coord = vec2(gl_FragCoord.x / screenWidth - 1.0, 1.0 - gl_FragCoord.y / screenHeight);
+    vec2 coord = vec2(gl_FragCoord.x / screenWidth, 1.0 - gl_FragCoord.y / screenHeight);
     //float len = length(coord);
     
     float sx = 1.0 / screenWidth;
@@ -539,7 +540,7 @@ vec4 metalRoughFunction(const in vec4 baseColor,
         if (toonEdgeEnabled == 1) {
             float depthEdge = depthEdgeSobel();
             float normalEdge = normalEdgeSobel();
-            if (depthEdge >= 0.009 || normalEdge >= 0.9) {
+            if (depthEdge >= 0.009 || normalEdge >= 0.6) {
                 cLinear = hsv2rgb(vec3(hsv.r, hsv.g, hsv.b * 0.02));
             }
         }
