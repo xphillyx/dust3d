@@ -311,7 +311,8 @@ DocumentWindow::DocumentWindow() :
     m_modelRenderWidget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
     m_modelRenderWidget->move(DocumentWindow::m_modelRenderWidgetInitialX, DocumentWindow::m_modelRenderWidgetInitialY);
     m_modelRenderWidget->setMousePickRadius(m_document->mousePickRadius());
-    m_modelRenderWidget->toggleWireframe();
+    if (!Preferences::instance().toonShading())
+		m_modelRenderWidget->toggleWireframe();
     m_modelRenderWidget->enableEnvironmentLight();
     
     connect(m_modelRenderWidget, &ModelWidget::mouseRayChanged, m_document,
@@ -1962,6 +1963,8 @@ void DocumentWindow::normalAndDepthMapsReady()
     
     m_modelRenderWidget->updateToonNormalAndDepthMaps(normalMap, depthMap);
     
+    //m_normalAndDepthMapsGenerator->setRenderThread(QGuiApplication::instance()->thread());
+    
     delete m_normalAndDepthMapsGenerator;
     m_normalAndDepthMapsGenerator = nullptr;
     
@@ -1979,11 +1982,16 @@ void DocumentWindow::generateNormalAndDepthMaps()
     
     m_isNormalAndDepthMapsObsolete = false;
     
+    auto resultMesh = m_document->takeResultMesh();
+    if (nullptr == resultMesh)
+		return;
+    
     /*
     QThread *thread = new QThread;
     m_normalAndDepthMapsGenerator = new NormalAndDepthMapsGenerator(m_modelRenderWidget);
+    m_normalAndDepthMapsGenerator->updateMesh(resultMesh);
     m_normalAndDepthMapsGenerator->moveToThread(thread);
-    m_normalAndDepthMapsGenerator->setRenderThread(thread);
+    //m_normalAndDepthMapsGenerator->setRenderThread(thread);
     connect(thread, &QThread::started, m_normalAndDepthMapsGenerator, &NormalAndDepthMapsGenerator::process);
     connect(m_normalAndDepthMapsGenerator, &NormalAndDepthMapsGenerator::finished, this, &DocumentWindow::normalAndDepthMapsReady);
     connect(m_normalAndDepthMapsGenerator, &NormalAndDepthMapsGenerator::finished, thread, &QThread::quit);
@@ -1992,7 +2000,7 @@ void DocumentWindow::generateNormalAndDepthMaps()
     */
     
     m_normalAndDepthMapsGenerator = new NormalAndDepthMapsGenerator(m_modelRenderWidget);
-    m_normalAndDepthMapsGenerator->updateMesh(m_document->takeResultMesh());
+    m_normalAndDepthMapsGenerator->updateMesh(resultMesh);
     connect(m_normalAndDepthMapsGenerator, &NormalAndDepthMapsGenerator::finished, this, &DocumentWindow::normalAndDepthMapsReady);
     m_normalAndDepthMapsGenerator->process();
 }

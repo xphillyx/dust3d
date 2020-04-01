@@ -85,7 +85,6 @@ void ModelMeshBinder::paint(ModelShaderProgram *program)
             delete m_toonNormalMap;
             m_toonNormalMap = nullptr;
             if (nullptr != m_newToonNormalMap) {
-				m_newToonNormalMap->save("/Users/jeremy/Desktop/toonnormal.png");
 				m_toonNormalMap = new QOpenGLTexture(*m_newToonNormalMap);
 				delete m_newToonNormalMap;
 				m_newToonNormalMap = nullptr;
@@ -94,7 +93,6 @@ void ModelMeshBinder::paint(ModelShaderProgram *program)
             delete m_toonDepthMap;
             m_toonDepthMap = nullptr;
             if (nullptr != m_newToonDepthMap) {
-				m_newToonDepthMap->save("/Users/jeremy/Desktop/toondepth.png");
 				m_toonDepthMap = new QOpenGLTexture(*m_newToonDepthMap);
 				delete m_newToonDepthMap;
 				m_newToonDepthMap = nullptr;

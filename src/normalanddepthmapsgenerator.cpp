@@ -21,8 +21,8 @@ void NormalAndDepthMapsGenerator::updateMesh(MeshLoader *mesh)
 
 void NormalAndDepthMapsGenerator::setRenderThread(QThread *thread)
 {
-    m_normalMapRender->setRenderThread(thread);
-    m_depthMapRender->setRenderThread(thread);
+    //m_normalMapRender->setRenderThread(thread);
+    //m_depthMapRender->setRenderThread(thread);
 }
 
 ModelOfflineRender *NormalAndDepthMapsGenerator::createOfflineRender(ModelWidget *modelWidget, int purpose)

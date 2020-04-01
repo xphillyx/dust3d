@@ -36,6 +36,5 @@ bool LogBrowser::isDialogVisible()
 
 void LogBrowser::outputMessage(QtMsgType type, const QString &msg, const QString &source, int line)
 {
-	printf("%s\n", msg.toUtf8().constData());
     emit sendMessage(type, msg, source, line);
 }

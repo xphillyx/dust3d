@@ -28,6 +28,7 @@ void ModelOfflineRender::updateMesh(MeshLoader *mesh)
 
 void ModelOfflineRender::setRenderThread(QThread *thread)
 {
+	//this->moveToThread(thread);
 }
 
 void ModelOfflineRender::setXRotation(int angle)
@@ -52,14 +53,22 @@ void ModelOfflineRender::setRenderPurpose(int purpose)
 
 QImage ModelOfflineRender::toImage(const QSize &size)
 {
+	QImage image;
+	
 	m_context = new QOpenGLContext();
     m_context->setFormat(format());
-    if (!m_context->create())
+    if (!m_context->create()) {
+		delete m_context;
+		m_context = nullptr;
+		
         qDebug() << "QOpenGLContext create failed";
-        
-    QImage image;
+        return image;
+	}
     
     if (!m_context->makeCurrent(this)) {
+		delete m_context;
+		m_context = nullptr;
+		
         qDebug() << "QOpenGLContext makeCurrent failed";
         return image;
     }

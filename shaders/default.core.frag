@@ -112,30 +112,30 @@ struct Light {
 int lightCount;
 Light lights[MAX_LIGHTS];
 
-int sobel_v[9];
-int sobel_h[9];
+float sobel_v[9];
+float sobel_h[9];
 
 float normalEdgeSobel()
 {
-    sobel_v[0] = -1;
-    sobel_v[1] = 0;
-    sobel_v[2] = 1;
-    sobel_v[3] = -2; 
-    sobel_v[4] = 0;  
-    sobel_v[5] = 2;
-    sobel_v[6] = -1;  
-    sobel_v[7] = 0;  
-    sobel_v[8] = 1;
+    sobel_v[0] = -1.0;
+    sobel_v[1] = 0.0;
+    sobel_v[2] = 1.0;
+    sobel_v[3] = -2.0; 
+    sobel_v[4] = 0.0;  
+    sobel_v[5] = 2.0;
+    sobel_v[6] = -1.0;  
+    sobel_v[7] = 0.0;  
+    sobel_v[8] = 1.0;
 
-    sobel_h[0] = -1;
-    sobel_h[1] = -2;
-    sobel_h[2] = -1;
-    sobel_h[3] = 0; 
-    sobel_h[4] = 0;  
-    sobel_h[5] = 0;
-    sobel_h[6] = 1;  
-    sobel_h[7] = 2; 
-    sobel_h[8] = 1;
+    sobel_h[0] = -1.0;
+    sobel_h[1] = -2.0;
+    sobel_h[2] = -1.0;
+    sobel_h[3] = 0.0; 
+    sobel_h[4] = 0.0;  
+    sobel_h[5] = 0.0;
+    sobel_h[6] = 1.0;  
+    sobel_h[7] = 2.0; 
+    sobel_h[8] = 1.0;
 
     // vec2 coord = gl_TexCoord[0].st;
     vec2 coord = vec2(gl_FragCoord.x / screenWidth - 1.0, 1.0 - gl_FragCoord.y / screenHeight);
