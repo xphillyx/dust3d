@@ -112,30 +112,104 @@ struct Light {
 int lightCount;
 Light lights[MAX_LIGHTS];
 
-const int sobel_v[9] = {-1,  0,  1,
-                        -2,  0,  2,
-                        -1,  0,  1};
-const int sobel_h[9] = {-1, -2, -1,
-                         0,  0,  0,
-                         1,  2,  1};
-                         
-float depthEdgeSobel()
+int sobel_v[9];
+int sobel_h[9];
+
+float normalEdgeSobel()
 {
-    vec2 coord = gl_TexCoord[0].st;
+    sobel_v[0] = -1;
+    sobel_v[1] = 0;
+    sobel_v[2] = 1;
+    sobel_v[3] = -2; 
+    sobel_v[4] = 0;  
+    sobel_v[5] = 2;
+    sobel_v[6] = -1;  
+    sobel_v[7] = 0;  
+    sobel_v[8] = 1;
+
+    sobel_h[0] = -1;
+    sobel_h[1] = -2;
+    sobel_h[2] = -1;
+    sobel_h[3] = 0; 
+    sobel_h[4] = 0;  
+    sobel_h[5] = 0;
+    sobel_h[6] = 1;  
+    sobel_h[7] = 2; 
+    sobel_h[8] = 1;
+
+    // vec2 coord = gl_TexCoord[0].st;
+    vec2 coord = vec2(gl_FragCoord.x / screenWidth - 1.0, 1.0 - gl_FragCoord.y / screenHeight);
+    //float len = length(coord);
     
     float sx = 1.0 / screenWidth;
 	float sy = 1.0 / screenHeight;
     float n[9];
     
-    n[0] = texture(toonNormalMapId, vec2(coord.x - sx, coord.y - sy)).r;
-    n[1] = texture(toonNormalMapId, vec2(coord.x, coord.y - sy)).r;
-    n[2] = texture(toonNormalMapId, vec2(coord.x + sx, coord.y - sy)).r;
-    n[3] = texture(toonNormalMapId, vec2(coord.x - sx, coord.y)).r;
-    n[4] = texture(toonNormalMapId, vec2(coord.x, coord.y)).r;
-    n[5] = texture(toonNormalMapId, vec2(coord.x + sx, coord.y)).r;
-    n[6] = texture(toonNormalMapId, vec2(coord.x - sx, coord.y + sy)).r;
-    n[7] = texture(toonNormalMapId, vec2(coord.x, coord.y + sy)).r;
-    n[8] = texture(toonNormalMapId, vec2(coord.x + sx, coord.y + sy)).r;
+    n[0] = length(texture(toonNormalMapId, vec2(coord.x - sx, coord.y - sy)).rgb);
+    n[1] = length(texture(toonNormalMapId, vec2(coord.x, coord.y - sy)).rgb);
+    n[2] = length(texture(toonNormalMapId, vec2(coord.x + sx, coord.y - sy)).rgb);
+    n[3] = length(texture(toonNormalMapId, vec2(coord.x - sx, coord.y)).rgb);
+    n[4] = length(texture(toonNormalMapId, vec2(coord.x, coord.y)).rgb);
+    n[5] = length(texture(toonNormalMapId, vec2(coord.x + sx, coord.y)).rgb);
+    n[6] = length(texture(toonNormalMapId, vec2(coord.x - sx, coord.y + sy)).rgb);
+    n[7] = length(texture(toonNormalMapId, vec2(coord.x, coord.y + sy)).rgb);
+    n[8] = length(texture(toonNormalMapId, vec2(coord.x + sx, coord.y + sy)).rgb);
+    
+    float v, h;
+
+    v = 0.0;
+    h = 0.0;
+    
+    for (int i = 0; i < 9; ++i) {
+        v += sobel_v[i] * n[i];
+        h += sobel_h[i] * n[i];
+    }
+    
+    float enhanceFactor = 1.0;
+    
+    float r = sqrt(v * v * enhanceFactor + h * h * enhanceFactor);
+    return smoothstep(0.0, 1.0, r);
+}
+                         
+float depthEdgeSobel()
+{
+    sobel_v[0] = -1;
+    sobel_v[1] = 0;
+    sobel_v[2] = 1;
+    sobel_v[3] = -2; 
+    sobel_v[4] = 0;  
+    sobel_v[5] = 2;
+    sobel_v[6] = -1;  
+    sobel_v[7] = 0;  
+    sobel_v[8] = 1;
+
+    sobel_h[0] = -1;
+    sobel_h[1] = -2;
+    sobel_h[2] = -1;
+    sobel_h[3] = 0; 
+    sobel_h[4] = 0;  
+    sobel_h[5] = 0;
+    sobel_h[6] = 1;  
+    sobel_h[7] = 2; 
+    sobel_h[8] = 1;
+
+    // vec2 coord = gl_TexCoord[0].st;
+    vec2 coord = vec2(gl_FragCoord.x / screenWidth - 1.0, 1.0 - gl_FragCoord.y / screenHeight);
+    //float len = length(coord);
+    
+    float sx = 1.0 / screenWidth;
+	float sy = 1.0 / screenHeight;
+    float n[9];
+    
+    n[0] = texture(toonDepthMapId, vec2(coord.x - sx, coord.y - sy)).r;
+    n[1] = texture(toonDepthMapId, vec2(coord.x, coord.y - sy)).r;
+    n[2] = texture(toonDepthMapId, vec2(coord.x + sx, coord.y - sy)).r;
+    n[3] = texture(toonDepthMapId, vec2(coord.x - sx, coord.y)).r;
+    n[4] = texture(toonDepthMapId, vec2(coord.x, coord.y)).r;
+    n[5] = texture(toonDepthMapId, vec2(coord.x + sx, coord.y)).r;
+    n[6] = texture(toonDepthMapId, vec2(coord.x - sx, coord.y + sy)).r;
+    n[7] = texture(toonDepthMapId, vec2(coord.x, coord.y + sy)).r;
+    n[8] = texture(toonDepthMapId, vec2(coord.x + sx, coord.y + sy)).r;
     
     float v, h;
 
@@ -150,7 +224,7 @@ float depthEdgeSobel()
     float enhanceFactor = 10.0;
     
     float r = sqrt(v * v * enhanceFactor + h * h * enhanceFactor);
-    return vec3(r, r, r);
+    return smoothstep(0.0, 1.0, r);
 }
 
 int mipLevelCount(const in samplerCube cube)
@@ -463,7 +537,11 @@ vec4 metalRoughFunction(const in vec4 baseColor,
             cLinear = hsv2rgb(vec3(hsv.r, hsv.g, hsv.b * 0.1));
         
         if (toonEdgeEnabled == 1) {
-            cLinear += depthEdgeSobel();
+            float depthEdge = depthEdgeSobel();
+            float normalEdge = normalEdgeSobel();
+            if (depthEdge >= 0.009 || normalEdge >= 0.9) {
+                cLinear = hsv2rgb(vec3(hsv.r, hsv.g, hsv.b * 0.02));
+            }
         }
     }
 

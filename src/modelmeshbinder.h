@@ -25,7 +25,7 @@ public:
     void enableEnvironmentLight();
     bool isCheckUvEnabled();
     void reloadMesh();
-    void updateToonNormalAndDepthMaps(QOpenGLTexture *normalMap, QOpenGLTexture *depthMap);
+    void updateToonNormalAndDepthMaps(QImage *normalMap, QImage *depthMap);
 private:
     MeshLoader *m_mesh = nullptr;
     MeshLoader *m_newMesh = nullptr;
@@ -49,8 +49,8 @@ private:
     QOpenGLTexture *m_environmentSpecularMap = nullptr;
     QOpenGLTexture *m_toonNormalMap = nullptr;
     QOpenGLTexture *m_toonDepthMap = nullptr;
-    QOpenGLTexture *m_newToonNormalMap = nullptr;
-    QOpenGLTexture *m_newToonDepthMap = nullptr;
+    QImage *m_newToonNormalMap = nullptr;
+    QImage *m_newToonDepthMap = nullptr;
     bool m_newToonMapsComing = false;
 private:
     QOpenGLVertexArrayObject m_vaoTriangle;

@@ -1957,8 +1957,8 @@ void DocumentWindow::checkExportWaitingList()
 
 void DocumentWindow::normalAndDepthMapsReady()
 {
-    QOpenGLTexture *normalMap = m_normalAndDepthMapsGenerator->takeNormalMap();
-    QOpenGLTexture *depthMap = m_normalAndDepthMapsGenerator->takeDepthMap();
+    QImage *normalMap = m_normalAndDepthMapsGenerator->takeNormalMap();
+    QImage *depthMap = m_normalAndDepthMapsGenerator->takeDepthMap();
     
     m_modelRenderWidget->updateToonNormalAndDepthMaps(normalMap, depthMap);
     
@@ -1979,14 +1979,22 @@ void DocumentWindow::generateNormalAndDepthMaps()
     
     m_isNormalAndDepthMapsObsolete = false;
     
+    /*
     QThread *thread = new QThread;
     m_normalAndDepthMapsGenerator = new NormalAndDepthMapsGenerator(m_modelRenderWidget);
     m_normalAndDepthMapsGenerator->moveToThread(thread);
+    m_normalAndDepthMapsGenerator->setRenderThread(thread);
     connect(thread, &QThread::started, m_normalAndDepthMapsGenerator, &NormalAndDepthMapsGenerator::process);
     connect(m_normalAndDepthMapsGenerator, &NormalAndDepthMapsGenerator::finished, this, &DocumentWindow::normalAndDepthMapsReady);
     connect(m_normalAndDepthMapsGenerator, &NormalAndDepthMapsGenerator::finished, thread, &QThread::quit);
     connect(thread, &QThread::finished, thread, &QThread::deleteLater);
     thread->start();
+    */
+    
+    m_normalAndDepthMapsGenerator = new NormalAndDepthMapsGenerator(m_modelRenderWidget);
+    m_normalAndDepthMapsGenerator->updateMesh(m_document->takeResultMesh());
+    connect(m_normalAndDepthMapsGenerator, &NormalAndDepthMapsGenerator::finished, this, &DocumentWindow::normalAndDepthMapsReady);
+    m_normalAndDepthMapsGenerator->process();
 }
 
 void DocumentWindow::delayedGenerateNormalAndDepthMaps()
@@ -1996,6 +2004,7 @@ void DocumentWindow::delayedGenerateNormalAndDepthMaps()
     
     delete m_normalAndDepthMapsDelayTimer;
     m_normalAndDepthMapsDelayTimer = new QTimer(this);
+    m_normalAndDepthMapsDelayTimer->setSingleShot(true);
     m_normalAndDepthMapsDelayTimer->setInterval(250);
     connect(m_normalAndDepthMapsDelayTimer, &QTimer::timeout, [=] {
         generateNormalAndDepthMaps();

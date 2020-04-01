@@ -83,12 +83,22 @@ void ModelMeshBinder::paint(ModelShaderProgram *program)
         if (m_newToonMapsComing) {
             
             delete m_toonNormalMap;
-            m_toonNormalMap = m_newToonNormalMap;
-            m_newToonNormalMap = nullptr;
+            m_toonNormalMap = nullptr;
+            if (nullptr != m_newToonNormalMap) {
+				m_newToonNormalMap->save("/Users/jeremy/Desktop/toonnormal.png");
+				m_toonNormalMap = new QOpenGLTexture(*m_newToonNormalMap);
+				delete m_newToonNormalMap;
+				m_newToonNormalMap = nullptr;
+			}
             
             delete m_toonDepthMap;
-            m_toonDepthMap = m_newToonDepthMap;
-            m_newToonDepthMap = nullptr;
+            m_toonDepthMap = nullptr;
+            if (nullptr != m_newToonDepthMap) {
+				m_newToonDepthMap->save("/Users/jeremy/Desktop/toondepth.png");
+				m_toonDepthMap = new QOpenGLTexture(*m_newToonDepthMap);
+				delete m_newToonDepthMap;
+				m_newToonDepthMap = nullptr;
+            }
             
             m_newToonMapsComing = false;
         }
@@ -321,7 +331,7 @@ void ModelMeshBinder::paint(ModelShaderProgram *program)
     }
 }
 
-void ModelMeshBinder::updateToonNormalAndDepthMaps(QOpenGLTexture *normalMap, QOpenGLTexture *depthMap)
+void ModelMeshBinder::updateToonNormalAndDepthMaps(QImage *normalMap, QImage *depthMap)
 {
     QMutexLocker lock(&m_toonNormalAndDepthMapMutex);
     

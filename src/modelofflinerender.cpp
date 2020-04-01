@@ -9,21 +9,13 @@ ModelOfflineRender::ModelOfflineRender(const QSurfaceFormat &format, QScreen *ta
     m_mesh(nullptr)
 {
     setFormat(format);
-    
     create();
     if (!isValid())
         qDebug() << "ModelOfflineRender is invalid";
-    
-    m_context = new QOpenGLContext();
-    m_context->setFormat(format);
-    if (!m_context->create())
-        qDebug() << "QOpenGLContext create failed";
 }
 
 ModelOfflineRender::~ModelOfflineRender()
 {
-    delete m_context;
-    m_context = nullptr;
     destroy();
     delete m_mesh;
 }
@@ -36,7 +28,6 @@ void ModelOfflineRender::updateMesh(MeshLoader *mesh)
 
 void ModelOfflineRender::setRenderThread(QThread *thread)
 {
-    m_context->moveToThread(thread);
 }
 
 void ModelOfflineRender::setXRotation(int angle)
@@ -61,6 +52,11 @@ void ModelOfflineRender::setRenderPurpose(int purpose)
 
 QImage ModelOfflineRender::toImage(const QSize &size)
 {
+	m_context = new QOpenGLContext();
+    m_context->setFormat(format());
+    if (!m_context->create())
+        qDebug() << "QOpenGLContext create failed";
+        
     QImage image;
     
     if (!m_context->makeCurrent(this)) {
@@ -129,8 +125,8 @@ QImage ModelOfflineRender::toImage(const QSize &size)
         program->setUniformValue(program->renderPurposeLoc(), m_renderPurpose);
         
         program->setUniformValue(program->toonEdgeEnabledLoc(), 0);
-        program->setUniformValue(program->screenWidthLoc(), 0);
-        program->setUniformValue(program->screenHeightLoc(), 0);
+        program->setUniformValue(program->screenWidthLoc(), (GLfloat)0.0);
+        program->setUniformValue(program->screenHeightLoc(), (GLfloat)0.0);
         program->setUniformValue(program->toonNormalMapIdLoc(), 0);
         program->setUniformValue(program->toonDepthMapIdLoc(), 0);
 
@@ -153,6 +149,8 @@ QImage ModelOfflineRender::toImage(const QSize &size)
     delete renderFbo;
 
     m_context->doneCurrent();
+    delete m_context;
+    m_context = nullptr;
 
     return image;
 }

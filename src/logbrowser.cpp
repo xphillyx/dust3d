@@ -1,6 +1,7 @@
 #include "logbrowser.h"
 // Modified from https://wiki.qt.io/Browser_for_QDebug_output
 #include <QMetaType>
+#include <stdio.h>
 #include "logbrowserdialog.h"
 
 LogBrowser::LogBrowser(QObject *parent) :
@@ -35,5 +36,6 @@ bool LogBrowser::isDialogVisible()
 
 void LogBrowser::outputMessage(QtMsgType type, const QString &msg, const QString &source, int line)
 {
+	printf("%s\n", msg.toUtf8().constData());
     emit sendMessage(type, msg, source, line);
 }

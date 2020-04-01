@@ -2,7 +2,7 @@
 
 NormalAndDepthMapsGenerator::NormalAndDepthMapsGenerator(ModelWidget *modelWidget)
 {
-    m_viewPortSize = modelWidget->size();
+    m_viewPortSize = modelWidget->size() * 2;
     m_normalMapRender = createOfflineRender(modelWidget, 1);
     m_depthMapRender = createOfflineRender(modelWidget, 2);
 }
@@ -44,11 +44,8 @@ NormalAndDepthMapsGenerator::~NormalAndDepthMapsGenerator()
 
 void NormalAndDepthMapsGenerator::generate()
 {
-    QImage normalMapImage = m_normalMapRender->toImage(m_viewPortSize);
-    m_normalMap = new QOpenGLTexture(normalMapImage);
-    
-    QImage depthMapImage = m_depthMapRender->toImage(m_viewPortSize);
-    m_depthMap = new QOpenGLTexture(depthMapImage);
+    m_normalMap = new QImage(m_normalMapRender->toImage(m_viewPortSize));
+    m_depthMap = new QImage(m_depthMapRender->toImage(m_viewPortSize));
 }
 
 void NormalAndDepthMapsGenerator::process()
@@ -57,16 +54,16 @@ void NormalAndDepthMapsGenerator::process()
     emit finished();
 }
 
-QOpenGLTexture *NormalAndDepthMapsGenerator::takeNormalMap()
+QImage *NormalAndDepthMapsGenerator::takeNormalMap()
 {
-    QOpenGLTexture *normalMap = m_normalMap;
+    QImage *normalMap = m_normalMap;
     m_normalMap = nullptr;
     return normalMap;
 }
 
-QOpenGLTexture *NormalAndDepthMapsGenerator::takeDepthMap()
+QImage *NormalAndDepthMapsGenerator::takeDepthMap()
 {
-    QOpenGLTexture *depthMap = m_depthMap;
+    QImage *depthMap = m_depthMap;
     m_depthMap = nullptr;
     return depthMap;
 }

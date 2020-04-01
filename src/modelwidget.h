@@ -49,7 +49,7 @@ public:
     bool inputWheelEventFromOtherWidget(QWheelEvent *event);
     bool inputMouseReleaseEventFromOtherWidget(QMouseEvent *event);
     QPoint convertInputPosFromOtherWidget(QMouseEvent *event);
-    void updateToonNormalAndDepthMaps(QOpenGLTexture *normalMap, QOpenGLTexture *depthMap);
+    void updateToonNormalAndDepthMaps(QImage *normalMap, QImage *depthMap);
 public slots:
     void setXRotation(int angle);
     void setYRotation(int angle);

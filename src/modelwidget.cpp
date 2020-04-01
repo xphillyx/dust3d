@@ -178,6 +178,7 @@ void ModelWidget::paintGL()
 #ifdef GL_LINE_SMOOTH
     glEnable(GL_LINE_SMOOTH);
 #endif
+	glViewport(0, 0, width() * 2, height() * 2);
 
     m_world.setToIdentity();
     m_world.rotate(m_xRot / 16.0f, 1, 0, 0);
@@ -196,8 +197,8 @@ void ModelWidget::paintGL()
     m_program->setUniformValue(m_program->renderPurposeLoc(), 0);
     
     m_program->setUniformValue(m_program->toonEdgeEnabledLoc(), 0);
-    m_program->setUniformValue(m_program->screenWidthLoc(), width());
-    m_program->setUniformValue(m_program->screenHeightLoc(), height());
+    m_program->setUniformValue(m_program->screenWidthLoc(), (GLfloat)width() * 2);
+    m_program->setUniformValue(m_program->screenHeightLoc(), (GLfloat)height() * 2);
     m_program->setUniformValue(m_program->toonNormalMapIdLoc(), 0);
     m_program->setUniformValue(m_program->toonDepthMapIdLoc(), 0);
     
@@ -413,10 +414,11 @@ void ModelWidget::setMousePickRadius(float radius)
 void ModelWidget::updateMesh(MeshLoader *mesh)
 {
     m_meshBinder.updateMesh(mesh);
+    emit renderParametersChanged();
     update();
 }
 
-void ModelWidget::updateToonNormalAndDepthMaps(QOpenGLTexture *normalMap, QOpenGLTexture *depthMap)
+void ModelWidget::updateToonNormalAndDepthMaps(QImage *normalMap, QImage *depthMap)
 {
     m_meshBinder.updateToonNormalAndDepthMaps(normalMap, depthMap);
     update();
