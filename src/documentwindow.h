@@ -51,6 +51,7 @@ public slots:
     void open();
     void openExample(const QString &modelName);
     void openPathAs(const QString &path, const QString &asName);
+    void exportRenderedResult();
     void exportObjResult();
     void exportGlbResult();
     void exportFbxResult();
@@ -80,6 +81,7 @@ public slots:
     void showCutFaceSettingPopup(const QPoint &globalPos, std::set<QUuid> nodeIds);
     void setExportWaitingList(const QStringList &filenames);
     void checkExportWaitingList();
+    void exportImageToFilename(const QString &filename);
     void exportObjToFilename(const QString &filename);
     void exportFbxToFilename(const QString &filename);
     void exportGlbToFilename(const QString &filename);

@@ -14,7 +14,7 @@ void Preferences::loadDefault()
 {
     m_componentCombineMode = CombineMode::Normal;
     m_partColor = Qt::white;
-    m_flatShading = true;
+    m_flatShading = false;
     m_toonShading = false;
     m_textureSize = 1024;
 }

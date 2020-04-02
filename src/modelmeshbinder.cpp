@@ -27,6 +27,8 @@ ModelMeshBinder::~ModelMeshBinder()
     delete m_toonDepthMap;
     delete m_newToonNormalMap;
     delete m_newToonDepthMap;
+    delete m_currentToonNormalMap;
+    delete m_currentToonDepthMap;
 }
 
 void ModelMeshBinder::updateMesh(MeshLoader *mesh)
@@ -65,6 +67,14 @@ void ModelMeshBinder::enableEnvironmentLight()
     m_environmentLightEnabled = true;
 }
 
+MeshLoader *ModelMeshBinder::fetchCurrentMesh()
+{
+    QMutexLocker lock(&m_meshMutex);
+    if (nullptr == m_mesh)
+        return nullptr;
+    return new MeshLoader(*m_mesh);
+}
+
 void ModelMeshBinder::paint(ModelShaderProgram *program)
 {
     MeshLoader *newMesh = nullptr;
@@ -84,17 +94,21 @@ void ModelMeshBinder::paint(ModelShaderProgram *program)
             
             delete m_toonNormalMap;
             m_toonNormalMap = nullptr;
+            delete m_currentToonNormalMap;
+            m_currentToonNormalMap = nullptr;
             if (nullptr != m_newToonNormalMap) {
 				m_toonNormalMap = new QOpenGLTexture(*m_newToonNormalMap);
-				delete m_newToonNormalMap;
+				m_currentToonNormalMap = m_newToonNormalMap;
 				m_newToonNormalMap = nullptr;
 			}
             
             delete m_toonDepthMap;
             m_toonDepthMap = nullptr;
+            delete m_currentToonDepthMap;
+            m_currentToonDepthMap = nullptr;
             if (nullptr != m_newToonDepthMap) {
 				m_toonDepthMap = new QOpenGLTexture(*m_newToonDepthMap);
-				delete m_newToonDepthMap;
+				m_currentToonDepthMap = m_newToonDepthMap;
 				m_newToonDepthMap = nullptr;
             }
             
@@ -327,6 +341,15 @@ void ModelMeshBinder::paint(ModelShaderProgram *program)
             f->glDrawArrays(GL_TRIANGLES, 0, m_renderToolVertexCount);
         }
     }
+}
+
+void ModelMeshBinder::fetchCurrentToonNormalAndDepthMaps(QImage *normalMap, QImage *depthMap)
+{
+    QMutexLocker lock(&m_toonNormalAndDepthMapMutex);
+    if (nullptr != normalMap && nullptr != m_currentToonNormalMap)
+        *normalMap = *m_currentToonNormalMap;
+    if (nullptr != depthMap && nullptr != m_currentToonDepthMap)
+        *depthMap = *m_currentToonDepthMap;
 }
 
 void ModelMeshBinder::updateToonNormalAndDepthMaps(QImage *normalMap, QImage *depthMap)

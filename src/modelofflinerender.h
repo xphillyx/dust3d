@@ -21,6 +21,8 @@ public:
     void setRenderPurpose(int purpose);
     void setRenderThread(QThread *thread);
     void updateMesh(MeshLoader *mesh);
+    void updateToonNormalAndDepthMaps(QImage *normalMap, QImage *depthMap);
+    void setToonShading(bool toonShading);
     QImage toImage(const QSize &size);
 private:
     int m_xRot = 0;
@@ -29,6 +31,9 @@ private:
     int m_renderPurpose = 0;
     QOpenGLContext *m_context = nullptr;
     MeshLoader *m_mesh = nullptr;
+    QImage *m_normalMap = nullptr;
+    QImage *m_depthMap = nullptr;
+    bool m_toonShading = false;
 };
 
 #endif

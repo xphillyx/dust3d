@@ -13,6 +13,7 @@ class ModelMeshBinder
 public:
     ModelMeshBinder(bool toolEnabled=false);
     ~ModelMeshBinder();
+    MeshLoader *fetchCurrentMesh();
     void updateMesh(MeshLoader *mesh);
     void initialize();
     void paint(ModelShaderProgram *program);
@@ -25,6 +26,7 @@ public:
     void enableEnvironmentLight();
     bool isCheckUvEnabled();
     void reloadMesh();
+    void fetchCurrentToonNormalAndDepthMaps(QImage *normalMap, QImage *depthMap);
     void updateToonNormalAndDepthMaps(QImage *normalMap, QImage *depthMap);
 private:
     MeshLoader *m_mesh = nullptr;
@@ -51,6 +53,8 @@ private:
     QOpenGLTexture *m_toonDepthMap = nullptr;
     QImage *m_newToonNormalMap = nullptr;
     QImage *m_newToonDepthMap = nullptr;
+    QImage *m_currentToonNormalMap = nullptr;
+    QImage *m_currentToonDepthMap = nullptr;
     bool m_newToonMapsComing = false;
 private:
     QOpenGLVertexArrayObject m_vaoTriangle;

@@ -18,6 +18,8 @@ ModelOfflineRender::~ModelOfflineRender()
 {
     destroy();
     delete m_mesh;
+    delete m_normalMap;
+    delete m_depthMap;
 }
 
 void ModelOfflineRender::updateMesh(MeshLoader *mesh)
@@ -49,6 +51,20 @@ void ModelOfflineRender::setZRotation(int angle)
 void ModelOfflineRender::setRenderPurpose(int purpose)
 {
     m_renderPurpose = purpose;
+}
+
+void ModelOfflineRender::setToonShading(bool toonShading)
+{
+    m_toonShading = toonShading;
+}
+
+void ModelOfflineRender::updateToonNormalAndDepthMaps(QImage *normalMap, QImage *depthMap)
+{
+    delete m_normalMap;
+    m_normalMap = normalMap;
+    
+    delete m_depthMap;
+    m_depthMap = depthMap;
 }
 
 QImage ModelOfflineRender::toImage(const QSize &size)
@@ -99,6 +115,11 @@ QImage ModelOfflineRender::toImage(const QSize &size)
         ModelMeshBinder meshBinder;
         meshBinder.initialize();
         meshBinder.hideWireframes();
+        if (nullptr != m_normalMap && nullptr != m_depthMap) {
+            meshBinder.updateToonNormalAndDepthMaps(m_normalMap, m_depthMap);
+            m_normalMap = nullptr;
+            m_depthMap = nullptr;
+        }
 		
         m_context->functions()->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         m_context->functions()->glEnable(GL_BLEND);
@@ -122,7 +143,7 @@ QImage ModelOfflineRender::toImage(const QSize &size)
         
         program->bind();
         program->setUniformValue(program->lightPosLoc(), QVector3D(0, 0, 70));
-        program->setUniformValue(program->toonShadingEnabledLoc(), 0);
+        program->setUniformValue(program->toonShadingEnabledLoc(), m_toonShading ? 1 : 0);
         program->setUniformValue(program->projectionMatrixLoc(), projection);
         program->setUniformValue(program->modelMatrixLoc(), world);
         QMatrix3x3 normalMatrix = world.normalMatrix();
@@ -134,8 +155,8 @@ QImage ModelOfflineRender::toImage(const QSize &size)
         program->setUniformValue(program->renderPurposeLoc(), m_renderPurpose);
         
         program->setUniformValue(program->toonEdgeEnabledLoc(), 0);
-        program->setUniformValue(program->screenWidthLoc(), (GLfloat)0.0);
-        program->setUniformValue(program->screenHeightLoc(), (GLfloat)0.0);
+        program->setUniformValue(program->screenWidthLoc(), (GLfloat)size.width());
+        program->setUniformValue(program->screenHeightLoc(), (GLfloat)size.height());
         program->setUniformValue(program->toonNormalMapIdLoc(), 0);
         program->setUniformValue(program->toonDepthMapIdLoc(), 0);
 

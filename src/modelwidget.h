@@ -35,6 +35,7 @@ public:
     {
         m_transparent = t;
     }
+    MeshLoader *fetchCurrentMesh();
     void updateMesh(MeshLoader *mesh);
     void setGraphicsFunctions(SkeletonGraphicsFunctions *graphicsFunctions);
     void toggleWireframe();
@@ -49,6 +50,7 @@ public:
     bool inputWheelEventFromOtherWidget(QWheelEvent *event);
     bool inputMouseReleaseEventFromOtherWidget(QMouseEvent *event);
     QPoint convertInputPosFromOtherWidget(QMouseEvent *event);
+    void fetchCurrentToonNormalAndDepthMaps(QImage *normalMap, QImage *depthMap);
     void updateToonNormalAndDepthMaps(QImage *normalMap, QImage *depthMap);
     int widthInPixels();
     int heightInPixels();

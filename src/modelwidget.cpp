@@ -114,6 +114,11 @@ void ModelWidget::setZRotation(int angle)
     }
 }
 
+MeshLoader *ModelWidget::fetchCurrentMesh()
+{
+    return m_meshBinder.fetchCurrentMesh();
+}
+
 void ModelWidget::cleanup()
 {
     if (m_program == nullptr)
@@ -422,6 +427,11 @@ void ModelWidget::updateMesh(MeshLoader *mesh)
     m_meshBinder.updateMesh(mesh);
     emit renderParametersChanged();
     update();
+}
+
+void ModelWidget::fetchCurrentToonNormalAndDepthMaps(QImage *normalMap, QImage *depthMap)
+{
+    m_meshBinder.fetchCurrentToonNormalAndDepthMaps(normalMap, depthMap);
 }
 
 void ModelWidget::updateToonNormalAndDepthMaps(QImage *normalMap, QImage *depthMap)
