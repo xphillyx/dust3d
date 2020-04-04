@@ -1,3 +1,4 @@
+
 #ifndef DUST3D_SKELETON_DOCUMENT_H
 #define DUST3D_SKELETON_DOCUMENT_H
 #include <QUuid>
@@ -181,6 +182,7 @@ public:
     float hollowThickness;
     bool countershaded;
     bool gridded;
+    QUuid fillMeshLinkedId;
     SkeletonPart(const QUuid &withId=QUuid()) :
         visible(true),
         locked(false),

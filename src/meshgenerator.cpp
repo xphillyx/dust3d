@@ -634,6 +634,7 @@ MeshCombiner::Mesh *MeshGenerator::combinePartMesh(const QString &partIdString, 
     
     partCache.vertices = nodeMeshBuilder->generatedVertices();
     partCache.faces = nodeMeshBuilder->generatedFaces();
+    auto sourceNodeIndices = nodeMeshBuilder->generatedVerticesSourceNodeIndices();
     for (size_t i = 0; i < partCache.vertices.size(); ++i) {
         const auto &position = partCache.vertices[i];
         const auto &source = nodeMeshBuilder->generatedVerticesSourceNodeIndices()[i];
@@ -667,7 +668,7 @@ MeshCombiner::Mesh *MeshGenerator::combinePartMesh(const QString &partIdString, 
                 for (size_t i = 0; i < xMirroredVertices.size(); ++i) {
                     const auto &position = xMirroredVertices[i];
                     size_t nodeIndex = 0;
-                    const auto &source = nodeMeshBuilder->generatedVerticesSourceNodeIndices()[i];
+                    const auto &source = sourceNodeIndices[i];
                     nodeIndex = nodeMeshModifier->nodes()[source].originNodeIndex;
                     const auto &nodeIdString = nodeIndexToIdStringMap[nodeIndex];
                     partCache.outcomeNodeVertices.push_back({position, {mirroredPartIdString, nodeIdString}});

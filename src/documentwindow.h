@@ -93,10 +93,13 @@ public slots:
     void delayedGenerateNormalAndDepthMaps();
     void normalAndDepthMapsReady();
     void autoRecover();
+    void import();
+    void importPath(const QString &filename);
 private:
     void initLockButton(QPushButton *button);
     void setCurrentFilename(const QString &filename);
     void updateTitle();
+    void createPartSnapshotForFillMesh(const QUuid &fillMeshFileId, Snapshot *snapshot);
 private:
     Document *m_document;
     bool m_firstShow;
@@ -129,6 +132,8 @@ private:
     QMenu *m_exportMenu;
     QAction *m_changeTurnaroundAction;
     QAction *m_quitAction;
+    
+    QAction *m_importAction;
     
     QAction *m_exportAsObjAction;
     QAction *m_exportAsObjPlusMaterialsAction;

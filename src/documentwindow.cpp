@@ -46,6 +46,7 @@
 #include "variablesxml.h"
 #include "updatescheckwidget.h"
 #include "modelofflinerender.h"
+#include "fileforever.h"
 
 int DocumentWindow::m_modelRenderWidgetInitialX = 16;
 int DocumentWindow::m_modelRenderWidgetInitialY = 16;
@@ -504,6 +505,12 @@ DocumentWindow::DocumentWindow() :
     m_showPreferencesAction = new QAction(tr("Preferences..."), this);
     connect(m_showPreferencesAction, &QAction::triggered, this, &DocumentWindow::showPreferences);
     m_fileMenu->addAction(m_showPreferencesAction);
+    
+    m_fileMenu->addSeparator();
+    
+    m_importAction = new QAction(tr("Import..."), this);
+    connect(m_importAction, &QAction::triggered, this, &DocumentWindow::import, Qt::QueuedConnection);
+    m_fileMenu->addAction(m_importAction);
     
     m_fileMenu->addSeparator();
 
@@ -1546,6 +1553,72 @@ void DocumentWindow::saveTo(const QString &saveAsFilename)
     QApplication::restoreOverrideCursor();
 }
 
+void DocumentWindow::importPath(const QString &path)
+{
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+    Ds3FileReader ds3Reader(path);
+    bool documentChanged = false;
+    
+    for (int i = 0; i < ds3Reader.items().size(); ++i) {
+        Ds3ReaderItem item = ds3Reader.items().at(i);
+        if (item.type == "asset") {
+            if (item.name.startsWith("images/")) {
+                QString filename = item.name.split("/")[1];
+                QString imageIdString = filename.split(".")[0];
+                QUuid imageId = QUuid(imageIdString);
+                if (!imageId.isNull()) {
+                    QByteArray data;
+                    ds3Reader.loadItem(item.name, &data);
+                    QImage image = QImage::fromData(data, "PNG");
+                    (void)ImageForever::add(&image, imageId);
+                }
+            }
+        }
+    }
+    
+    for (int i = 0; i < ds3Reader.items().size(); ++i) {
+        Ds3ReaderItem item = ds3Reader.items().at(i);
+        if (item.type == "model") {
+            QByteArray data;
+            ds3Reader.loadItem(item.name, &data);
+            QXmlStreamReader stream(data);
+            {
+                Snapshot snapshot;
+                loadSkeletonFromXmlStream(&snapshot, stream, SNAPSHOT_ITEM_MATERIAL);
+                m_document->addFromSnapshot(snapshot, true);
+                documentChanged = true;
+            }
+            {
+                Snapshot snapshot;
+                loadSkeletonFromXmlStream(&snapshot, stream, SNAPSHOT_ITEM_CANVAS | SNAPSHOT_ITEM_COMPONENT);
+
+                QByteArray modelXml;
+                QXmlStreamWriter stream(&modelXml);
+                saveSkeletonToXmlStream(&snapshot, &stream);
+                if (modelXml.size() > 0) {
+                    QUuid fillMeshFileId = FileForever::add(item.name, modelXml);
+                    if (!fillMeshFileId.isNull()) {
+                        Snapshot partSnapshot;
+                        createPartSnapshotForFillMesh(fillMeshFileId, &partSnapshot);
+                        m_document->addFromSnapshot(partSnapshot, true);
+                        documentChanged = true;
+                    }
+                }
+            }
+        }
+    }
+    
+    if (documentChanged)
+        m_document->saveSnapshot();
+    
+    QApplication::restoreOverrideCursor();
+}
+
+void DocumentWindow::createPartSnapshotForFillMesh(const QUuid &fillMeshFileId, Snapshot *snapshot)
+{
+    // TODO:
+}
+
 void DocumentWindow::openPathAs(const QString &path, const QString &asName)
 {
     QApplication::setOverrideCursor(Qt::WaitCursor);
@@ -2094,4 +2167,13 @@ void DocumentWindow::exportImageToFilename(const QString &filename)
             m_modelRenderWidget->heightInPixels())).save(filename);
     }
     QApplication::restoreOverrideCursor();
+}
+
+void DocumentWindow::import()
+{
+    QString fileName = QFileDialog::getOpenFileName(this, QString(), QString(),
+        tr("Dust3D Document (*.ds3)")).trimmed();
+    if (fileName.isEmpty())
+        return;
+    importPath(fileName);
 }
