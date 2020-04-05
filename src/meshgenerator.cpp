@@ -335,6 +335,13 @@ MeshCombiner::Mesh *MeshGenerator::combinePartMesh(const QString &partIdString, 
     
     QUuid partId = QUuid(partIdString);
     auto &part = findPart->second;
+    
+    QUuid fillMeshFileId;
+    QString fillMeshString = valueOfKeyInMapOrEmpty(part, "fillMesh");
+    if (!fillMeshString.isEmpty()) {
+        fillMeshFileId = QUuid(fillMeshString);
+    }
+    
     bool isDisabled = isTrueValueString(valueOfKeyInMapOrEmpty(part, "disabled"));
     bool xMirrored = isTrueValueString(valueOfKeyInMapOrEmpty(part, "xMirrored"));
     bool subdived = isTrueValueString(valueOfKeyInMapOrEmpty(part, "subdived"));
