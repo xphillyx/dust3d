@@ -1518,22 +1518,27 @@ void DocumentWindow::importPath(const QString &path)
     for (int i = 0; i < ds3Reader.items().size(); ++i) {
         Ds3ReaderItem item = ds3Reader.items().at(i);
         if (item.type == "model") {
-            QByteArray data;
-            ds3Reader.loadItem(item.name, &data);
-            QXmlStreamReader stream(data);
             {
+                QByteArray data;
+                ds3Reader.loadItem(item.name, &data);
+                QXmlStreamReader stream(data);
+            
                 Snapshot snapshot;
                 loadSkeletonFromXmlStream(&snapshot, stream, SNAPSHOT_ITEM_MATERIAL);
                 m_document->addFromSnapshot(snapshot, true);
                 documentChanged = true;
             }
             {
+                QByteArray data;
+                ds3Reader.loadItem(item.name, &data);
+                QXmlStreamReader stream(data);
+                
                 Snapshot snapshot;
                 loadSkeletonFromXmlStream(&snapshot, stream, SNAPSHOT_ITEM_CANVAS | SNAPSHOT_ITEM_COMPONENT);
 
                 QByteArray modelXml;
-                QXmlStreamWriter stream(&modelXml);
-                saveSkeletonToXmlStream(&snapshot, &stream);
+                QXmlStreamWriter modelStream(&modelXml);
+                saveSkeletonToXmlStream(&snapshot, &modelStream);
                 if (modelXml.size() > 0) {
                     QUuid fillMeshFileId = FileForever::add(item.name, modelXml);
                     if (!fillMeshFileId.isNull()) {
