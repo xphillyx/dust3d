@@ -146,6 +146,7 @@ private:
     QAction *m_redoAction;
     QAction *m_deleteAction;
     QAction *m_breakAction;
+    QAction *m_reverseAction;
     QAction *m_connectAction;
     QAction *m_cutAction;
     QAction *m_copyAction;

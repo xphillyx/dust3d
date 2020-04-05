@@ -434,7 +434,7 @@ signals:
     void nodeCutRotationChanged(QUuid nodeId);
     void nodeCutFaceChanged(QUuid nodeId);
     void nodeOriginChanged(QUuid nodeId);
-    void edgeChanged(QUuid edgeId);
+    void edgeReversed(QUuid edgeId);
     void partPreviewChanged(QUuid partId);
     void resultMeshChanged();
     void turnaroundChanged();
@@ -707,6 +707,7 @@ public slots:
     void silentReset();
     void silentResetScript();
     void breakEdge(QUuid edgeId);
+    void reverseEdge(QUuid edgeId);
     void setXlockState(bool locked);
     void setYlockState(bool locked);
     void setZlockState(bool locked);

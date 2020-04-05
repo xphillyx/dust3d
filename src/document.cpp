@@ -170,6 +170,24 @@ void Document::breakEdge(QUuid edgeId)
     addEdge(middleNodeId, secondNodeId);
 }
 
+void Document::reverseEdge(QUuid edgeId)
+{
+    SkeletonEdge *edge = (SkeletonEdge *)findEdge(edgeId);
+    if (nullptr == edge) {
+        qDebug() << "Find edge failed:" << edgeId;
+        return;
+    }
+    if (edge->nodeIds.size() != 2) {
+        return;
+    }
+    std::swap(edge->nodeIds[0], edge->nodeIds[1]);
+    auto part = partMap.find(edge->partId);
+    if (part != partMap.end())
+        part->second.dirty = true;
+    emit edgeReversed(edgeId);
+    emit skeletonChanged();
+}
+
 void Document::removeEdge(QUuid edgeId)
 {
     const SkeletonEdge *edge = findEdge(edgeId);

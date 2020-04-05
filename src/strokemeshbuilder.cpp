@@ -374,7 +374,6 @@ void StrokeMeshBuilder::reviseNodeBaseNormal(Node &node)
 {
     QVector3D orientedBaseNormal = QVector3D::dotProduct(node.traverseDirection, node.baseNormal) >= 0 ?
         node.baseNormal : -node.baseNormal;
-    // 0.966: < 15 degress
     if (orientedBaseNormal.isNull()) {
         orientedBaseNormal = calculateBaseNormalFromTraverseDirection(node.traverseDirection);
     }
@@ -454,9 +453,15 @@ bool StrokeMeshBuilder::prepare()
     }
     qDebug() << "validBaseNormalPosArray.size:" << validBaseNormalPosArray.size() << "isRing:" << m_isRing;
     if (validBaseNormalPosArray.empty()) {
+        QVector3D baseNormal;
+        for (size_t i = 0; i < m_nodeIndices.size(); ++i) {
+            const auto &node = m_nodes[m_nodeIndices[i]];
+            baseNormal += calculateBaseNormalFromTraverseDirection(node.traverseDirection);
+        }
+        baseNormal.normalize();
         for (size_t i = 0; i < m_nodeIndices.size(); ++i) {
             auto &node = m_nodes[m_nodeIndices[i]];
-            node.baseNormal = calculateBaseNormalFromTraverseDirection(node.traverseDirection);
+            node.baseNormal = baseNormal;
         }
     } else if (1 == validBaseNormalPosArray.size()) {
         auto baseNormal = m_nodes[m_nodeIndices[validBaseNormalPosArray[0]]].baseNormal;
@@ -502,28 +507,27 @@ bool StrokeMeshBuilder::prepare()
                 updateInBetweenBaseNormal(nodeU, nodeV, node);
             }
         }
+        if (m_baseNormalAverageEnabled) {
+            QVector3D baseNormal;
+            for (size_t i = 0; i < m_nodeIndices.size(); ++i) {
+                const auto &node = m_nodes[m_nodeIndices[i]];
+                baseNormal += node.baseNormal;
+            }
+            baseNormal.normalize();
+            for (size_t i = 0; i < m_nodeIndices.size(); ++i) {
+                auto &node = m_nodes[m_nodeIndices[i]];
+                node.baseNormal = baseNormal;
+            }
+        } else {
+            unifyBaseNormals();
+            localAverageBaseNormals();
+            for (size_t i = 0; i < m_nodeIndices.size(); ++i) {
+                reviseNodeBaseNormal(m_nodes[m_nodeIndices[i]]);
+            }
+            unifyBaseNormals();
+        }
     }
 
-    if (m_baseNormalAverageEnabled) {
-        QVector3D baseNormal;
-        for (size_t i = 0; i < m_nodeIndices.size(); ++i) {
-            const auto &node = m_nodes[m_nodeIndices[i]];
-            baseNormal += node.baseNormal;
-        }
-        baseNormal.normalize();
-        for (size_t i = 0; i < m_nodeIndices.size(); ++i) {
-            auto &node = m_nodes[m_nodeIndices[i]];
-            node.baseNormal = baseNormal;
-        }
-    } else {
-        unifyBaseNormals();
-        localAverageBaseNormals();
-        for (size_t i = 0; i < m_nodeIndices.size(); ++i) {
-            reviseNodeBaseNormal(m_nodes[m_nodeIndices[i]]);
-        }
-        unifyBaseNormals();
-    }
-    
     return true;
 }
 
