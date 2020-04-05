@@ -54,16 +54,16 @@ bool MeshGenerator::isSucceed()
     return m_isSucceed;
 }
 
-MeshLoader *MeshGenerator::takeResultMesh()
+Model *MeshGenerator::takeResultMesh()
 {
-    MeshLoader *resultMesh = m_resultMesh;
+    Model *resultMesh = m_resultMesh;
     m_resultMesh = nullptr;
     return resultMesh;
 }
 
-MeshLoader *MeshGenerator::takePartPreviewMesh(const QUuid &partId)
+Model *MeshGenerator::takePartPreviewMesh(const QUuid &partId)
 {
-    MeshLoader *resultMesh = m_partPreviewMeshes[partId];
+    Model *resultMesh = m_partPreviewMeshes[partId];
     m_partPreviewMeshes[partId] = nullptr;
     return resultMesh;
 }
@@ -754,7 +754,7 @@ MeshCombiner::Mesh *MeshGenerator::combinePartMesh(const QString &partIdString, 
     if (!partCache.previewTriangles.empty()) {
         if (target == PartTarget::CutFace)
             partPreviewColor = Theme::red;
-        m_partPreviewMeshes[partId] = new MeshLoader(partPreviewVertices,
+        m_partPreviewMeshes[partId] = new Model(partPreviewVertices,
             partCache.previewTriangles,
             partPreviewTriangleVertexNormals,
             partPreviewColor);
@@ -1520,7 +1520,7 @@ void MeshGenerator::generate()
     
     postprocessOutcome(m_outcome);
     
-    m_resultMesh = new MeshLoader(*m_outcome);
+    m_resultMesh = new Model(*m_outcome);
     
     delete combinedMesh;
 

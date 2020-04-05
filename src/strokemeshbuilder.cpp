@@ -688,6 +688,11 @@ void StrokeMeshBuilder::applyDeform()
     }
 }
 
+bool StrokeMeshBuilder::buildBaseNormalsOnly()
+{
+    return prepare();
+}
+
 bool StrokeMeshBuilder::build()
 {
     if (!prepare())

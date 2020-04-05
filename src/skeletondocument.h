@@ -9,7 +9,7 @@
 #include <QByteArray>
 #include "bonemark.h"
 #include "theme.h"
-#include "meshloader.h"
+#include "model.h"
 #include "cutface.h"
 #include "parttarget.h"
 #include "partbase.h"
@@ -320,20 +320,20 @@ public:
         colorSolubility = other.colorSolubility;
         countershaded = other.countershaded;
     }
-    void updatePreviewMesh(MeshLoader *previewMesh)
+    void updatePreviewMesh(Model *previewMesh)
     {
         delete m_previewMesh;
         m_previewMesh = previewMesh;
     }
-    MeshLoader *takePreviewMesh() const
+    Model *takePreviewMesh() const
     {
         if (nullptr == m_previewMesh)
             return nullptr;
-        return new MeshLoader(*m_previewMesh);
+        return new Model(*m_previewMesh);
     }
 private:
     Q_DISABLE_COPY(SkeletonPart);
-    MeshLoader *m_previewMesh = nullptr;
+    Model *m_previewMesh = nullptr;
 };
 
 enum class SkeletonDocumentEditMode

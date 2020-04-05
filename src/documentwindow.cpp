@@ -45,7 +45,7 @@
 #include "scriptwidget.h"
 #include "variablesxml.h"
 #include "updatescheckwidget.h"
-#include "modelofflinerender.h"
+#include "modeloffscreenrender.h"
 #include "fileforever.h"
 #include "documentsaver.h"
 
@@ -779,7 +779,7 @@ DocumentWindow::DocumentWindow() :
     m_toggleColorAction = new QAction(tr("Toggle Color"), this);
     connect(m_toggleColorAction, &QAction::triggered, [&]() {
         m_modelRemoveColor = !m_modelRemoveColor;
-        MeshLoader *mesh = nullptr;
+        Model *mesh = nullptr;
         if (m_document->isMeshGenerating() &&
                 m_document->isPostProcessing() &&
                 m_document->isTextureGenerating()) {
@@ -1762,7 +1762,7 @@ void DocumentWindow::exportObjResult()
 void DocumentWindow::exportObjToFilename(const QString &filename)
 {
     QApplication::setOverrideCursor(Qt::WaitCursor);
-    MeshLoader *resultMesh = m_document->takeResultMesh();
+    Model *resultMesh = m_document->takeResultMesh();
     if (nullptr != resultMesh) {
         resultMesh->exportAsObj(filename);
         delete resultMesh;
@@ -1902,7 +1902,7 @@ void DocumentWindow::updateRadiusLockButtonState()
 
 void DocumentWindow::updateRigWeightRenderWidget()
 {
-    MeshLoader *resultRigWeightMesh = m_document->takeResultRigWeightMesh();
+    Model *resultRigWeightMesh = m_document->takeResultRigWeightMesh();
     if (nullptr == resultRigWeightMesh) {
         m_rigWidget->rigWeightRenderWidget()->hide();
     } else {
@@ -2151,9 +2151,9 @@ void DocumentWindow::delayedGenerateNormalAndDepthMaps()
 void DocumentWindow::exportImageToFilename(const QString &filename)
 {
     QApplication::setOverrideCursor(Qt::WaitCursor);
-    MeshLoader *resultMesh = m_modelRenderWidget->fetchCurrentMesh();
+    Model *resultMesh = m_modelRenderWidget->fetchCurrentMesh();
     if (nullptr != resultMesh) {
-        ModelOfflineRender *offlineRender = new ModelOfflineRender(m_modelRenderWidget->format());
+        ModelOffscreenRender *offlineRender = new ModelOffscreenRender(m_modelRenderWidget->format());
         offlineRender->setXRotation(m_modelRenderWidget->xRot());
         offlineRender->setYRotation(m_modelRenderWidget->yRot());
         offlineRender->setZRotation(m_modelRenderWidget->zRot());

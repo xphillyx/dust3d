@@ -10,7 +10,7 @@
 #include "outcome.h"
 #include "snapshot.h"
 #include "combinemode.h"
-#include "meshloader.h"
+#include "model.h"
 #include "componentlayer.h"
 #include "clothforce.h"
 
@@ -66,8 +66,8 @@ public:
     MeshGenerator(Snapshot *snapshot);
     ~MeshGenerator();
     bool isSucceed();
-    MeshLoader *takeResultMesh();
-    MeshLoader *takePartPreviewMesh(const QUuid &partId);
+    Model *takeResultMesh();
+    Model *takePartPreviewMesh(const QUuid &partId);
     const std::set<QUuid> &generatedPreviewPartIds();
     Outcome *takeOutcome();
     std::map<QUuid, StrokeMeshBuilder::CutFaceTransform> *takeCutFaceTransforms();
@@ -96,8 +96,8 @@ private:
     std::map<QString, std::set<QString>> m_partNodeIds;
     std::map<QString, std::set<QString>> m_partEdgeIds;
     std::set<QUuid> m_generatedPreviewPartIds;
-    MeshLoader *m_resultMesh = nullptr;
-    std::map<QUuid, MeshLoader *> m_partPreviewMeshes;
+    Model *m_resultMesh = nullptr;
+    std::map<QUuid, Model *> m_partPreviewMeshes;
     bool m_isSucceed = false;
     bool m_cacheEnabled = false;
     float m_smoothShadingThresholdAngleDegrees = 60;

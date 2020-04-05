@@ -8,14 +8,14 @@ NormalAndDepthMapsGenerator::NormalAndDepthMapsGenerator(ModelWidget *modelWidge
     m_depthMapRender = createOfflineRender(modelWidget, 2);
 }
 
-void NormalAndDepthMapsGenerator::updateMesh(MeshLoader *mesh)
+void NormalAndDepthMapsGenerator::updateMesh(Model *mesh)
 {
     if (nullptr == mesh) {
         m_normalMapRender->updateMesh(nullptr);
         m_depthMapRender->updateMesh(nullptr);
         return;
     }
-    m_normalMapRender->updateMesh(new MeshLoader(*mesh));
+    m_normalMapRender->updateMesh(new Model(*mesh));
     m_depthMapRender->updateMesh(mesh);
 }
 
@@ -25,9 +25,9 @@ void NormalAndDepthMapsGenerator::setRenderThread(QThread *thread)
     //m_depthMapRender->setRenderThread(thread);
 }
 
-ModelOfflineRender *NormalAndDepthMapsGenerator::createOfflineRender(ModelWidget *modelWidget, int purpose)
+ModelOffscreenRender *NormalAndDepthMapsGenerator::createOfflineRender(ModelWidget *modelWidget, int purpose)
 {
-    ModelOfflineRender *offlineRender = new ModelOfflineRender(modelWidget->format());
+    ModelOffscreenRender *offlineRender = new ModelOffscreenRender(modelWidget->format());
     offlineRender->setXRotation(modelWidget->xRot());
     offlineRender->setYRotation(modelWidget->yRot());
     offlineRender->setZRotation(modelWidget->zRot());

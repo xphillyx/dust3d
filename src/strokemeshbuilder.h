@@ -34,13 +34,14 @@ public:
     void enableBaseNormalOnY(bool enabled);
     void enableBaseNormalOnZ(bool enabled);
     void enableBaseNormalAverage(bool enabled);
+    bool buildBaseNormalsOnly();
+    const QVector3D &nodeTraverseDirection(size_t nodeIndex) const;
+    const QVector3D &nodeBaseNormal(size_t nodeIndex) const;
+    size_t nodeTraverseOrder(size_t nodeIndex) const;
     bool build();
     const std::vector<QVector3D> &generatedVertices();
     const std::vector<std::vector<size_t>> &generatedFaces();
     const std::vector<size_t> &generatedVerticesSourceNodeIndices();
-    const QVector3D &nodeTraverseDirection(size_t nodeIndex) const;
-    const QVector3D &nodeBaseNormal(size_t nodeIndex) const;
-    size_t nodeTraverseOrder(size_t nodeIndex) const;
 
 private:
     struct Node
@@ -89,6 +90,7 @@ private:
     std::vector<GeneratedVertexInfo> m_generatedVerticesInfos;
     std::vector<std::vector<size_t>> m_generatedFaces;
     
+    bool prepare();
     QVector3D calculateBaseNormalFromTraverseDirection(const QVector3D &traverseDirection);
     std::vector<QVector3D> makeCut(const QVector3D &cutCenter, 
         float radius, 
@@ -100,7 +102,6 @@ private:
         size_t nodeIndex,
         const QVector3D &cutNormal);
     void buildMesh();
-    bool prepare();
     std::vector<size_t> sortedNodeIndices(bool *isRing);
     bool calculateStartingNodeIndex(size_t *startingNodeIndex, 
         bool *isRing);
@@ -109,7 +110,7 @@ private:
     void unifyBaseNormals();
     std::vector<size_t> edgeloopFlipped(const std::vector<size_t> &edgeLoop);
     void reviseNodeBaseNormal(Node &node);
-    QVector3D calculateDeformPosition(const QVector3D &vertexPosition, const QVector3D &ray, const QVector3D &deformNormal, float deformFactor);
+    static QVector3D calculateDeformPosition(const QVector3D &vertexPosition, const QVector3D &ray, const QVector3D &deformNormal, float deformFactor);
     void applyDeform();
 };
 

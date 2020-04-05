@@ -1893,11 +1893,11 @@ void Document::fromSnapshot(const Snapshot &snapshot)
     emit uncheckAll();
 }
 
-MeshLoader *Document::takeResultMesh()
+Model *Document::takeResultMesh()
 {
     if (nullptr == m_resultMesh)
         return nullptr;
-    MeshLoader *resultMesh = new MeshLoader(*m_resultMesh);
+    Model *resultMesh = new Model(*m_resultMesh);
     return resultMesh;
 }
 
@@ -1906,32 +1906,32 @@ bool Document::isMeshGenerationSucceed()
     return m_isMeshGenerationSucceed;
 }
 
-MeshLoader *Document::takeResultTextureMesh()
+Model *Document::takeResultTextureMesh()
 {
     if (nullptr == m_resultTextureMesh)
         return nullptr;
-    MeshLoader *resultTextureMesh = new MeshLoader(*m_resultTextureMesh);
+    Model *resultTextureMesh = new Model(*m_resultTextureMesh);
     return resultTextureMesh;
 }
 
-MeshLoader *Document::takeResultRigWeightMesh()
+Model *Document::takeResultRigWeightMesh()
 {
     if (nullptr == m_resultRigWeightMesh)
         return nullptr;
-    MeshLoader *resultMesh = new MeshLoader(*m_resultRigWeightMesh);
+    Model *resultMesh = new Model(*m_resultRigWeightMesh);
     return resultMesh;
 }
 
 void Document::meshReady()
 {
-    MeshLoader *resultMesh = m_meshGenerator->takeResultMesh();
+    Model *resultMesh = m_meshGenerator->takeResultMesh();
     Outcome *outcome = m_meshGenerator->takeOutcome();
     bool isSucceed = m_meshGenerator->isSucceed();
     
     for (auto &partId: m_meshGenerator->generatedPreviewPartIds()) {
         auto part = partMap.find(partId);
         if (part != partMap.end()) {
-            MeshLoader *resultPartPreviewMesh = m_meshGenerator->takePartPreviewMesh(partId);
+            Model *resultPartPreviewMesh = m_meshGenerator->takePartPreviewMesh(partId);
             part->second.updatePreviewMesh(resultPartPreviewMesh);
             emit partPreviewChanged(partId);
         }
@@ -1972,7 +1972,7 @@ void Document::meshReady()
     }
 }
 
-//void Document::addToolToMesh(MeshLoader *mesh)
+//void Document::addToolToMesh(Model *mesh)
 //{
 //    if (nullptr == mesh)
 //        return;
@@ -2162,7 +2162,7 @@ void Document::postProcess()
     m_isPostProcessResultObsolete = false;
 
     if (!m_currentOutcome) {
-        qDebug() << "MeshLoader is null";
+        qDebug() << "Model is null";
         return;
     }
 
@@ -2214,7 +2214,7 @@ void Document::doPickMouseTarget()
     m_isMouseTargetResultObsolete = false;
     
     if (!m_currentOutcome) {
-        qDebug() << "MeshLoader is null";
+        qDebug() << "Model is null";
         return;
     }
     
@@ -3727,7 +3727,7 @@ void Document::posePreviewsReady()
     for (const auto &poseIdAndFrame: m_posePreviewsGenerator->generatedPreviewPoseIdAndFrames()) {
         auto pose = poseMap.find(poseIdAndFrame.first);
         if (pose != poseMap.end()) {
-            MeshLoader *resultPartPreviewMesh = m_posePreviewsGenerator->takePreview(poseIdAndFrame);
+            Model *resultPartPreviewMesh = m_posePreviewsGenerator->takePreview(poseIdAndFrame);
             pose->second.updatePreviewMesh(resultPartPreviewMesh);
             emit posePreviewChanged(poseIdAndFrame.first);
         }
@@ -3841,7 +3841,7 @@ void Document::materialPreviewsReady()
     for (const auto &materialId: m_materialPreviewsGenerator->generatedPreviewMaterialIds()) {
         auto material = materialMap.find(materialId);
         if (material != materialMap.end()) {
-            MeshLoader *resultPartPreviewMesh = m_materialPreviewsGenerator->takePreview(materialId);
+            Model *resultPartPreviewMesh = m_materialPreviewsGenerator->takePreview(materialId);
             material->second.updatePreviewMesh(resultPartPreviewMesh);
             emit materialPreviewChanged(materialId);
         }

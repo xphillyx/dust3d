@@ -94,9 +94,9 @@ std::map<int, RiggerVertexWeights> *RigGenerator::takeResultWeights()
     return resultWeights;
 }
 
-MeshLoader *RigGenerator::takeResultMesh()
+Model *RigGenerator::takeResultMesh()
 {
-    MeshLoader *resultMesh = m_resultMesh;
+    Model *resultMesh = m_resultMesh;
     m_resultMesh = nullptr;
     return resultMesh;
 }
@@ -1087,8 +1087,8 @@ void RigGenerator::buildDemoMesh()
                 currentVertex.normX = sourceNormal->x();
                 currentVertex.normY = sourceNormal->y();
                 currentVertex.normZ = sourceNormal->z();
-                currentVertex.metalness = MeshLoader::m_defaultMetalness;
-                currentVertex.roughness = MeshLoader::m_defaultRoughness;
+                currentVertex.metalness = Model::m_defaultMetalness;
+                currentVertex.roughness = Model::m_defaultRoughness;
                 currentVertex.tangentX = sourceTangent->x();
                 currentVertex.tangentY = sourceTangent->y();
                 currentVertex.tangentZ = sourceTangent->z();
@@ -1122,7 +1122,7 @@ void RigGenerator::buildDemoMesh()
         m_debugEdgeVerticesNum = 0;
     }
     
-    m_resultMesh = new MeshLoader(triangleVertices, triangleVerticesNum,
+    m_resultMesh = new Model(triangleVertices, triangleVerticesNum,
         edgeVertices, edgeVerticesNum);
 }
 

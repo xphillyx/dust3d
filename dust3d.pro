@@ -144,8 +144,8 @@ HEADERS += src/documentsaver.h
 SOURCES += src/normalanddepthmapsgenerator.cpp
 HEADERS += src/normalanddepthmapsgenerator.h
 
-SOURCES += src/modelofflinerender.cpp
-HEADERS += src/modelofflinerender.h
+SOURCES += src/modeloffscreenrender.cpp
+HEADERS += src/modeloffscreenrender.h
 
 SOURCES += src/modelshaderprogram.cpp
 HEADERS += src/modelshaderprogram.h
@@ -198,8 +198,8 @@ HEADERS += src/glbfile.h
 SOURCES += src/theme.cpp
 HEADERS += src/theme.h
 
-SOURCES += src/meshloader.cpp
-HEADERS += src/meshloader.h
+SOURCES += src/model.cpp
+HEADERS += src/model.h
 
 SOURCES += src/texturegenerator.cpp
 HEADERS += src/texturegenerator.h
