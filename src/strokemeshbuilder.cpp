@@ -365,18 +365,17 @@ void StrokeMeshBuilder::unifyBaseNormals()
         size_t h = m_nodeIndices[i - 1];
         const auto &nodeH = m_nodes[m_nodeIndices[h]];
         auto &nodeI = m_nodes[m_nodeIndices[i]];
-        if (QVector3D::dotProduct(nodeI.baseNormal, nodeH.baseNormal) <= 0)
+        if (QVector3D::dotProduct(nodeI.baseNormal, nodeH.baseNormal) < 0)
             nodeI.baseNormal = -nodeI.baseNormal;
     }
 }
 
 void StrokeMeshBuilder::reviseNodeBaseNormal(Node &node)
 {
-    QVector3D orientedBaseNormal = QVector3D::dotProduct(node.traverseDirection, node.baseNormal) > 0 ?
+    QVector3D orientedBaseNormal = QVector3D::dotProduct(node.traverseDirection, node.baseNormal) >= 0 ?
         node.baseNormal : -node.baseNormal;
     // 0.966: < 15 degress
-    if (orientedBaseNormal.isNull() ||
-            QVector3D::dotProduct(node.traverseDirection, orientedBaseNormal) > 0.966) {
+    if (orientedBaseNormal.isNull()) {
         orientedBaseNormal = calculateBaseNormalFromTraverseDirection(node.traverseDirection);
     }
     node.baseNormal = orientedBaseNormal;
@@ -453,6 +452,7 @@ bool StrokeMeshBuilder::prepare()
             }
         }
     }
+    qDebug() << "validBaseNormalPosArray.size:" << validBaseNormalPosArray.size() << "isRing:" << m_isRing;
     if (validBaseNormalPosArray.empty()) {
         for (size_t i = 0; i < m_nodeIndices.size(); ++i) {
             auto &node = m_nodes[m_nodeIndices[i]];
@@ -489,7 +489,6 @@ bool StrokeMeshBuilder::prepare()
             float factorV = 1.0 - factorU;
             auto baseNormal = (nodeU.baseNormal * factorU + nodeV.baseNormal * factorV).normalized();
             updateNode.baseNormal = baseNormal;
-            reviseNodeBaseNormal(updateNode);
         };
         for (size_t k = m_isRing ? 0 : 1; k < validBaseNormalPosArray.size(); ++k) {
             size_t u = validBaseNormalPosArray[(k + validBaseNormalPosArray.size() - 1) % validBaseNormalPosArray.size()];
