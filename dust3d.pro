@@ -135,6 +135,9 @@ include(thirdparty/qtsingleapplication/src/qtsingleapplication.pri)
 
 INCLUDEPATH += src
 
+SOURCES += src/strokemeshtransformer.cpp
+HEADERS += src/strokemeshtransformer.h
+
 SOURCES += src/autosaver.cpp
 HEADERS += src/autosaver.h
 

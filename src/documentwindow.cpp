@@ -47,6 +47,7 @@
 #include "updatescheckwidget.h"
 #include "modelofflinerender.h"
 #include "fileforever.h"
+#include "documentsaver.h"
 
 int DocumentWindow::m_modelRenderWidgetInitialX = 16;
 int DocumentWindow::m_modelRenderWidgetInitialY = 16;
@@ -1477,79 +1478,17 @@ void DocumentWindow::saveTo(const QString &saveAsFilename)
         }
     }
     
-    // FIXME: Merge code here and the code in documentsaver.cpp
-
     QApplication::setOverrideCursor(Qt::WaitCursor);
-
-    Ds3FileWriter ds3Writer;
-
-    QByteArray modelXml;
-    QXmlStreamWriter stream(&modelXml);
     Snapshot snapshot;
     m_document->toSnapshot(&snapshot);
-    saveSkeletonToXmlStream(&snapshot, &stream);
-    if (modelXml.size() > 0)
-        ds3Writer.add("model.xml", "model", &modelXml);
-
-    if (!m_document->turnaround.isNull() && m_document->turnaroundPngByteArray.size() > 0) {
-        ds3Writer.add("canvas.png", "asset", &m_document->turnaroundPngByteArray);
-    }
-    
-    if (!m_document->script().isEmpty()) {
-        auto script = m_document->script().toUtf8();
-        ds3Writer.add("model.js", "script", &script);
-    }
-    
-    const auto &variables = m_document->variables();
-    if (!variables.empty()) {
-        QByteArray variablesXml;
-        QXmlStreamWriter variablesXmlStream(&variablesXml);
-        saveVariablesToXmlStream(variables, &variablesXmlStream);
-        if (variablesXml.size() > 0)
-            ds3Writer.add("variables.xml", "variable", &variablesXml);
-    }
-    
-    std::set<QUuid> imageIds;
-    
-    for (const auto &material: snapshot.materials) {
-        for (auto &layer: material.second) {
-            for (auto &mapItem: layer.second) {
-                auto findImageIdString = mapItem.find("linkData");
-                if (findImageIdString == mapItem.end())
-                    continue;
-                QUuid imageId = QUuid(findImageIdString->second);
-                imageIds.insert(imageId);
-            }
-        }
-    }
-    for (const auto &part: snapshot.parts) {
-        auto findImageIdString = part.second.find("deformMapImageId");
-        if (findImageIdString == part.second.end())
-            continue;
-        QUuid imageId = QUuid(findImageIdString->second);
-        imageIds.insert(imageId);
-    }
-    
-    for (auto &pose: snapshot.poses) {
-        auto findCanvasImageId = pose.first.find("canvasImageId");
-        if (findCanvasImageId != pose.first.end()) {
-            QUuid imageId = QUuid(findCanvasImageId->second);
-            imageIds.insert(imageId);
-        }
-    }
-    
-    for (const auto &imageId: imageIds) {
-        const QByteArray *pngByteArray = ImageForever::getPngByteArray(imageId);
-        if (nullptr == pngByteArray)
-            continue;
-        if (pngByteArray->size() > 0)
-            ds3Writer.add("images/" + imageId.toString() + ".png", "asset", pngByteArray);
-    }
-
-    if (ds3Writer.save(filename)) {
+    if (DocumentSaver::save(&filename, 
+            &snapshot, 
+            (!m_document->turnaround.isNull() && m_document->turnaroundPngByteArray.size() > 0) ? 
+                &m_document->turnaroundPngByteArray : nullptr,
+            (!m_document->script().isEmpty()) ? &m_document->script() : nullptr,
+            (!m_document->variables().empty()) ? &m_document->variables() : nullptr)) {
         setCurrentFilename(filename);
     }
-
     QApplication::restoreOverrideCursor();
 }
 
@@ -1616,7 +1555,54 @@ void DocumentWindow::importPath(const QString &path)
 
 void DocumentWindow::createPartSnapshotForFillMesh(const QUuid &fillMeshFileId, Snapshot *snapshot)
 {
-    // TODO:
+    if (fillMeshFileId.isNull())
+        return;
+    
+    auto partId = QUuid::createUuid();
+    auto partIdString = partId.toString();
+    std::map<QString, QString> snapshotPart;
+    snapshotPart["id"] = partIdString;
+    snapshotPart["fillMesh"] = fillMeshFileId.toString();
+    snapshot->parts[partIdString] = snapshotPart;
+    
+    auto componentId = QUuid::createUuid();
+    auto componentIdString = componentId.toString();
+    std::map<QString, QString> snapshotComponent;
+    snapshotComponent["id"] = componentIdString;
+    snapshotComponent["combineMode"] = "Normal";
+    snapshotComponent["linkDataType"] = "partId";
+    snapshotComponent["linkData"] = partIdString;
+    snapshot->components[componentIdString] = snapshotComponent;
+    
+    snapshot->rootComponent["children"] = componentIdString;
+    
+    auto createNode = [&](const QVector3D &position, float radius) {
+        auto nodeId = QUuid::createUuid();
+        auto nodeIdString = nodeId.toString();
+        std::map<QString, QString> snapshotNode;
+        snapshotNode["id"] = nodeIdString;
+        snapshotNode["x"] = QString::number(position.x());
+        snapshotNode["y"] = QString::number(position.y());
+        snapshotNode["z"] = QString::number(position.z());
+        snapshotNode["radius"] = QString::number(radius);
+        snapshotNode["partId"] = partIdString;
+        snapshot->nodes[nodeIdString] = snapshotNode;
+        return nodeIdString;
+    };
+    
+    auto createEdge = [&](const QString &fromNode, const QString &toNode) {
+        auto edgeId = QUuid::createUuid();
+        auto edgeIdString = edgeId.toString();
+        std::map<QString, QString> snapshotEdge;
+        snapshotEdge["id"] = edgeIdString;
+        snapshotEdge["from"] = fromNode;
+        snapshotEdge["to"] = toNode;
+        snapshotEdge["partId"] = partIdString;
+        snapshot->edges[edgeIdString] = snapshotEdge;
+    };
+    
+    createEdge(createNode(QVector3D(0.5, 0.5, 1.0), 0.1), 
+        createNode(QVector3D(0.5, 0.3, 1.0), 0.1));
 }
 
 void DocumentWindow::openPathAs(const QString &path, const QString &asName)
@@ -1641,6 +1627,15 @@ void DocumentWindow::openPathAs(const QString &path, const QString &asName)
                     ds3Reader.loadItem(item.name, &data);
                     QImage image = QImage::fromData(data, "PNG");
                     (void)ImageForever::add(&image, imageId);
+                }
+            } else if (item.name.startsWith("files/")) {
+                QString filename = item.name.split("/")[1];
+                QString fileIdString = filename.split(".")[0];
+                QUuid fileId = QUuid(fileIdString);
+                if (!fileId.isNull()) {
+                    QByteArray data;
+                    ds3Reader.loadItem(item.name, &data);
+                    (void)FileForever::add(item.name, data, fileId);
                 }
             }
         }

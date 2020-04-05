@@ -1145,6 +1145,8 @@ void Document::toSnapshot(Snapshot *snapshot, const std::set<QUuid> &limitNodeId
                     part["cutFace"] = CutFaceToString(partIt.second.cutFace);
                 }
             }
+            if (!partIt.second.fillMeshLinkedId.isNull())
+                part["fillMesh"] = partIt.second.fillMeshLinkedId.toString();
             part["dirty"] = partIt.second.dirty ? "true" : "false";
             if (partIt.second.hasColor)
                 part["color"] = partIt.second.color.name(QColor::HexArgb);
@@ -1549,6 +1551,12 @@ void Document::addFromSnapshot(const Snapshot &snapshot, bool fromPaste)
                 part.setCutFaceLinkedId(cutFaceLinkedId);
                 cutFaceLinkedIdModifyMap.insert({part.id, cutFaceLinkedId});
             }
+        }
+        const auto &fillMeshIt = partKv.second.find("fillMesh");
+        if (fillMeshIt != partKv.second.end()) {
+            QUuid fillMeshLinkedId = QUuid(fillMeshIt->second);
+            if (!fillMeshLinkedId.isNull())
+                part.fillMeshLinkedId = fillMeshLinkedId;
         }
         if (isTrueValueString(valueOfKeyInMapOrEmpty(partKv.second, "inverse")))
             inversePartIds.insert(part.id);
