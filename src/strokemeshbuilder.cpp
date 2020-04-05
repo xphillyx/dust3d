@@ -4,6 +4,7 @@
 #include "strokemeshbuilder.h"
 #include "meshstitcher.h"
 #include "util.h"
+#include "boxmesh.h"
 
 size_t StrokeMeshBuilder::Node::nextOrNeighborOtherThan(size_t neighborIndex) const
 {
@@ -203,6 +204,17 @@ std::vector<size_t> StrokeMeshBuilder::edgeloopFlipped(const std::vector<size_t>
 
 void StrokeMeshBuilder::buildMesh()
 {
+    if (1 == m_nodes.size()) {
+        const Node &node = m_nodes[0];
+        int subdivideTimes = (int)(node.cutTemplate.size() / 4) - 1;
+        if (subdivideTimes < 0)
+            subdivideTimes = 0;
+        boxmesh(node.position, node.radius, subdivideTimes, m_generatedVertices, m_generatedFaces);
+        m_generatedVerticesSourceNodeIndices.resize(m_generatedVertices.size(), 0);
+        m_generatedVerticesCutDirects.resize(m_generatedVertices.size(), node.traverseDirection);
+        return;
+    }
+    
     std::vector<std::vector<size_t>> cuts;
     for (size_t i = 0; i < m_nodeIndices.size(); ++i) {
         auto &node = m_nodes[m_nodeIndices[i]];
@@ -244,7 +256,41 @@ void StrokeMeshBuilder::buildMesh()
             return;
         if (!qFuzzyIsNull(m_hollowThickness)) {
             // Generate mesh for hollow
-            // TODO:
+            size_t startVertexIndex = m_generatedVertices.size();
+            for (size_t i = 0; i < startVertexIndex; ++i) {
+                const auto &position = m_generatedVertices[i];
+                const auto &node = m_nodes[m_generatedVerticesSourceNodeIndices[i]];
+                auto ray = position - node.position;
+                
+                auto newPosition = position - ray * m_hollowThickness;
+                m_generatedVertices.push_back(newPosition);
+                m_generatedVerticesCutDirects.push_back(m_generatedVerticesCutDirects[i]);
+                m_generatedVerticesSourceNodeIndices.push_back(m_generatedVerticesSourceNodeIndices[i]);
+                m_generatedVerticesInfos.push_back(m_generatedVerticesInfos[i]);
+            }
+            
+            size_t oldFaceNum = m_generatedFaces.size();
+            for (size_t i = 0; i < oldFaceNum; ++i) {
+                auto newFace = m_generatedFaces[i];
+                std::reverse(newFace.begin(), newFace.end());
+                for (auto &it: newFace)
+                    it += startVertexIndex;
+                m_generatedFaces.push_back(newFace);
+            }
+            
+            std::vector<std::vector<size_t>> revisedCuts = {cuts[0],
+                edgeloopFlipped(cuts[cuts.size() - 1])};
+            for (const auto &cut: revisedCuts) {
+                for (size_t i = 0; i < cut.size(); ++i) {
+                    size_t j = (i + 1) % cut.size();
+                    std::vector<size_t> quad;
+                    quad.push_back(cut[i]);
+                    quad.push_back(cut[j]);
+                    quad.push_back(startVertexIndex + cut[j]);
+                    quad.push_back(startVertexIndex + cut[i]);
+                    m_generatedFaces.push_back(quad);
+                }
+            }
         } else {
             m_generatedFaces.push_back(cuts[0]);
             m_generatedFaces.push_back(edgeloopFlipped(cuts[cuts.size() - 1]));
@@ -546,8 +592,11 @@ bool StrokeMeshBuilder::calculateStartingNodeIndex(size_t *startingNodeIndex,
     if (2 != endpointIndices.size()) {
         // Invalid endpoint count, there must be a ring, choose the node which is nearest with world center
         std::vector<size_t> nodeIndices(m_nodes.size());
-        for (size_t i = 0; i < m_nodes.size(); ++i)
+        for (size_t i = 0; i < m_nodes.size(); ++i) {
+            if (2 != m_nodes[i].neighbors.size())
+                return false;
             nodeIndices[i] = i;
+        }
         *startingNodeIndex = findNearestNodeWithWorldCenter(nodeIndices);
         *isRing = true;
         return true;
@@ -611,7 +660,7 @@ void StrokeMeshBuilder::applyDeform()
         auto ray = position - node.position;
         if (nullptr != m_deformMapImage) {
             float degrees = angleInRangle360BetweenTwoVectors(node.baseNormal, ray.normalized(), node.traverseDirection);
-            int x = node.traverseOrder * m_deformMapImage->width() / m_nodes.size();
+            int x = (int)node.traverseOrder * m_deformMapImage->width() / m_nodes.size();
             int y = degrees * m_deformMapImage->height() / 360.0;
             if (y >= m_deformMapImage->height())
                 y = m_deformMapImage->height() - 1;
