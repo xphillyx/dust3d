@@ -325,7 +325,7 @@ void MeshGenerator::cutFaceStringToCutTemplate(const QString &cutFaceString, std
     }
 }
 
-MeshCombiner::Mesh *MeshGenerator::combinePartMesh(const QString &partIdString, bool *hasError, bool addIntermediateNodes)
+MeshCombiner::Mesh *MeshGenerator::combinePartMesh(const QString &partIdString, bool *hasError, bool *retryable, bool addIntermediateNodes)
 {
     auto findPart = m_snapshot->parts.find(partIdString);
     if (findPart == m_snapshot->parts.end()) {
@@ -336,10 +336,15 @@ MeshCombiner::Mesh *MeshGenerator::combinePartMesh(const QString &partIdString, 
     QUuid partId = QUuid(partIdString);
     auto &part = findPart->second;
     
+    *retryable = true;
+    
     QUuid fillMeshFileId;
     QString fillMeshString = valueOfKeyInMapOrEmpty(part, "fillMesh");
     if (!fillMeshString.isEmpty()) {
         fillMeshFileId = QUuid(fillMeshString);
+        if (!fillMeshFileId.isNull()) {
+            *retryable = false;
+        }
     }
     
     bool isDisabled = isTrueValueString(valueOfKeyInMapOrEmpty(part, "disabled"));
@@ -503,8 +508,7 @@ MeshCombiner::Mesh *MeshGenerator::combinePartMesh(const QString &partIdString, 
     bool buildSucceed = false;
     std::map<QString, int> nodeIdStringToIndexMap;
     std::map<int, QString> nodeIndexToIdStringMap;
-    StrokeModifier *nodeMeshModifier = nullptr;
-    StrokeMeshBuilder *nodeMeshBuilder = nullptr;
+    StrokeModifier *strokeModifier = nullptr;
     
     QString mirroredPartIdString;
     QUuid mirroredPartId;
@@ -514,7 +518,7 @@ MeshCombiner::Mesh *MeshGenerator::combinePartMesh(const QString &partIdString, 
         m_cacheContext->partMirrorIdMap[mirroredPartIdString] = partIdString;
     }
     
-    auto addNode = [&](const QString &nodeIdString, const NodeInfo &nodeInfo) {
+    auto addNodeToPartCache = [&](const QString &nodeIdString, const NodeInfo &nodeInfo) {
         OutcomeNode outcomeNode;
         outcomeNode.partId = QUuid(partIdString);
         outcomeNode.nodeId = QUuid(nodeIdString);
@@ -536,7 +540,7 @@ MeshCombiner::Mesh *MeshGenerator::combinePartMesh(const QString &partIdString, 
             partCache.outcomeNodes.push_back(outcomeNode);
         }
     };
-    auto addEdge = [&](const QString &firstNodeIdString, const QString &secondNodeIdString) {
+    auto addEdgeToPartCache = [&](const QString &firstNodeIdString, const QString &secondNodeIdString) {
         partCache.outcomeEdges.push_back({
             {QUuid(partIdString), QUuid(firstNodeIdString)},
             {QUuid(partIdString), QUuid(secondNodeIdString)}
@@ -549,10 +553,10 @@ MeshCombiner::Mesh *MeshGenerator::combinePartMesh(const QString &partIdString, 
         }
     };
     
-    nodeMeshModifier = new StrokeModifier;
+    strokeModifier = new StrokeModifier;
     
     if (addIntermediateNodes)
-        nodeMeshModifier->enableIntermediateAddition();
+        strokeModifier->enableIntermediateAddition();
     
     for (const auto &nodeIt: nodeInfos) {
         const auto &nodeIdString = nodeIt.first;
@@ -563,14 +567,12 @@ MeshCombiner::Mesh *MeshGenerator::combinePartMesh(const QString &partIdString, 
             cutFaceStringToCutTemplate(nodeInfo.cutFace, nodeCutTemplate);
             if (chamfered)
                 chamferFace2D(&nodeCutTemplate);
-            nodeIndex = nodeMeshModifier->addNode(nodeInfo.position, nodeInfo.radius, nodeCutTemplate, nodeInfo.cutRotation);
+            nodeIndex = strokeModifier->addNode(nodeInfo.position, nodeInfo.radius, nodeCutTemplate, nodeInfo.cutRotation);
         } else {
-            nodeIndex = nodeMeshModifier->addNode(nodeInfo.position, nodeInfo.radius, cutTemplate, cutRotation);
+            nodeIndex = strokeModifier->addNode(nodeInfo.position, nodeInfo.radius, cutTemplate, cutRotation);
         }
         nodeIdStringToIndexMap[nodeIdString] = nodeIndex;
         nodeIndexToIdStringMap[nodeIndex] = nodeIdString;
-        
-        addNode(nodeIdString, nodeInfo);
     }
     
     for (const auto &edgeIt: edges) {
@@ -589,74 +591,95 @@ MeshCombiner::Mesh *MeshGenerator::combinePartMesh(const QString &partIdString, 
             continue;
         }
         
-        nodeMeshModifier->addEdge(findFromNodeIndex->second, findToNodeIndex->second);
-        addEdge(fromNodeIdString, toNodeIdString);
+        strokeModifier->addEdge(findFromNodeIndex->second, findToNodeIndex->second);
     }
     
     if (subdived)
-        nodeMeshModifier->subdivide();
+        strokeModifier->subdivide();
     
     if (rounded)
-        nodeMeshModifier->roundEnd();
+        strokeModifier->roundEnd();
     
-    nodeMeshModifier->finalize();
+    strokeModifier->finalize();
     
-    nodeMeshBuilder = new StrokeMeshBuilder;
-    nodeMeshBuilder->setDeformThickness(deformThickness);
-    nodeMeshBuilder->setDeformWidth(deformWidth);
-    nodeMeshBuilder->setDeformMapScale(deformMapScale);
-    nodeMeshBuilder->setHollowThickness(hollowThickness);
-    if (nullptr != deformImage)
-        nodeMeshBuilder->setDeformMapImage(deformImage);
-    if (PartBase::YZ == base) {
-        nodeMeshBuilder->enableBaseNormalOnX(false);
-    } else if (PartBase::Average == base) {
-        nodeMeshBuilder->enableBaseNormalAverage(true);
-    } else if (PartBase::XY == base) {
-        nodeMeshBuilder->enableBaseNormalOnZ(false);
-    } else if (PartBase::ZX == base) {
-        nodeMeshBuilder->enableBaseNormalOnY(false);
-    }
+    std::vector<size_t> sourceNodeIndices;
     
-    for (const auto &node: nodeMeshModifier->nodes()) {
-        auto nodeIndex = nodeMeshBuilder->addNode(node.position, node.radius, node.cutTemplate, node.cutRotation);
-        nodeMeshBuilder->setNodeOriginInfo(nodeIndex, node.nearOriginNodeIndex, node.farOriginNodeIndex);
+    if (fillMeshFileId.isNull()) {
+        for (const auto &nodeIt: nodeInfos) {
+            const auto &nodeIdString = nodeIt.first;
+            const auto &nodeInfo = nodeIt.second;
+            addNodeToPartCache(nodeIdString, nodeInfo);
+        }
         
-        const auto &originNodeIdString = nodeIndexToIdStringMap[node.originNodeIndex];
+        for (const auto &edgeIt: edges) {
+            const QString &fromNodeIdString = edgeIt.first;
+            const QString &toNodeIdString = edgeIt.second;
+            addEdgeToPartCache(fromNodeIdString, toNodeIdString);
+        }
         
-        OutcomePaintNode paintNode;
-        paintNode.originNodeIndex = node.originNodeIndex;
-        paintNode.originNodeId = QUuid(originNodeIdString);
-        paintNode.radius = node.radius;
-        paintNode.origin = node.position;
+        StrokeMeshBuilder *strokeMeshBuilder = new StrokeMeshBuilder;
         
-        partCache.outcomePaintMap.paintNodes.push_back(paintNode);
-    }
-    for (const auto &edge: nodeMeshModifier->edges())
-        nodeMeshBuilder->addEdge(edge.firstNodeIndex, edge.secondNodeIndex);
-    buildSucceed = nodeMeshBuilder->build();
-    
-    partCache.vertices = nodeMeshBuilder->generatedVertices();
-    partCache.faces = nodeMeshBuilder->generatedFaces();
-    auto sourceNodeIndices = nodeMeshBuilder->generatedVerticesSourceNodeIndices();
-    for (size_t i = 0; i < partCache.vertices.size(); ++i) {
-        const auto &position = partCache.vertices[i];
-        const auto &source = nodeMeshBuilder->generatedVerticesSourceNodeIndices()[i];
-        size_t nodeIndex = nodeMeshModifier->nodes()[source].originNodeIndex;
-        const auto &nodeIdString = nodeIndexToIdStringMap[nodeIndex];
-        partCache.outcomeNodeVertices.push_back({position, {partIdString, nodeIdString}});
+        strokeMeshBuilder->setDeformThickness(deformThickness);
+        strokeMeshBuilder->setDeformWidth(deformWidth);
+        strokeMeshBuilder->setDeformMapScale(deformMapScale);
+        strokeMeshBuilder->setHollowThickness(hollowThickness);
+        if (nullptr != deformImage)
+            strokeMeshBuilder->setDeformMapImage(deformImage);
+        if (PartBase::YZ == base) {
+            strokeMeshBuilder->enableBaseNormalOnX(false);
+        } else if (PartBase::Average == base) {
+            strokeMeshBuilder->enableBaseNormalAverage(true);
+        } else if (PartBase::XY == base) {
+            strokeMeshBuilder->enableBaseNormalOnZ(false);
+        } else if (PartBase::ZX == base) {
+            strokeMeshBuilder->enableBaseNormalOnY(false);
+        }
         
-        auto &paintNode = partCache.outcomePaintMap.paintNodes[source];
-        paintNode.vertices.push_back(position);
-    }
-    
-    for (size_t i = 0; i < partCache.outcomePaintMap.paintNodes.size(); ++i) {
-        auto &paintNode = partCache.outcomePaintMap.paintNodes[i];
-        paintNode.baseNormal = nodeMeshBuilder->nodeBaseNormal(i);
-        paintNode.direction = nodeMeshBuilder->nodeTraverseDirection(i);
-        paintNode.order = nodeMeshBuilder->nodeTraverseOrder(i);
+        for (const auto &node: strokeModifier->nodes()) {
+            auto nodeIndex = strokeMeshBuilder->addNode(node.position, node.radius, node.cutTemplate, node.cutRotation);
+            strokeMeshBuilder->setNodeOriginInfo(nodeIndex, node.nearOriginNodeIndex, node.farOriginNodeIndex);
+            
+            const auto &originNodeIdString = nodeIndexToIdStringMap[node.originNodeIndex];
+            
+            OutcomePaintNode paintNode;
+            paintNode.originNodeIndex = node.originNodeIndex;
+            paintNode.originNodeId = QUuid(originNodeIdString);
+            paintNode.radius = node.radius;
+            paintNode.origin = node.position;
+            
+            partCache.outcomePaintMap.paintNodes.push_back(paintNode);
+        }
+        for (const auto &edge: strokeModifier->edges())
+            strokeMeshBuilder->addEdge(edge.firstNodeIndex, edge.secondNodeIndex);
+        buildSucceed = strokeMeshBuilder->build();
         
-        partCache.outcomeNodes[paintNode.originNodeIndex].direction = paintNode.direction;
+        partCache.vertices = strokeMeshBuilder->generatedVertices();
+        partCache.faces = strokeMeshBuilder->generatedFaces();
+        sourceNodeIndices = strokeMeshBuilder->generatedVerticesSourceNodeIndices();
+        for (size_t i = 0; i < partCache.vertices.size(); ++i) {
+            const auto &position = partCache.vertices[i];
+            const auto &source = strokeMeshBuilder->generatedVerticesSourceNodeIndices()[i];
+            size_t nodeIndex = strokeModifier->nodes()[source].originNodeIndex;
+            const auto &nodeIdString = nodeIndexToIdStringMap[nodeIndex];
+            partCache.outcomeNodeVertices.push_back({position, {partIdString, nodeIdString}});
+            
+            auto &paintNode = partCache.outcomePaintMap.paintNodes[source];
+            paintNode.vertices.push_back(position);
+        }
+        
+        for (size_t i = 0; i < partCache.outcomePaintMap.paintNodes.size(); ++i) {
+            auto &paintNode = partCache.outcomePaintMap.paintNodes[i];
+            paintNode.baseNormal = strokeMeshBuilder->nodeBaseNormal(i);
+            paintNode.direction = strokeMeshBuilder->nodeTraverseDirection(i);
+            paintNode.order = strokeMeshBuilder->nodeTraverseOrder(i);
+            
+            partCache.outcomeNodes[paintNode.originNodeIndex].direction = paintNode.direction;
+        }
+        
+        delete strokeMeshBuilder;
+        strokeMeshBuilder = nullptr;
+    } else {
+        buildSucceed = fillPartWithMesh(partCache, fillMeshFileId, strokeModifier);
     }
     
     bool hasMeshError = false;
@@ -673,7 +696,7 @@ MeshCombiner::Mesh *MeshGenerator::combinePartMesh(const QString &partIdString, 
                     const auto &position = xMirroredVertices[i];
                     size_t nodeIndex = 0;
                     const auto &source = sourceNodeIndices[i];
-                    nodeIndex = nodeMeshModifier->nodes()[source].originNodeIndex;
+                    nodeIndex = strokeModifier->nodes()[source].originNodeIndex;
                     const auto &nodeIdString = nodeIndexToIdStringMap[nodeIndex];
                     partCache.outcomeNodeVertices.push_back({position, {mirroredPartIdString, nodeIdString}});
                 }
@@ -757,8 +780,7 @@ MeshCombiner::Mesh *MeshGenerator::combinePartMesh(const QString &partIdString, 
             partPreviewColor);
     }
     
-    delete nodeMeshBuilder;
-    delete nodeMeshModifier;
+    delete strokeModifier;
     
     if (mesh && mesh->isNull()) {
         delete mesh;
@@ -780,6 +802,15 @@ MeshCombiner::Mesh *MeshGenerator::combinePartMesh(const QString &partIdString, 
     }
     
     return mesh;
+}
+
+bool MeshGenerator::fillPartWithMesh(GeneratedPart &partCache, 
+    const QUuid &fillMeshFileId, 
+    StrokeModifier *strokeModifier)
+{
+    // TODO:
+    
+    return false;
 }
 
 const std::map<QString, QString> *MeshGenerator::findComponent(const QString &componentIdString)
@@ -939,12 +970,16 @@ MeshCombiner::Mesh *MeshGenerator::combineComponentMesh(const QString &component
     if ("partId" == linkDataType) {
         QString partIdString = valueOfKeyInMapOrEmpty(*component, "linkData");
         bool hasError = false;
-        mesh = combinePartMesh(partIdString, &hasError);
+        bool retryable = true;
+        mesh = combinePartMesh(partIdString, &hasError, &retryable);
         if (hasError) {
             delete mesh;
-            hasError = false;
-            qDebug() << "Try combine part again without adding intermediate nodes";
-            mesh = combinePartMesh(partIdString, &hasError, false);
+            mesh = nullptr;
+            if (retryable) {
+                hasError = false;
+                qDebug() << "Try combine part again without adding intermediate nodes";
+                mesh = combinePartMesh(partIdString, &hasError, &retryable, false);
+            }
             if (hasError) {
                 m_isSucceed = false;
             }

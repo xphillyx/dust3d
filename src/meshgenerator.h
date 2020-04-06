@@ -13,6 +13,7 @@
 #include "model.h"
 #include "componentlayer.h"
 #include "clothforce.h"
+#include "strokemodifier.h"
 
 class GeneratedPart
 {
@@ -114,7 +115,10 @@ private:
     bool checkIsPartDirty(const QString &partIdString);
     bool checkIsPartDependencyDirty(const QString &partIdString);
     void checkDirtyFlags();
-    MeshCombiner::Mesh *combinePartMesh(const QString &partIdString, bool *hasError, bool addIntermediateNodes=true);
+    bool fillPartWithMesh(GeneratedPart &partCache, 
+        const QUuid &fillMeshFileId, 
+        StrokeModifier *strokeModifier);
+    MeshCombiner::Mesh *combinePartMesh(const QString &partIdString, bool *hasError, bool *retryable, bool addIntermediateNodes=true);
     MeshCombiner::Mesh *combineComponentMesh(const QString &componentIdString, CombineMode *combineMode);
     void makeXmirror(const std::vector<QVector3D> &sourceVertices, const std::vector<std::vector<size_t>> &sourceFaces,
         std::vector<QVector3D> *destVertices, std::vector<std::vector<size_t>> *destFaces);
