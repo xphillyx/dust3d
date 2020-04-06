@@ -10,7 +10,6 @@
 #include <map>
 #include <QStringList>
 #include <QLabel>
-#include <QTimer>
 #include "document.h"
 #include "modelwidget.h"
 #include "exportpreviewwidget.h"
@@ -217,7 +216,6 @@ private:
     QMetaObject::Connection m_partListDockerVisibleSwitchConnection;
     
     NormalAndDepthMapsGenerator *m_normalAndDepthMapsGenerator = nullptr;
-    QTimer *m_normalAndDepthMapsDelayTimer = nullptr;
     bool m_isNormalAndDepthMapsObsolete = false;
     
     AutoSaver *m_autoSaver = nullptr;

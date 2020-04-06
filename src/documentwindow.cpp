@@ -2090,13 +2090,9 @@ void DocumentWindow::normalAndDepthMapsReady()
 {
     QImage *normalMap = m_normalAndDepthMapsGenerator->takeNormalMap();
     QImage *depthMap = m_normalAndDepthMapsGenerator->takeDepthMap();
-    
-    qDebug() << "Updating normal and depth maps to render widget...";
-    
+
     m_modelRenderWidget->updateToonNormalAndDepthMaps(normalMap, depthMap);
-    
-    //m_normalAndDepthMapsGenerator->setRenderThread(QGuiApplication::instance()->thread());
-    
+
     delete m_normalAndDepthMapsGenerator;
     m_normalAndDepthMapsGenerator = nullptr;
     
@@ -2132,11 +2128,6 @@ void DocumentWindow::generateNormalAndDepthMaps()
     connect(m_normalAndDepthMapsGenerator, &NormalAndDepthMapsGenerator::finished, thread, &QThread::quit);
     connect(thread, &QThread::finished, thread, &QThread::deleteLater);
     thread->start();
-    
-    //m_normalAndDepthMapsGenerator = new NormalAndDepthMapsGenerator(m_modelRenderWidget);
-    //m_normalAndDepthMapsGenerator->updateMesh(resultMesh);
-    //connect(m_normalAndDepthMapsGenerator, &NormalAndDepthMapsGenerator::finished, this, &DocumentWindow::normalAndDepthMapsReady);
-    //m_normalAndDepthMapsGenerator->process();
 }
 
 void DocumentWindow::delayedGenerateNormalAndDepthMaps()
@@ -2144,14 +2135,7 @@ void DocumentWindow::delayedGenerateNormalAndDepthMaps()
     if (!Preferences::instance().toonShading())
         return;
     
-    //delete m_normalAndDepthMapsDelayTimer;
-    //m_normalAndDepthMapsDelayTimer = new QTimer(this);
-    //m_normalAndDepthMapsDelayTimer->setSingleShot(true);
-    //m_normalAndDepthMapsDelayTimer->setInterval(250);
-    //connect(m_normalAndDepthMapsDelayTimer, &QTimer::timeout, [=] {
-        generateNormalAndDepthMaps();
-    //});
-    //m_normalAndDepthMapsDelayTimer->start();
+    generateNormalAndDepthMaps();
 }
 
 void DocumentWindow::exportImageToFilename(const QString &filename)

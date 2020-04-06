@@ -1924,25 +1924,18 @@ Model *Document::takeResultRigWeightMesh()
 
 void Document::meshReady()
 {
-    qDebug() << "meshReady";
-    
     Model *resultMesh = m_meshGenerator->takeResultMesh();
     Outcome *outcome = m_meshGenerator->takeOutcome();
     bool isSucceed = m_meshGenerator->isSucceed();
-    
-    qDebug() << "before update parts preview";
     
     for (auto &partId: m_meshGenerator->generatedPreviewPartIds()) {
         auto part = partMap.find(partId);
         if (part != partMap.end()) {
             Model *resultPartPreviewMesh = m_meshGenerator->takePartPreviewMesh(partId);
-            qDebug() << "updating part preview:" << partId.toString();
             part->second.updatePreviewMesh(resultPartPreviewMesh);
             emit partPreviewChanged(partId);
         }
     }
-    
-    qDebug() << "after update parts preview";
     
     delete m_resultMesh;
     m_resultMesh = resultMesh;

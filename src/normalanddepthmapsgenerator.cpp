@@ -47,12 +47,8 @@ NormalAndDepthMapsGenerator::~NormalAndDepthMapsGenerator()
 
 void NormalAndDepthMapsGenerator::generate()
 {
-    qDebug() << "Generating first map...";
     m_normalMap = new QImage(m_normalMapRender->toImage(m_viewPortSize));
-    qDebug() << "Generating first map done";
-    qDebug() << "Generating second map...";
     m_depthMap = new QImage(m_depthMapRender->toImage(m_viewPortSize));
-    qDebug() << "Generating second map done";
 }
 
 void NormalAndDepthMapsGenerator::process()
