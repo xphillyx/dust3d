@@ -356,7 +356,6 @@ MeshCombiner::Mesh *MeshGenerator::combinePartMesh(const QString &partIdString, 
     float hollowThickness = 0.0;
     auto target = PartTargetFromString(valueOfKeyInMapOrEmpty(part, "target").toUtf8().constData());
     auto base = PartBaseFromString(valueOfKeyInMapOrEmpty(part, "base").toUtf8().constData());
-    //bool gridded = isTrueValueString(valueOfKeyInMapOrEmpty(part, "gridded"));
 
     QString cutFaceString = valueOfKeyInMapOrEmpty(part, "cutFace");
     std::vector<QVector2D> cutTemplate;
@@ -619,11 +618,9 @@ MeshCombiner::Mesh *MeshGenerator::combinePartMesh(const QString &partIdString, 
         nodeMeshBuilder->enableBaseNormalOnY(false);
     }
     
-    std::vector<size_t> builderNodeIndices;
     for (const auto &node: nodeMeshModifier->nodes()) {
         auto nodeIndex = nodeMeshBuilder->addNode(node.position, node.radius, node.cutTemplate, node.cutRotation);
         nodeMeshBuilder->setNodeOriginInfo(nodeIndex, node.nearOriginNodeIndex, node.farOriginNodeIndex);
-        builderNodeIndices.push_back(nodeIndex);
         
         const auto &originNodeIdString = nodeIndexToIdStringMap[node.originNodeIndex];
         
@@ -780,7 +777,6 @@ MeshCombiner::Mesh *MeshGenerator::combinePartMesh(const QString &partIdString, 
     
     if (hasMeshError && target == PartTarget::Model) {
         *hasError = true;
-        //m_isSucceed = false;
     }
     
     return mesh;
@@ -1407,23 +1403,22 @@ void MeshGenerator::generate()
     std::vector<std::vector<size_t>> combinedFaces;
     if (nullptr != combinedMesh) {
         combinedMesh->fetch(combinedVertices, combinedFaces);
-        
-        if (!remeshed) {
-            size_t totalAffectedNum = 0;
-            size_t affectedNum = 0;
-            do {
-                std::vector<QVector3D> weldedVertices;
-                std::vector<std::vector<size_t>> weldedFaces;
-                affectedNum = weldSeam(combinedVertices, combinedFaces,
-                    0.025, componentCache.noneSeamVertices,
-                    weldedVertices, weldedFaces);
-                combinedVertices = weldedVertices;
-                combinedFaces = weldedFaces;
-                totalAffectedNum += affectedNum;
-            } while (affectedNum > 0);
-            qDebug() << "Total weld affected triangles:" << totalAffectedNum;
+        if (m_weldEnabled) {
+            if (!remeshed) {
+                size_t totalAffectedNum = 0;
+                size_t affectedNum = 0;
+                do {
+                    std::vector<QVector3D> weldedVertices;
+                    std::vector<std::vector<size_t>> weldedFaces;
+                    affectedNum = weldSeam(combinedVertices, combinedFaces,
+                        0.025, componentCache.noneSeamVertices,
+                        weldedVertices, weldedFaces);
+                    combinedVertices = weldedVertices;
+                    combinedFaces = weldedFaces;
+                    totalAffectedNum += affectedNum;
+                } while (affectedNum > 0);
+            }
         }
-        
         m_outcome->nodes = componentCache.outcomeNodes;
         m_outcome->edges = componentCache.outcomeEdges;
         m_outcome->paintMaps = componentCache.outcomePaintMaps;
@@ -1455,8 +1450,28 @@ void MeshGenerator::generate()
     }
     
     collectClothComponent(QUuid().toString());
+    collectErroredParts();
+    postprocessOutcome(m_outcome);
     
-    // Collect errored parts
+    m_resultMesh = new Model(*m_outcome);
+    
+    delete combinedMesh;
+
+    if (needDeleteCacheContext) {
+        delete m_cacheContext;
+        m_cacheContext = nullptr;
+    }
+    
+    qDebug() << "The mesh generation took" << countTimeConsumed.elapsed() << "milliseconds";
+}
+
+void MeshGenerator::setWeldEnabled(bool enabled)
+{
+    m_weldEnabled = enabled;
+}
+
+void MeshGenerator::collectErroredParts()
+{
     for (const auto &it: m_cacheContext->parts) {
         if (!it.second.isSucceed) {
             if (!it.second.joined)
@@ -1480,56 +1495,44 @@ void MeshGenerator::generate()
             m_outcome->triangles.insert(m_outcome->triangles.end(), errorTriangles.begin(), errorTriangles.end());
         }
     }
-    
-    auto postprocessOutcome = [this](Outcome *outcome) {
-        std::vector<QVector3D> combinedFacesNormals;
-        for (const auto &face: outcome->triangles) {
-            combinedFacesNormals.push_back(QVector3D::normal(
-                outcome->vertices[face[0]],
-                outcome->vertices[face[1]],
-                outcome->vertices[face[2]]
-            ));
-        }
-        
-        outcome->triangleNormals = combinedFacesNormals;
-        
-        std::vector<std::pair<QUuid, QUuid>> sourceNodes;
-        triangleSourceNodeResolve(*outcome, sourceNodes, &outcome->vertexSourceNodes);
-        outcome->setTriangleSourceNodes(sourceNodes);
-        
-        std::map<std::pair<QUuid, QUuid>, QColor> sourceNodeToColorMap;
-        for (const auto &node: outcome->nodes)
-            sourceNodeToColorMap.insert({{node.partId, node.nodeId}, node.color});
-        
-        outcome->triangleColors.resize(outcome->triangles.size(), Qt::white);
-        const std::vector<std::pair<QUuid, QUuid>> *triangleSourceNodes = outcome->triangleSourceNodes();
-        if (nullptr != triangleSourceNodes) {
-            for (size_t triangleIndex = 0; triangleIndex < outcome->triangles.size(); triangleIndex++) {
-                const auto &source = (*triangleSourceNodes)[triangleIndex];
-                outcome->triangleColors[triangleIndex] = sourceNodeToColorMap[source];
-            }
-        }
-        
-        std::vector<std::vector<QVector3D>> triangleVertexNormals;
-        generateSmoothTriangleVertexNormals(outcome->vertices,
-            outcome->triangles,
-            outcome->triangleNormals,
-            &triangleVertexNormals);
-        outcome->setTriangleVertexNormals(triangleVertexNormals);
-    };
-    
-    postprocessOutcome(m_outcome);
-    
-    m_resultMesh = new Model(*m_outcome);
-    
-    delete combinedMesh;
+}
 
-    if (needDeleteCacheContext) {
-        delete m_cacheContext;
-        m_cacheContext = nullptr;
+void MeshGenerator::postprocessOutcome(Outcome *outcome) 
+{
+    std::vector<QVector3D> combinedFacesNormals;
+    for (const auto &face: outcome->triangles) {
+        combinedFacesNormals.push_back(QVector3D::normal(
+            outcome->vertices[face[0]],
+            outcome->vertices[face[1]],
+            outcome->vertices[face[2]]
+        ));
     }
     
-    qDebug() << "The mesh generation took" << countTimeConsumed.elapsed() << "milliseconds";
+    outcome->triangleNormals = combinedFacesNormals;
+    
+    std::vector<std::pair<QUuid, QUuid>> sourceNodes;
+    triangleSourceNodeResolve(*outcome, sourceNodes, &outcome->vertexSourceNodes);
+    outcome->setTriangleSourceNodes(sourceNodes);
+    
+    std::map<std::pair<QUuid, QUuid>, QColor> sourceNodeToColorMap;
+    for (const auto &node: outcome->nodes)
+        sourceNodeToColorMap.insert({{node.partId, node.nodeId}, node.color});
+    
+    outcome->triangleColors.resize(outcome->triangles.size(), Qt::white);
+    const std::vector<std::pair<QUuid, QUuid>> *triangleSourceNodes = outcome->triangleSourceNodes();
+    if (nullptr != triangleSourceNodes) {
+        for (size_t triangleIndex = 0; triangleIndex < outcome->triangles.size(); triangleIndex++) {
+            const auto &source = (*triangleSourceNodes)[triangleIndex];
+            outcome->triangleColors[triangleIndex] = sourceNodeToColorMap[source];
+        }
+    }
+    
+    std::vector<std::vector<QVector3D>> triangleVertexNormals;
+    generateSmoothTriangleVertexNormals(outcome->vertices,
+        outcome->triangles,
+        outcome->triangleNormals,
+        &triangleVertexNormals);
+    outcome->setTriangleVertexNormals(triangleVertexNormals);
 }
 
 void MeshGenerator::remesh(const std::vector<OutcomeNode> &inputNodes,

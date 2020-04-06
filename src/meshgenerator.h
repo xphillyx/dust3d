@@ -77,6 +77,7 @@ public:
     void setSmoothShadingThresholdAngleDegrees(float degrees);
     void setDefaultPartColor(const QColor &color);
     void setId(quint64 id);
+    void setWeldEnabled(bool enabled);
     quint64 id();
 signals:
     void finished();
@@ -106,6 +107,7 @@ private:
     quint64 m_id = 0;
     std::vector<QVector3D> m_clothCollisionVertices;
     std::vector<std::vector<size_t>> m_clothCollisionTriangles;
+    bool m_weldEnabled = true;
     
     void collectParts();
     bool checkIsComponentDirty(const QString &componentIdString);
@@ -150,6 +152,8 @@ private:
         std::vector<std::vector<size_t>> *outputQuads,
         std::vector<std::vector<size_t>> *outputTriangles,
         std::vector<std::pair<QVector3D, std::pair<QUuid, QUuid>>> *outputNodeVertices);
+    void postprocessOutcome(Outcome *outcome);
+    void collectErroredParts();
 };
 
 #endif
