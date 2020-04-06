@@ -1,3 +1,5 @@
+#include <QDebug>
+#include <QGuiApplication>
 #include "normalanddepthmapsgenerator.h"
 
 NormalAndDepthMapsGenerator::NormalAndDepthMapsGenerator(ModelWidget *modelWidget)
@@ -21,8 +23,8 @@ void NormalAndDepthMapsGenerator::updateMesh(Model *mesh)
 
 void NormalAndDepthMapsGenerator::setRenderThread(QThread *thread)
 {
-    //m_normalMapRender->setRenderThread(thread);
-    //m_depthMapRender->setRenderThread(thread);
+    m_normalMapRender->setRenderThread(thread);
+    m_depthMapRender->setRenderThread(thread);
 }
 
 ModelOffscreenRender *NormalAndDepthMapsGenerator::createOfflineRender(ModelWidget *modelWidget, int purpose)
@@ -45,13 +47,20 @@ NormalAndDepthMapsGenerator::~NormalAndDepthMapsGenerator()
 
 void NormalAndDepthMapsGenerator::generate()
 {
+    qDebug() << "Generating first map...";
     m_normalMap = new QImage(m_normalMapRender->toImage(m_viewPortSize));
+    qDebug() << "Generating first map done";
+    qDebug() << "Generating second map...";
     m_depthMap = new QImage(m_depthMapRender->toImage(m_viewPortSize));
+    qDebug() << "Generating second map done";
 }
 
 void NormalAndDepthMapsGenerator::process()
 {
     generate();
+    m_normalMapRender->setRenderThread(QGuiApplication::instance()->thread());
+    m_depthMapRender->setRenderThread(QGuiApplication::instance()->thread());
+    this->moveToThread(QGuiApplication::instance()->thread());
     emit finished();
 }
 

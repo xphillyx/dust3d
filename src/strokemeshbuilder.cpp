@@ -451,7 +451,6 @@ bool StrokeMeshBuilder::prepare()
             }
         }
     }
-    qDebug() << "validBaseNormalPosArray.size:" << validBaseNormalPosArray.size() << "isRing:" << m_isRing;
     if (validBaseNormalPosArray.empty()) {
         QVector3D baseNormal;
         for (size_t i = 0; i < m_nodeIndices.size(); ++i) {

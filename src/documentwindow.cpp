@@ -2091,12 +2091,16 @@ void DocumentWindow::normalAndDepthMapsReady()
     QImage *normalMap = m_normalAndDepthMapsGenerator->takeNormalMap();
     QImage *depthMap = m_normalAndDepthMapsGenerator->takeDepthMap();
     
+    qDebug() << "Updating normal and depth maps to render widget...";
+    
     m_modelRenderWidget->updateToonNormalAndDepthMaps(normalMap, depthMap);
     
     //m_normalAndDepthMapsGenerator->setRenderThread(QGuiApplication::instance()->thread());
     
     delete m_normalAndDepthMapsGenerator;
     m_normalAndDepthMapsGenerator = nullptr;
+    
+    qDebug() << "Normal and depth maps generation done";
     
     if (m_isNormalAndDepthMapsObsolete) {
         generateNormalAndDepthMaps();
@@ -2116,11 +2120,13 @@ void DocumentWindow::generateNormalAndDepthMaps()
     if (nullptr == resultMesh)
 		return;
     
+    qDebug() << "Normal and depth maps generating...";
+    
     QThread *thread = new QThread;
     m_normalAndDepthMapsGenerator = new NormalAndDepthMapsGenerator(m_modelRenderWidget);
     m_normalAndDepthMapsGenerator->updateMesh(resultMesh);
     m_normalAndDepthMapsGenerator->moveToThread(thread);
-    //m_normalAndDepthMapsGenerator->setRenderThread(thread);
+    m_normalAndDepthMapsGenerator->setRenderThread(thread);
     connect(thread, &QThread::started, m_normalAndDepthMapsGenerator, &NormalAndDepthMapsGenerator::process);
     connect(m_normalAndDepthMapsGenerator, &NormalAndDepthMapsGenerator::finished, this, &DocumentWindow::normalAndDepthMapsReady);
     connect(m_normalAndDepthMapsGenerator, &NormalAndDepthMapsGenerator::finished, thread, &QThread::quit);

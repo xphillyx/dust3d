@@ -30,7 +30,7 @@ void ModelOffscreenRender::updateMesh(Model *mesh)
 
 void ModelOffscreenRender::setRenderThread(QThread *thread)
 {
-	//this->moveToThread(thread);
+	this->moveToThread(thread);
 }
 
 void ModelOffscreenRender::setXRotation(int angle)
@@ -110,7 +110,7 @@ QImage ModelOffscreenRender::toImage(const QSize &size)
                 0 == strstr(versionString, "Mesa")) {
             isCoreProfile = m_context->format().profile() == QSurfaceFormat::CoreProfile;
         }
-
+        
         ModelShaderProgram *program = new ModelShaderProgram(isCoreProfile);
         ModelMeshBinder meshBinder;
         meshBinder.initialize();
@@ -170,14 +170,14 @@ QImage ModelOffscreenRender::toImage(const QSize &size)
 
         m_mesh = nullptr;
     }
-
+    
     m_context->functions()->glFlush();
-
+    
     image = renderFbo->toImage();
-
+    
     renderFbo->bindDefault();
     delete renderFbo;
-
+    
     m_context->doneCurrent();
     delete m_context;
     m_context = nullptr;

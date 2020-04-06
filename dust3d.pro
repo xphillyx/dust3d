@@ -4,9 +4,9 @@ DEFINES += NDEBUG
 DEFINES += QT_MESSAGELOGCONTEXT
 RESOURCES += resources.qrc
 
-LANGUAGES = zh_CN\
-            es_AR\
-			it_IT
+LANGUAGES = zh_CN \
+            es_AR \
+            it_IT
 
 OBJECTS_DIR=obj
 MOC_DIR=moc
@@ -134,6 +134,9 @@ include(thirdparty/QtAwesome/QtAwesome/QtAwesome.pri)
 include(thirdparty/qtsingleapplication/src/qtsingleapplication.pri)
 
 INCLUDEPATH += src
+
+SOURCES += src/meshstroketifier.cpp
+HEADERS += src/meshstroketifier.h
 
 SOURCES += src/autosaver.cpp
 HEADERS += src/autosaver.h
