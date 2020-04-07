@@ -862,11 +862,14 @@ bool MeshGenerator::fillPartWithMesh(GeneratedPart &partCache,
             }
         }
         partCache.outcomeNodes.insert(partCache.outcomeNodes.end(), outcome->nodes.begin(), outcome->nodes.end());
+        partCache.outcomeEdges.insert(partCache.outcomeEdges.end(), outcome->edges.begin(), outcome->edges.end());
         partCache.vertices.insert(partCache.vertices.end(), outcome->vertices.begin(), outcome->vertices.end());
         if (!strokeNodes.empty()) {
             for (auto &it: partCache.vertices)
                 it += strokeNodes.front().position;
         }
+        for (size_t i = 0; i < outcome->vertexSourceNodes.size(); ++i)
+            partCache.outcomeNodeVertices.push_back({partCache.vertices[i], outcome->vertexSourceNodes[i]});
         partCache.faces.insert(partCache.faces.end(), outcome->triangleAndQuads.begin(), outcome->triangleAndQuads.end());
         fillIsSucessful = true;
     }
