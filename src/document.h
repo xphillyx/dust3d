@@ -562,7 +562,13 @@ public:
         const std::set<QUuid> &limitMotionIds=std::set<QUuid>(),
         const std::set<QUuid> &limitMaterialIds=std::set<QUuid>()) const;
     void fromSnapshot(const Snapshot &snapshot);
-    void addFromSnapshot(const Snapshot &snapshot, bool fromPaste=true);
+    enum class SnapshotSource
+    {
+        Unknown,
+        Paste,
+        Import
+    };
+    void addFromSnapshot(const Snapshot &snapshot, enum SnapshotSource source=SnapshotSource::Paste);
     const Component *findComponent(QUuid componentId) const;
     const Component *findComponentParent(QUuid componentId) const;
     QUuid findComponentParentId(QUuid componentId) const;

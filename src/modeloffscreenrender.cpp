@@ -175,7 +175,9 @@ QImage ModelOffscreenRender::toImage(const QSize &size)
     
     image = renderFbo->toImage();
     
+    qDebug() << "bindDefault begin...";
     renderFbo->bindDefault();
+    qDebug() << "bindDefault end";
     delete renderFbo;
     
     m_context->doneCurrent();

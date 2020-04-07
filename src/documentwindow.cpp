@@ -235,12 +235,12 @@ DocumentWindow::DocumentWindow() :
     //rotateClockwiseButton->setToolTip(tr("Rotate whole model"));
     //Theme::initAwesomeButton(rotateClockwiseButton);
     
-    auto updateRegenerateIconAndTips = [&](SpinnableAwesomeButton *regenerateButton, bool isSucceed, bool forceUpdate=false) {
+    auto updateRegenerateIconAndTips = [&](SpinnableAwesomeButton *regenerateButton, bool isSuccessful, bool forceUpdate=false) {
         if (!forceUpdate) {
-            if (m_isLastMeshGenerationSucceed == isSucceed)
+            if (m_isLastMeshGenerationSucceed == isSuccessful)
                 return;
         }
-        m_isLastMeshGenerationSucceed = isSucceed;
+        m_isLastMeshGenerationSucceed = isSuccessful;
         regenerateButton->setToolTip(m_isLastMeshGenerationSucceed ? tr("Regenerate") : tr("Mesh generation failed, please undo or adjust recent changed nodes\nTips:\n  - Don't let generated mesh self-intersect\n  - Make multiple parts instead of one single part for whole model"));
         regenerateButton->setAwesomeIcon(m_isLastMeshGenerationSucceed ? QChar(fa::recycle) : QChar(fa::warning));
     };
@@ -1532,7 +1532,7 @@ void DocumentWindow::importPath(const QString &path)
             
                 Snapshot snapshot;
                 loadSkeletonFromXmlStream(&snapshot, stream, SNAPSHOT_ITEM_MATERIAL);
-                m_document->addFromSnapshot(snapshot, true);
+                m_document->addFromSnapshot(snapshot, Document::SnapshotSource::Import);
                 documentChanged = true;
             }
             {
@@ -1551,7 +1551,7 @@ void DocumentWindow::importPath(const QString &path)
                     if (!fillMeshFileId.isNull()) {
                         Snapshot partSnapshot;
                         createPartSnapshotForFillMesh(fillMeshFileId, &partSnapshot);
-                        m_document->addFromSnapshot(partSnapshot, true);
+                        m_document->addFromSnapshot(partSnapshot, Document::SnapshotSource::Paste);
                         documentChanged = true;
                     }
                 }
@@ -2064,17 +2064,17 @@ void DocumentWindow::checkExportWaitingList()
     auto list = m_waitingForExportToFilenames;
     m_waitingForExportToFilenames.clear();
     
-    bool isSucceed = m_document->isMeshGenerationSucceed();
+    bool isSuccessful = m_document->isMeshGenerationSucceed();
     for (const auto &filename: list) {
         if (filename.endsWith(".obj")) {
             exportObjToFilename(filename);
-            emit waitingExportFinished(filename, isSucceed);
+            emit waitingExportFinished(filename, isSuccessful);
         } else if (filename.endsWith(".fbx")) {
             exportFbxToFilename(filename);
-            emit waitingExportFinished(filename, isSucceed);
+            emit waitingExportFinished(filename, isSuccessful);
         } else if (filename.endsWith(".glb")) {
             exportGlbToFilename(filename);
-            emit waitingExportFinished(filename, isSucceed);
+            emit waitingExportFinished(filename, isSuccessful);
         } else {
             emit waitingExportFinished(filename, false);
         }

@@ -84,6 +84,16 @@ const std::vector<size_t> &StrokeMeshBuilder::generatedVerticesSourceNodeIndices
     return m_generatedVerticesSourceNodeIndices;
 }
 
+const std::vector<StrokeMeshBuilder::Node> &StrokeMeshBuilder::nodes() const
+{
+    return m_nodes;
+}
+
+const std::vector<size_t> &StrokeMeshBuilder::nodeIndices() const
+{
+    return m_nodeIndices;
+}
+
 const QVector3D &StrokeMeshBuilder::nodeTraverseDirection(size_t nodeIndex) const
 {
     return m_nodes[nodeIndex].traverseDirection;

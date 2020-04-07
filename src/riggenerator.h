@@ -20,7 +20,7 @@ public:
     std::map<int, RiggerVertexWeights> *takeResultWeights();
     const std::vector<std::pair<QtMsgType, QString>> &messages();
     Outcome *takeOutcome();
-    bool isSucceed();
+    bool isSuccessful();
     void generate();
 signals:
     void finished();
@@ -61,7 +61,7 @@ private:
     ShaderVertex *m_debugEdgeVertices = nullptr;
     int m_debugEdgeVerticesNum = 0;
     bool m_isSpineVertical = false;
-    bool m_isSucceed = false;
+    bool m_isSuccessful = false;
     void buildNeighborMap();
     void buildBoneNodeChain();
     void buildSkeleton();

@@ -31,7 +31,7 @@ public:
     std::vector<QVector3D> previewVertices;
     std::vector<std::vector<size_t>> previewTriangles;
     OutcomePaintMap outcomePaintMap;
-    bool isSucceed = false;
+    bool isSuccessful = false;
     bool joined = true;
 };
 
@@ -66,7 +66,7 @@ class MeshGenerator : public QObject
 public:
     MeshGenerator(Snapshot *snapshot);
     ~MeshGenerator();
-    bool isSucceed();
+    bool isSuccessful();
     Model *takeResultMesh();
     Model *takePartPreviewMesh(const QUuid &partId);
     const std::set<QUuid> &generatedPreviewPartIds();
@@ -100,7 +100,7 @@ private:
     std::set<QUuid> m_generatedPreviewPartIds;
     Model *m_resultMesh = nullptr;
     std::map<QUuid, Model *> m_partPreviewMeshes;
-    bool m_isSucceed = false;
+    bool m_isSuccessful = false;
     bool m_cacheEnabled = false;
     float m_smoothShadingThresholdAngleDegrees = 60;
     std::map<QUuid, StrokeMeshBuilder::CutFaceTransform> *m_cutFaceTransforms = nullptr;
@@ -117,7 +117,7 @@ private:
     void checkDirtyFlags();
     bool fillPartWithMesh(GeneratedPart &partCache, 
         const QUuid &fillMeshFileId, 
-        StrokeModifier *strokeModifier);
+        const StrokeMeshBuilder *strokeMeshBuilder);
     MeshCombiner::Mesh *combinePartMesh(const QString &partIdString, bool *hasError, bool *retryable, bool addIntermediateNodes=true);
     MeshCombiner::Mesh *combineComponentMesh(const QString &componentIdString, CombineMode *combineMode);
     void makeXmirror(const std::vector<QVector3D> &sourceVertices, const std::vector<std::vector<size_t>> &sourceFaces,

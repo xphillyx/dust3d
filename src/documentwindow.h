@@ -29,7 +29,7 @@ class DocumentWindow : public QMainWindow
 signals:
     void initialized();
     void uninialized();
-    void waitingExportFinished(const QString &filename, bool succeed);
+    void waitingExportFinished(const QString &filename, bool isSuccessful);
     void mouseTargetVertexPositionChanged(const QVector3D &position);
 public:
     DocumentWindow();

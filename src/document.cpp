@@ -364,7 +364,7 @@ void Document::addPartByPolygons(const QPolygonF &mainProfile, const QPolygonF &
     connect(contourToPartConverter, &ContourToPartConverter::finished, this, [=]() {
         const auto &snapshot = contourToPartConverter->getSnapshot();
         if (!snapshot.nodes.empty()) {
-            addFromSnapshot(snapshot, true);
+            addFromSnapshot(snapshot, SnapshotSource::Paste);
             saveSnapshot();
         }
         delete contourToPartConverter;
@@ -1463,11 +1463,11 @@ void Document::createSinglePartFromEdges(const std::vector<QVector3D> &nodes,
     emit skeletonChanged();
 }
 
-void Document::addFromSnapshot(const Snapshot &snapshot, bool fromPaste)
+void Document::addFromSnapshot(const Snapshot &snapshot, enum SnapshotSource source)
 {
     bool isOriginChanged = false;
     bool isRigTypeChanged = false;
-    if (!fromPaste) {
+    if (SnapshotSource::Paste != source) {
         this->polyCount = PolyCountFromString(valueOfKeyInMapOrEmpty(snapshot.canvas, "polyCount").toUtf8().constData());
         const auto &originXit = snapshot.canvas.find("originX");
         const auto &originYit = snapshot.canvas.find("originY");
@@ -1502,38 +1502,41 @@ void Document::addFromSnapshot(const Snapshot &snapshot, bool fromPaste)
             qDebug() << "Unsupported material type:" << materialType;
             continue;
         }
-        QUuid newMaterialId = QUuid::createUuid();
-        auto &newMaterial = materialMap[newMaterialId];
-        newMaterial.id = newMaterialId;
-        newMaterial.name = valueOfKeyInMapOrEmpty(materialAttributes, "name");
-        oldNewIdMap[QUuid(valueOfKeyInMapOrEmpty(materialAttributes, "id"))] = newMaterialId;
-        for (const auto &layerIt: materialIt.second) {
-            MaterialLayer layer;
-            auto findTileScale = layerIt.first.find("tileScale");
-            if (findTileScale != layerIt.first.end())
-                layer.tileScale = findTileScale->second.toFloat();
-            for (const auto &mapItem: layerIt.second) {
-                auto textureTypeString = valueOfKeyInMapOrEmpty(mapItem, "for");
-                auto textureType = TextureTypeFromString(textureTypeString.toUtf8().constData());
-                if (TextureType::None == textureType) {
-                    qDebug() << "Unsupported texture type:" << textureTypeString;
-                    continue;
+        QUuid oldMaterialId = QUuid(valueOfKeyInMapOrEmpty(materialAttributes, "id"));
+        QUuid newMaterialId = SnapshotSource::Import == source ? oldMaterialId : QUuid::createUuid();
+        oldNewIdMap[oldMaterialId] = newMaterialId;
+        if (materialMap.end() == materialMap.find(newMaterialId)) {
+            auto &newMaterial = materialMap[newMaterialId];
+            newMaterial.id = newMaterialId;
+            newMaterial.name = valueOfKeyInMapOrEmpty(materialAttributes, "name");
+            for (const auto &layerIt: materialIt.second) {
+                MaterialLayer layer;
+                auto findTileScale = layerIt.first.find("tileScale");
+                if (findTileScale != layerIt.first.end())
+                    layer.tileScale = findTileScale->second.toFloat();
+                for (const auto &mapItem: layerIt.second) {
+                    auto textureTypeString = valueOfKeyInMapOrEmpty(mapItem, "for");
+                    auto textureType = TextureTypeFromString(textureTypeString.toUtf8().constData());
+                    if (TextureType::None == textureType) {
+                        qDebug() << "Unsupported texture type:" << textureTypeString;
+                        continue;
+                    }
+                    auto linkTypeString = valueOfKeyInMapOrEmpty(mapItem, "linkDataType");
+                    if ("imageId" != linkTypeString) {
+                        qDebug() << "Unsupported link data type:" << linkTypeString;
+                        continue;
+                    }
+                    auto imageId = QUuid(valueOfKeyInMapOrEmpty(mapItem, "linkData"));
+                    MaterialMap materialMap;
+                    materialMap.imageId = imageId;
+                    materialMap.forWhat = textureType;
+                    layer.maps.push_back(materialMap);
                 }
-                auto linkTypeString = valueOfKeyInMapOrEmpty(mapItem, "linkDataType");
-                if ("imageId" != linkTypeString) {
-                    qDebug() << "Unsupported link data type:" << linkTypeString;
-                    continue;
-                }
-                auto imageId = QUuid(valueOfKeyInMapOrEmpty(mapItem, "linkData"));
-                MaterialMap materialMap;
-                materialMap.imageId = imageId;
-                materialMap.forWhat = textureType;
-                layer.maps.push_back(materialMap);
+                newMaterial.layers.push_back(layer);
             }
-            newMaterial.layers.push_back(layer);
+            materialIdList.push_back(newMaterialId);
+            emit materialAdded(newMaterialId);
         }
-        materialIdList.push_back(newMaterialId);
-        emit materialAdded(newMaterialId);
     }
     std::map<QUuid, QUuid> cutFaceLinkedIdModifyMap;
     for (const auto &partKv: snapshot.parts) {
@@ -1889,7 +1892,7 @@ void Document::resetScript()
 void Document::fromSnapshot(const Snapshot &snapshot)
 {
     reset();
-    addFromSnapshot(snapshot, false);
+    addFromSnapshot(snapshot, SnapshotSource::Unknown);
     emit uncheckAll();
 }
 
@@ -1926,7 +1929,7 @@ void Document::meshReady()
 {
     Model *resultMesh = m_meshGenerator->takeResultMesh();
     Outcome *outcome = m_meshGenerator->takeOutcome();
-    bool isSucceed = m_meshGenerator->isSucceed();
+    bool isSuccessful = m_meshGenerator->isSuccessful();
     
     for (auto &partId: m_meshGenerator->generatedPreviewPartIds()) {
         auto part = partMap.find(partId);
@@ -1948,7 +1951,7 @@ void Document::meshReady()
     
     //addToolToMesh(m_resultMesh);
     
-    m_isMeshGenerationSucceed = isSucceed;
+    m_isMeshGenerationSucceed = isSuccessful;
     
     delete m_currentOutcome;
     m_currentOutcome = outcome;
@@ -3205,7 +3208,7 @@ void Document::paste()
         QXmlStreamReader xmlStreamReader(mimeData->text());
         Snapshot snapshot;
         loadSkeletonFromXmlStream(&snapshot, xmlStreamReader);
-        addFromSnapshot(snapshot, true);
+        addFromSnapshot(snapshot, SnapshotSource::Paste);
     }
 }
 
@@ -3522,7 +3525,7 @@ void Document::generateRig()
 
 void Document::rigReady()
 {
-    m_currentRigSucceed = m_rigGenerator->isSucceed();
+    m_currentRigSucceed = m_rigGenerator->isSuccessful();
 
     delete m_resultRigWeightMesh;
     m_resultRigWeightMesh = m_rigGenerator->takeResultMesh();
@@ -3743,6 +3746,12 @@ void Document::posePreviewsReady()
 
 void Document::addMaterial(QUuid materialId, QString name, std::vector<MaterialLayer> layers)
 {
+    auto findMaterialResult = materialMap.find(materialId);
+    if (findMaterialResult != materialMap.end()) {
+        qDebug() << "Material already exist:" << materialId;
+        return;
+    }
+    
     QUuid newMaterialId = materialId;
     auto &material = materialMap[newMaterialId];
     material.id = newMaterialId;

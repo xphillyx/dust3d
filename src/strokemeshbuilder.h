@@ -22,28 +22,6 @@ public:
         bool reverse = false;
     };
     
-    size_t addNode(const QVector3D &position, float radius, const std::vector<QVector2D> &cutTemplate, float cutRotation);
-    void addEdge(size_t firstNodeIndex, size_t secondNodeIndex);
-    void setNodeOriginInfo(size_t nodeIndex, int nearOriginNodeIndex, int farOriginNodeIndex);
-    void setDeformThickness(float thickness);
-    void setDeformWidth(float width);
-    void setDeformMapImage(const QImage *image);
-    void setDeformMapScale(float scale);
-    void setHollowThickness(float hollowThickness);
-    void enableBaseNormalOnX(bool enabled);
-    void enableBaseNormalOnY(bool enabled);
-    void enableBaseNormalOnZ(bool enabled);
-    void enableBaseNormalAverage(bool enabled);
-    bool buildBaseNormalsOnly();
-    const QVector3D &nodeTraverseDirection(size_t nodeIndex) const;
-    const QVector3D &nodeBaseNormal(size_t nodeIndex) const;
-    size_t nodeTraverseOrder(size_t nodeIndex) const;
-    bool build();
-    const std::vector<QVector3D> &generatedVertices();
-    const std::vector<std::vector<size_t>> &generatedFaces();
-    const std::vector<size_t> &generatedVerticesSourceNodeIndices();
-
-private:
     struct Node
     {
         float radius;
@@ -64,6 +42,30 @@ private:
         size_t nextOrNeighborOtherThan(size_t neighborIndex) const;
     };
     
+    size_t addNode(const QVector3D &position, float radius, const std::vector<QVector2D> &cutTemplate, float cutRotation);
+    void addEdge(size_t firstNodeIndex, size_t secondNodeIndex);
+    void setNodeOriginInfo(size_t nodeIndex, int nearOriginNodeIndex, int farOriginNodeIndex);
+    void setDeformThickness(float thickness);
+    void setDeformWidth(float width);
+    void setDeformMapImage(const QImage *image);
+    void setDeformMapScale(float scale);
+    void setHollowThickness(float hollowThickness);
+    void enableBaseNormalOnX(bool enabled);
+    void enableBaseNormalOnY(bool enabled);
+    void enableBaseNormalOnZ(bool enabled);
+    void enableBaseNormalAverage(bool enabled);
+    bool buildBaseNormalsOnly();
+    const std::vector<Node> &nodes() const;
+    const std::vector<size_t> &nodeIndices() const;
+    const QVector3D &nodeTraverseDirection(size_t nodeIndex) const;
+    const QVector3D &nodeBaseNormal(size_t nodeIndex) const;
+    size_t nodeTraverseOrder(size_t nodeIndex) const;
+    bool build();
+    const std::vector<QVector3D> &generatedVertices();
+    const std::vector<std::vector<size_t>> &generatedFaces();
+    const std::vector<size_t> &generatedVerticesSourceNodeIndices();
+
+private:
     struct GeneratedVertexInfo
     {
         size_t orderInCut;
