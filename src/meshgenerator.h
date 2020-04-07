@@ -116,7 +116,8 @@ private:
     bool checkIsPartDependencyDirty(const QString &partIdString);
     void checkDirtyFlags();
     bool fillPartWithMesh(GeneratedPart &partCache, 
-        const QUuid &fillMeshFileId, 
+        const QUuid &fillMeshFileId,
+        float cutRotation,
         const StrokeMeshBuilder *strokeMeshBuilder);
     MeshCombiner::Mesh *combinePartMesh(const QString &partIdString, bool *hasError, bool *retryable, bool addIntermediateNodes=true);
     MeshCombiner::Mesh *combineComponentMesh(const QString &componentIdString, CombineMode *combineMode);

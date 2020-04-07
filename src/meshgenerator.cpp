@@ -684,7 +684,7 @@ MeshCombiner::Mesh *MeshGenerator::combinePartMesh(const QString &partIdString, 
         }
     } else {
         if (strokeMeshBuilder->buildBaseNormalsOnly())
-            buildSucceed = fillPartWithMesh(partCache, fillMeshFileId, strokeMeshBuilder);
+            buildSucceed = fillPartWithMesh(partCache, fillMeshFileId, cutRotation, strokeMeshBuilder);
     }
     
     delete strokeMeshBuilder;
@@ -813,7 +813,8 @@ MeshCombiner::Mesh *MeshGenerator::combinePartMesh(const QString &partIdString, 
 }
 
 bool MeshGenerator::fillPartWithMesh(GeneratedPart &partCache, 
-    const QUuid &fillMeshFileId, 
+    const QUuid &fillMeshFileId,
+    float cutRotation,
     const StrokeMeshBuilder *strokeMeshBuilder)
 {
     bool fillIsSucessful = false;
@@ -822,14 +823,15 @@ bool MeshGenerator::fillPartWithMesh(GeneratedPart &partCache,
         return false;
     
     QXmlStreamReader fillMeshStream(*fillMeshByteArray);  
-    Snapshot fillMeshSnapshot;
-    loadSkeletonFromXmlStream(&fillMeshSnapshot, fillMeshStream);
+    Snapshot *fillMeshSnapshot = new Snapshot;
+    loadSkeletonFromXmlStream(fillMeshSnapshot, fillMeshStream);
     
     GeneratedCacheContext *fillMeshCacheContext = new GeneratedCacheContext();
-    MeshGenerator *meshGenerator = new MeshGenerator(&fillMeshSnapshot);
+    MeshGenerator *meshGenerator = new MeshGenerator(fillMeshSnapshot);
+    meshGenerator->setWeldEnabled(false);
     meshGenerator->setGeneratedCacheContext(fillMeshCacheContext);
     meshGenerator->generate();
-    bool meshGenerationIsSucessful = meshGenerator->isSuccessful();
+    fillIsSucessful = meshGenerator->isSuccessful();
     Outcome *outcome = meshGenerator->takeOutcome();
     if (nullptr != outcome) {
         MeshStroketifier stroketifier;
@@ -841,6 +843,7 @@ bool MeshGenerator::fillPartWithMesh(GeneratedPart &partCache,
             strokeNode.radius = node.radius;
             strokeNodes.push_back(strokeNode);
         }
+        stroketifier.setCutRotation(cutRotation);
         if (stroketifier.prepare(strokeNodes, outcome->vertices)) {
             stroketifier.stroketify(&outcome->vertices);
             std::vector<MeshStroketifier::Node> agentNodes(outcome->nodes.size());

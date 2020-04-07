@@ -14,12 +14,14 @@ public:
         QVector3D position;
         float radius;
     };
-
+	void setCutRotation(float cutRotation);
     bool prepare(const std::vector<Node> &strokeNodes, 
         const std::vector<QVector3D> &vertices);
     void stroketify(std::vector<QVector3D> *vertices);
     void stroketify(std::vector<Node> *nodes);
 private:
+	float m_cutRotation = 0.0;
+
     QVector3D m_modelOrigin;
     float m_modelLength = 0.0;
     float m_scaleAmount = 1.0;

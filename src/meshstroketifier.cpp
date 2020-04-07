@@ -3,6 +3,11 @@
 #include <set>
 #include "meshstroketifier.h"
 
+void MeshStroketifier::setCutRotation(float cutRotation)
+{
+	m_cutRotation = cutRotation;
+}
+
 bool MeshStroketifier::prepare(const std::vector<Node> &strokeNodes, 
         const std::vector<QVector3D> &vertices)
 {
@@ -59,6 +64,13 @@ bool MeshStroketifier::prepare(const std::vector<Node> &strokeNodes,
         }
 
         QMatrix4x4 matrix;
+        
+        if (!qFuzzyIsNull(m_cutRotation)) {
+			QMatrix4x4 cutRotationMatrix;
+			cutRotationMatrix.rotate(m_cutRotation * 180, m_modelAlignDirection);
+			matrix *= cutRotationMatrix;
+		}
+        
         QVector3D rotateFromDirection = m_modelAlignDirection;
         for (size_t i = 1; i < strokeNodes.size(); ++i) {
             size_t h = i - 1;
