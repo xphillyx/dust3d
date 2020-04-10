@@ -1,3 +1,149 @@
+#if USE_SIMPLE_BOOLEAN
+
+#include <map>
+#include <simpleboolean/meshoperator.h>
+#include "triangulatefaces.h"
+#include "meshcombiner.h"
+#include "positionkey.h"
+
+MeshCombiner::Mesh::Mesh(const std::vector<QVector3D> &vertices, const std::vector<std::vector<size_t>> &faces, bool disableSelfIntersects)
+{
+	simpleboolean::Mesh *simpleBooleanMesh = nullptr;
+	std::vector<std::vector<size_t>> triangles;
+	std::vector<QVector3D> triangulatedVertices = vertices;
+	triangulateFacesWithoutKeepVertices(triangulatedVertices, faces, triangles);
+	if (!triangles.empty()) {
+		simpleBooleanMesh = new simpleboolean::Mesh;
+		for (const auto &it: triangulatedVertices) {
+			simpleboolean::Vertex vertex;
+			vertex.xyz[0] = it.x();
+			vertex.xyz[1] = it.y();
+			vertex.xyz[2] = it.z();
+			simpleBooleanMesh->vertices.push_back(vertex);
+		}
+		for (const auto &it: triangles) {
+			simpleboolean::Face face;
+			face.indices[0] = it[0];
+			face.indices[1] = it[1];
+			face.indices[2] = it[2];
+			simpleBooleanMesh->faces.push_back(face);
+		}
+	}
+	m_privateData = simpleBooleanMesh;
+}
+
+MeshCombiner::Mesh::~Mesh()
+{
+    simpleboolean::Mesh *simpleBooeanMesh = (simpleboolean::Mesh *)m_privateData;
+    delete simpleBooeanMesh;
+}
+
+MeshCombiner::Mesh::Mesh(const Mesh &other)
+{
+    if (other.m_privateData) {
+        m_privateData = new simpleboolean::Mesh(*(simpleboolean::Mesh *)other.m_privateData);
+    }
+}
+
+void MeshCombiner::Mesh::fetch(std::vector<QVector3D> &vertices, std::vector<std::vector<size_t>> &faces) const
+{
+    simpleboolean::Mesh *simpleBooleanMesh = (simpleboolean::Mesh *)m_privateData;
+    if (nullptr == simpleBooleanMesh)
+        return;
+    
+    for (const auto &it: simpleBooleanMesh->vertices) {
+		QVector3D vertex(it.xyz[0], it.xyz[1], it.xyz[2]);
+		vertices.push_back(vertex);
+	}
+	for (const auto &it: simpleBooleanMesh->faces) {
+		std::vector<size_t> face = {
+			(size_t)it.indices[0],
+			(size_t)it.indices[1],
+			(size_t)it.indices[2]
+		};
+		faces.push_back(face);
+	}
+}
+
+bool MeshCombiner::Mesh::isNull() const
+{
+    return nullptr == m_privateData;
+}
+
+bool MeshCombiner::Mesh::isSelfIntersected() const
+{
+    return false;
+}
+
+MeshCombiner::Mesh *MeshCombiner::combine(const Mesh &firstMesh, const Mesh &secondMesh, Method method,
+    std::vector<std::pair<Source, size_t>> *combinedVerticesComeFrom)
+{
+    simpleboolean::Mesh *resultSimpleBooleanMesh = nullptr;
+    simpleboolean::Mesh *firstSimpleBooleanMesh = (simpleboolean::Mesh *)firstMesh.m_privateData;
+    simpleboolean::Mesh *secondSimpleBooleanMesh = (simpleboolean::Mesh *)secondMesh.m_privateData;
+    std::map<PositionKey, std::pair<Source, size_t>> verticesSourceMap;
+    
+    auto addToSourceMap = [&](simpleboolean::Mesh *mesh, Source source) {
+        size_t vertexIndex = 0;
+        for (const auto &vertexIt: mesh->vertices) {
+            float x = (float)vertexIt.xyz[0];
+            float y = (float)vertexIt.xyz[1];
+            float z = (float)vertexIt.xyz[2];
+            auto insertResult = verticesSourceMap.insert({{x, y, z}, {source, vertexIndex}});
+            //if (!insertResult.second) {
+            //    qDebug() << "Position key conflict:" << QVector3D {x, y, z} << "with:" << insertResult.first->first.position();
+            //}
+            ++vertexIndex;
+        }
+    };
+    if (nullptr != combinedVerticesComeFrom) {
+        addToSourceMap(firstSimpleBooleanMesh, Source::First);
+        addToSourceMap(secondSimpleBooleanMesh, Source::Second);
+    }
+    
+    if (Method::Union == method) {
+		simpleboolean::MeshOperator meshOperator;
+		meshOperator.setMeshes(*firstSimpleBooleanMesh, *secondSimpleBooleanMesh);
+		if (meshOperator.combine()) {
+			resultSimpleBooleanMesh = new simpleboolean::Mesh;
+			meshOperator.getResult(simpleboolean::Type::Union, resultSimpleBooleanMesh);
+		}
+    } else if (Method::Diff == method) {
+        simpleboolean::MeshOperator meshOperator;
+		meshOperator.setMeshes(*firstSimpleBooleanMesh, *secondSimpleBooleanMesh);
+		if (meshOperator.combine()) {
+			resultSimpleBooleanMesh = new simpleboolean::Mesh;
+			meshOperator.getResult(simpleboolean::Type::Subtraction, resultSimpleBooleanMesh);
+		}
+    }
+
+    if (nullptr != combinedVerticesComeFrom) {
+        combinedVerticesComeFrom->clear();
+        if (nullptr != resultSimpleBooleanMesh) {
+            for (const auto &vertexIt: resultSimpleBooleanMesh->vertices) {
+				float x = (float)vertexIt.xyz[0];
+				float y = (float)vertexIt.xyz[1];
+				float z = (float)vertexIt.xyz[2];
+                auto findSource = verticesSourceMap.find(PositionKey(x, y, z));
+                if (findSource == verticesSourceMap.end()) {
+                    combinedVerticesComeFrom->push_back({Source::None, 0});
+                } else {
+                    combinedVerticesComeFrom->push_back(findSource->second);
+                }
+            }
+        }
+    }
+    
+    if (nullptr == resultSimpleBooleanMesh)
+        return nullptr;
+    
+    Mesh *mesh = new Mesh;
+    mesh->m_privateData = resultSimpleBooleanMesh;
+    return mesh;
+}
+
+#else
+
 #include <CGAL/Polygon_mesh_processing/corefinement.h>
 #include <CGAL/Polygon_mesh_processing/repair.h>
 #include <CGAL/Polygon_mesh_processing/triangulate_faces.h>
@@ -161,3 +307,5 @@ void MeshCombiner::Mesh::validate()
         m_privateData = nullptr;
     }
 }
+
+#endif

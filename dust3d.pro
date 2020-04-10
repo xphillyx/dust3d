@@ -1,6 +1,7 @@
 QT += core widgets opengl network
 CONFIG += release
 DEFINES += NDEBUG
+DEFINES += USE_SIMPLE_BOOLEAN=1
 DEFINES += QT_MESSAGELOGCONTEXT
 RESOURCES += resources.qrc
 
@@ -533,6 +534,60 @@ HEADERS += src/fileforever.h
 SOURCES += src/main.cpp
 
 HEADERS += src/version.h
+
+INCLUDEPATH += thirdparty/simpleboolean
+
+SOURCES += thirdparty/simpleboolean/simpleboolean/meshdatatype.cpp
+HEADERS += thirdparty/simpleboolean/simpleboolean/meshdatatype.h
+
+SOURCES += thirdparty/simpleboolean/simpleboolean/axisalignedboundingbox.cpp
+HEADERS += thirdparty/simpleboolean/simpleboolean/axisalignedboundingbox.h
+
+SOURCES += thirdparty/simpleboolean/simpleboolean/retriangulation.cpp
+HEADERS += thirdparty/simpleboolean/simpleboolean/retriangulation.h
+
+SOURCES += thirdparty/simpleboolean/simpleboolean/edgeloop.cpp
+HEADERS += thirdparty/simpleboolean/simpleboolean/edgeloop.h
+
+SOURCES += thirdparty/simpleboolean/simpleboolean/subsurface.cpp
+HEADERS += thirdparty/simpleboolean/simpleboolean/subsurface.h
+
+SOURCES += thirdparty/simpleboolean/simpleboolean/subblock.cpp
+HEADERS += thirdparty/simpleboolean/simpleboolean/subblock.h
+
+SOURCES += thirdparty/simpleboolean/simpleboolean/distinguish.cpp
+HEADERS += thirdparty/simpleboolean/simpleboolean/distinguish.h
+
+SOURCES += thirdparty/simpleboolean/simpleboolean/meshoperator.cpp
+HEADERS += thirdparty/simpleboolean/simpleboolean/meshoperator.h
+
+SOURCES += thirdparty/simpleboolean/simpleboolean/util.cpp
+HEADERS += thirdparty/simpleboolean/simpleboolean/util.h
+
+SOURCES += thirdparty/simpleboolean/simpleboolean/axisalignedboundingboxtree.cpp
+HEADERS += thirdparty/simpleboolean/simpleboolean/axisalignedboundingboxtree.h
+
+SOURCES += thirdparty/simpleboolean/thirdparty/GuigueDevillers03/tri_tri_intersect.c
+HEADERS += thirdparty/simpleboolean/thirdparty/GuigueDevillers03/tri_tri_intersect.h
+
+SOURCES += thirdparty/simpleboolean/thirdparty/poly2tri/poly2tri/sweep/advancing_front.cc
+HEADERS += thirdparty/simpleboolean/thirdparty/poly2tri/poly2tri/sweep/advancing_front.h
+
+SOURCES += thirdparty/simpleboolean/thirdparty/poly2tri/poly2tri/sweep/cdt.cc
+HEADERS += thirdparty/simpleboolean/thirdparty/poly2tri/poly2tri/sweep/cdt.h
+
+SOURCES += thirdparty/simpleboolean/thirdparty/poly2tri/poly2tri/sweep/sweep_context.cc
+HEADERS += thirdparty/simpleboolean/thirdparty/poly2tri/poly2tri/sweep/sweep_context.h
+
+SOURCES += thirdparty/simpleboolean/thirdparty/poly2tri/poly2tri/sweep/sweep.cc
+HEADERS += thirdparty/simpleboolean/thirdparty/poly2tri/poly2tri/sweep/sweep.h
+
+SOURCES += thirdparty/simpleboolean/thirdparty/poly2tri/poly2tri/common/shapes.cc
+HEADERS += thirdparty/simpleboolean/thirdparty/poly2tri/poly2tri/common/shapes.h
+
+HEADERS += thirdparty/simpleboolean/thirdparty/poly2tri/poly2tri/common/utils.h
+
+HEADERS += thirdparty/simpleboolean/thirdparty/poly2tri/poly2tri/poly2tri.h
 
 INCLUDEPATH += thirdparty/FastMassSpring/ClothApp
 SOURCES += thirdparty/FastMassSpring/ClothApp/MassSpringSolver.cpp
