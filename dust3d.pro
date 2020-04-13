@@ -135,6 +135,9 @@ include(thirdparty/qtsingleapplication/src/qtsingleapplication.pri)
 
 INCLUDEPATH += src
 
+SOURCES += src/fixmesh.cpp
+HEADERS += src/fixmesh.h
+
 SOURCES += src/toonline.cpp
 HEADERS += src/toonline.h
 
@@ -537,6 +540,33 @@ HEADERS += src/version.h
 INCLUDEPATH += thirdparty/FastMassSpring/ClothApp
 SOURCES += thirdparty/FastMassSpring/ClothApp/MassSpringSolver.cpp
 HEADERS += thirdparty/FastMassSpring/ClothApp/MassSpringSolver.h
+
+############################## MeshFix Begin ##################################
+contains(QT_ARCH, i386) {
+} else {
+    DEFINES += IS64BITPLATFORM
+}
+INCLUDEPATH += thirdparty/meshfix/MeshFix-V2.1/include/TMesh
+INCLUDEPATH += thirdparty/meshfix/MeshFix-V2.1/include/Kernel
+SOURCES += thirdparty/meshfix/MeshFix-V2.1/src/TMesh/edge.cpp
+SOURCES += thirdparty/meshfix/MeshFix-V2.1/src/TMesh/vertex.cpp
+SOURCES += thirdparty/meshfix/MeshFix-V2.1/src/TMesh/io.cpp
+SOURCES += thirdparty/meshfix/MeshFix-V2.1/src/TMesh/triangle.cpp
+SOURCES += thirdparty/meshfix/MeshFix-V2.1/src/TMesh/tin.cpp
+SOURCES += thirdparty/meshfix/MeshFix-V2.1/src/Algorithms/detectIntersections.cpp
+SOURCES += thirdparty/meshfix/MeshFix-V2.1/src/Algorithms/holeFilling.cpp
+SOURCES += thirdparty/meshfix/MeshFix-V2.1/src/Algorithms/marchIntersections.cpp
+SOURCES += thirdparty/meshfix/MeshFix-V2.1/src/Algorithms/checkAndRepair.cpp
+SOURCES += thirdparty/meshfix/MeshFix-V2.1/src/Kernel/heap.cpp
+SOURCES += thirdparty/meshfix/MeshFix-V2.1/src/Kernel/matrix.cpp
+SOURCES += thirdparty/meshfix/MeshFix-V2.1/src/Kernel/orientation.c
+SOURCES += thirdparty/meshfix/MeshFix-V2.1/src/Kernel/list.cpp
+SOURCES += thirdparty/meshfix/MeshFix-V2.1/src/Kernel/coordinates.cpp
+SOURCES += thirdparty/meshfix/MeshFix-V2.1/src/Kernel/tmesh.cpp
+SOURCES += thirdparty/meshfix/MeshFix-V2.1/src/Kernel/graph.cpp
+SOURCES += thirdparty/meshfix/MeshFix-V2.1/src/Kernel/point.cpp
+SOURCES += thirdparty/meshfix/MeshFix-V2.1/src/Kernel/jqsort.cpp
+############################## MeshFix End ####################################
 
 INCLUDEPATH += thirdparty/instant-meshes
 INCLUDEPATH += thirdparty/instant-meshes/instant-meshes-dust3d/src
