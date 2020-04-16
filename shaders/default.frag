@@ -492,7 +492,8 @@ void main()
         alpha = textColor.a;
     }
     if (mousePickEnabled == 1) {
-        if (distance(mousePickTargetPosition, vertRaw) <= mousePickRadius) {
+        float distanceWithMouse = distance(mousePickTargetPosition, vertRaw);
+        if (distanceWithMouse >= mousePickRadius * 0.94 && distanceWithMouse <= mousePickRadius) {
             color = color + vec3(0.99, 0.4, 0.13);
         }
     }
