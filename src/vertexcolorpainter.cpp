@@ -12,9 +12,9 @@ QColor operator+(const QColor &first, const QColor &second)
 {
     float total = first.alphaF() + second.alphaF();
     if (qFuzzyIsNull(total))
-        return QColor(0, 0, 0, 0);
-    float rate = first.alphaF() / total;
-    float remaining = 1.0 - rate;
+        return QColor(255, 255, 255, 255);
+    float remaining = second.alphaF() / total;
+    float rate = 1.0 - remaining;
     return QColor(first.red() * rate + second.red() * remaining,
         first.green() * rate + second.green() * remaining,
         first.blue() * rate + second.blue() * remaining);
@@ -44,6 +44,7 @@ Model *VertexColorPainter::takePaintedModel()
 void VertexColorPainter::setVoxelGrid(VoxelGrid<QColor> *voxelGrid)
 {
     m_voxelGrid = voxelGrid;
+    m_voxelGrid->setNullValue(QColor(255, 255, 255, 255));
 }
 
 void VertexColorPainter::setPaintMode(PaintMode paintMode)
@@ -89,6 +90,8 @@ void VertexColorPainter::paintToVoxelGrid()
     int voxelRadius = toVoxelLength(m_radius);
     int range2 = voxelRadius * voxelRadius;
     m_voxelGrid->add(voxelX, voxelY, voxelZ, m_brushColor);
+    qDebug() << "voxelRadius:" << voxelRadius
+        << "voxelX:" << voxelX << "voxelY:" << voxelY << "voxelZ:" << voxelZ;
     for (int i = -voxelRadius; i <= voxelRadius; ++i) {
         qint8 x = voxelX + i;
         int i2 = i * i;
@@ -102,6 +105,7 @@ void VertexColorPainter::paintToVoxelGrid()
                 if (dist2 <= range2) {
                     int dist = std::sqrt(dist2);
                     float alpha = 1.0 - (float)dist / voxelRadius;
+                    qDebug() << "alpha:" << alpha;
                     QColor color = m_brushColor;
                     color.setAlphaF(alpha);
                     m_voxelGrid->add(x, y, z, color);

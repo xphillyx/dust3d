@@ -53,6 +53,7 @@ void Document::applyPreferenceTextureSizeChange()
 Document::~Document()
 {
     delete m_resultMesh;
+    delete m_paintedMesh;
     delete m_resultMeshCutFaceTransforms;
     delete m_resultMeshNodesCutFaces;
     delete m_postProcessedOutcome;
@@ -1855,6 +1856,14 @@ Model *Document::takeResultMesh()
     return resultMesh;
 }
 
+Model *Document::takePaintedMesh()
+{
+    if (nullptr == m_paintedMesh)
+        return nullptr;
+    Model *paintedMesh = new Model(*m_paintedMesh);
+    return paintedMesh;
+}
+
 bool Document::isMeshGenerationSucceed()
 {
     return m_isMeshGenerationSucceed;
@@ -2181,8 +2190,12 @@ void Document::paintVertexColors()
 
     QThread *thread = new QThread;
     m_vertexColorPainter = new VertexColorPainter(*m_currentOutcome, m_mouseRayNear, m_mouseRayFar);
-    
+    m_vertexColorPainter->setBrushColor(brushColor);
     if (SkeletonDocumentEditMode::Paint == editMode) {
+        if (nullptr == m_vertexColorVoxelGrid) {
+            m_vertexColorVoxelGrid = new VoxelGrid<QColor>();
+        }
+        m_vertexColorPainter->setVoxelGrid(m_vertexColorVoxelGrid);
         m_vertexColorPainter->setPaintMode(m_paintMode);
         m_vertexColorPainter->setRadius(m_mousePickRadius);
         m_vertexColorPainter->setMaskNodeIds(m_mousePickMaskNodeIds);
@@ -2199,6 +2212,13 @@ void Document::paintVertexColors()
 void Document::vertexColorsReady()
 {
     m_mouseTargetPosition = m_vertexColorPainter->targetPosition();
+    
+    Model *model = m_vertexColorPainter->takePaintedModel();
+    if (nullptr != model) {
+        delete m_paintedMesh;
+        m_paintedMesh = model;
+        emit paintedMeshChanged();
+    }
     
     delete m_vertexColorPainter;
     m_vertexColorPainter = nullptr;
@@ -2235,7 +2255,6 @@ void Document::paintPartDeformMaps()
 
     QThread *thread = new QThread;
     m_partDeformMapPainter = new PartDeformMapPainter(*m_currentOutcome, m_mouseRayNear, m_mouseRayFar);
-    
     std::map<QUuid, QUuid> paintImages;
     for (const auto &it: partMap) {
         if (!it.second.deformMapImageId.isNull()) {

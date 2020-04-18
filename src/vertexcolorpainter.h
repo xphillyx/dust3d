@@ -41,7 +41,7 @@ private:
     QVector3D m_mouseRayNear;
     QVector3D m_mouseRayFar;
     QVector3D m_targetPosition;
-    QColor m_brushColor;
+    QColor m_brushColor = Qt::green;
     VoxelGrid<QColor> *m_voxelGrid = nullptr;
     Model *m_model = nullptr;
     bool calculateMouseModelPosition(QVector3D &mouseModelPosition);

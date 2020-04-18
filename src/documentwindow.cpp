@@ -367,6 +367,9 @@ DocumentWindow::DocumentWindow()
     m_colorWheelWidget = new color_widgets::ColorWheel(nullptr);
     m_colorWheelWidget->setContentsMargins(0, 5, 0, 5);
     m_colorWheelWidget->hide();
+    connect(m_colorWheelWidget, &color_widgets::ColorWheel::colorChanged, this, [=](QColor color) {
+        m_document->brushColor = color;
+    });
     connect(m_document, &Document::editModeChanged, this, [=]() {
         m_colorWheelWidget->setVisible(SkeletonDocumentEditMode::Paint == m_document->editMode);
     });
@@ -1179,6 +1182,11 @@ DocumentWindow::DocumentWindow()
         if (m_modelRemoveColor && resultMesh)
             resultMesh->removeColor();
         m_modelRenderWidget->updateMesh(resultMesh);
+    });
+    
+    connect(m_document, &Document::paintedMeshChanged, [=]() {
+        auto paintedMesh = m_document->takePaintedMesh();
+        m_modelRenderWidget->updateMesh(paintedMesh);
     });
     
     connect(m_document, &Document::posesChanged, m_document, &Document::generateMotions);

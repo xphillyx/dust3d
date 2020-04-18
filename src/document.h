@@ -31,6 +31,7 @@
 #include "proceduralanimation.h"
 #include "componentlayer.h"
 #include "clothforce.h"
+#include "voxelgrid.h"
 
 class MaterialPreviewsGenerator;
 class MotionsGenerator;
@@ -438,6 +439,7 @@ signals:
     void edgeReversed(QUuid edgeId);
     void partPreviewChanged(QUuid partId);
     void resultMeshChanged();
+    void paintedMeshChanged();
     void turnaroundChanged();
     void editModeChanged();
     void paintModeChanged();
@@ -524,7 +526,7 @@ signals:
     void scriptConsoleLogChanged();
     void mouseTargetChanged();
     void mousePickRadiusChanged();
-public: // need initialize
+public:
     QImage *textureGuideImage = nullptr;
     QImage *textureImage = nullptr;
     QImage *textureBorderImage = nullptr;
@@ -538,6 +540,7 @@ public: // need initialize
     RigType rigType = RigType::None;
     bool weldEnabled = true;
     PolyCount polyCount = PolyCount::Original;
+    QColor brushColor = Qt::white;
 public:
     Document();
     ~Document();
@@ -577,6 +580,7 @@ public:
     const Pose *findPose(QUuid poseId) const;
     const Motion *findMotion(QUuid motionId) const;
     Model *takeResultMesh();
+    Model *takePaintedMesh();
     bool isMeshGenerationSucceed();
     Model *takeResultTextureMesh();
     Model *takeResultRigWeightMesh();
@@ -778,6 +782,7 @@ private: // need initialize
     bool m_isResultMeshObsolete = false;
     MeshGenerator *m_meshGenerator = nullptr;
     Model *m_resultMesh = nullptr;
+    Model *m_paintedMesh = nullptr;
     std::map<QUuid, StrokeMeshBuilder::CutFaceTransform> *m_resultMeshCutFaceTransforms = nullptr;
     std::map<QUuid, std::map<QString, QVector2D>> *m_resultMeshNodesCutFaces = nullptr;
     bool m_isMeshGenerationSucceed = true;
@@ -815,6 +820,7 @@ private: // need initialize
     PaintMode m_paintMode = PaintMode::None;
     float m_mousePickRadius = 0.2;
     bool m_saveNextPaintSnapshot = false;
+    VoxelGrid<QColor> *m_vertexColorVoxelGrid = nullptr;
 private:
     static unsigned long m_maxSnapshot;
     std::deque<HistoryItem> m_undoItems;
