@@ -133,14 +133,7 @@ size_t DocumentWindow::total()
     return g_documentWindows.size();
 }
 
-DocumentWindow::DocumentWindow() :
-    m_document(nullptr),
-    m_firstShow(true),
-    m_documentSaved(true),
-    m_exportPreviewWidget(nullptr),
-    m_preferencesWidget(nullptr),
-    m_isLastMeshGenerationSucceed(true),
-    m_currentUpdatedMeshId(0)
+DocumentWindow::DocumentWindow()
 {
     QObject::connect((QtSingleApplication *)QGuiApplication::instance(), 
             &QtSingleApplication::messageReceived, this, [this](const QString &message) {
@@ -369,16 +362,28 @@ DocumentWindow::DocumentWindow() :
     
     setTabPosition(Qt::RightDockWidgetArea, QTabWidget::East);
 
-    QDockWidget *partTreeDocker = new QDockWidget(tr("Parts"), this);
-    partTreeDocker->setAllowedAreas(Qt::RightDockWidgetArea);
-    PartTreeWidget *partTreeWidget = new PartTreeWidget(m_document, partTreeDocker);
-    partTreeDocker->setWidget(partTreeWidget);
-    addDockWidget(Qt::RightDockWidgetArea, partTreeDocker);
-    connect(partTreeDocker, &QDockWidget::topLevelChanged, [=](bool topLevel) {
+    QDockWidget *partsDocker = new QDockWidget(tr("Parts"), this);
+    partsDocker->setAllowedAreas(Qt::RightDockWidgetArea);
+    m_colorWheelWidget = new color_widgets::ColorWheel(nullptr);
+    m_colorWheelWidget->setContentsMargins(0, 5, 0, 5);
+    m_colorWheelWidget->hide();
+    connect(m_document, &Document::editModeChanged, this, [=]() {
+        m_colorWheelWidget->setVisible(SkeletonDocumentEditMode::Paint == m_document->editMode);
+    });
+    PartTreeWidget *partTreeWidget = new PartTreeWidget(m_document, nullptr);
+    connect(partsDocker, &QDockWidget::topLevelChanged, [=](bool topLevel) {
         Q_UNUSED(topLevel);
         for (const auto &part: m_document->partMap)
             partTreeWidget->partPreviewChanged(part.first);
     });
+    QWidget *partsWidget = new QWidget(partsDocker);
+    QVBoxLayout *partsLayout = new QVBoxLayout;
+    partsLayout->setContentsMargins(0, 0, 0, 0);
+    partsLayout->addWidget(m_colorWheelWidget);
+    partsLayout->addWidget(partTreeWidget);
+    partsWidget->setLayout(partsLayout);
+    partsDocker->setWidget(partsWidget);
+    addDockWidget(Qt::RightDockWidgetArea, partsDocker);
     
     QDockWidget *materialDocker = new QDockWidget(tr("Materials"), this);
     materialDocker->setAllowedAreas(Qt::RightDockWidgetArea);
@@ -430,13 +435,13 @@ DocumentWindow::DocumentWindow() :
     scriptDocker->setWidget(scriptWidget);
     addDockWidget(Qt::RightDockWidgetArea, scriptDocker);
     
-    tabifyDockWidget(partTreeDocker, materialDocker);
+    tabifyDockWidget(partsDocker, materialDocker);
     tabifyDockWidget(materialDocker, rigDocker);
     tabifyDockWidget(rigDocker, poseDocker);
     tabifyDockWidget(poseDocker, motionDocker);
     tabifyDockWidget(motionDocker, scriptDocker);
     
-    partTreeDocker->raise();
+    partsDocker->raise();
 
     QHBoxLayout *mainLayout = new QHBoxLayout;
     mainLayout->setSpacing(0);
@@ -806,8 +811,8 @@ DocumentWindow::DocumentWindow() :
     
     m_showPartsListAction = new QAction(tr("Parts"), this);
     connect(m_showPartsListAction, &QAction::triggered, [=]() {
-        partTreeDocker->show();
-        partTreeDocker->raise();
+        partsDocker->show();
+        partsDocker->raise();
     });
     m_windowMenu->addAction(m_showPartsListAction);
     
@@ -965,8 +970,8 @@ DocumentWindow::DocumentWindow() :
 
     m_partListDockerVisibleSwitchConnection = connect(m_document, &Document::skeletonChanged, [=]() {
         if (m_graphicsWidget->hasItems()) {
-            if (partTreeDocker->isHidden())
-                partTreeDocker->show();
+            if (partsDocker->isHidden())
+                partsDocker->show();
             disconnect(m_partListDockerVisibleSwitchConnection);
         }
     });

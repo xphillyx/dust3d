@@ -17,67 +17,17 @@
 #include "motionsgenerator.h"
 #include "skeletonside.h"
 #include "scriptrunner.h"
-#include "mousepicker.h"
+#include "partdeformmappainter.h"
 #include "imageforever.h"
 #include "contourtopartconverter.h"
+#include "vertexcolorpainter.h"
 
 unsigned long Document::m_maxSnapshot = 1000;
 const float Component::defaultClothStiffness = 0.5f;
 const size_t Component::defaultClothIteration = 350;
 
 Document::Document() :
-    SkeletonDocument(),
-    // public
-    textureGuideImage(nullptr),
-    textureImage(nullptr),
-    textureBorderImage(nullptr),
-    textureColorImage(nullptr),
-    textureNormalImage(nullptr),
-    textureMetalnessRoughnessAmbientOcclusionImage(nullptr),
-    textureMetalnessImage(nullptr),
-    textureRoughnessImage(nullptr),
-    textureAmbientOcclusionImage(nullptr),
-    textureHasTransparencySettings(false),
-    rigType(RigType::None),
-    weldEnabled(true),
-    polyCount(PolyCount::Original),
-    // private
-    m_isResultMeshObsolete(false),
-    m_meshGenerator(nullptr),
-    m_resultMesh(nullptr),
-    m_resultMeshCutFaceTransforms(nullptr),
-    m_resultMeshNodesCutFaces(nullptr),
-    m_isMeshGenerationSucceed(true),
-    m_batchChangeRefCount(0),
-    m_currentOutcome(nullptr),
-    m_isTextureObsolete(false),
-    m_textureGenerator(nullptr),
-    m_isPostProcessResultObsolete(false),
-    m_postProcessor(nullptr),
-    m_postProcessedOutcome(new Outcome),
-    m_resultTextureMesh(nullptr),
-    m_textureImageUpdateVersion(0),
-    m_allPositionRelatedLocksEnabled(true),
-    m_smoothNormal(!Preferences::instance().flatShading()),
-    m_rigGenerator(nullptr),
-    m_resultRigWeightMesh(nullptr),
-    m_resultRigBones(nullptr),
-    m_resultRigWeights(nullptr),
-    m_isRigObsolete(false),
-    m_riggedOutcome(new Outcome),
-    m_posePreviewsGenerator(nullptr),
-    m_currentRigSucceed(false),
-    m_materialPreviewsGenerator(nullptr),
-    m_motionsGenerator(nullptr),
-    m_meshGenerationId(0),
-    m_nextMeshGenerationId(1),
-    m_scriptRunner(nullptr),
-    m_isScriptResultObsolete(false),
-    m_mousePicker(nullptr),
-    m_isMouseTargetResultObsolete(false),
-    m_paintMode(PaintMode::None),
-    m_mousePickRadius(0.2),
-    m_saveNextPaintSnapshot(false)
+    SkeletonDocument()
 {
     connect(&Preferences::instance(), &Preferences::partColorChanged, this, &Document::applyPreferencePartColorChange);
     connect(&Preferences::instance(), &Preferences::flatShadingChanged, this, &Document::applyPreferenceFlatShadingChange);
@@ -2210,7 +2160,12 @@ void Document::pickMouseTarget(const QVector3D &nearPosition, const QVector3D &f
 
 void Document::doPickMouseTarget()
 {
-    if (nullptr != m_mousePicker) {
+    paintVertexColors();
+}
+
+void Document::paintVertexColors()
+{
+    if (nullptr != m_vertexColorPainter) {
         m_isMouseTargetResultObsolete = true;
         return;
     }
@@ -2225,7 +2180,61 @@ void Document::doPickMouseTarget()
     //qDebug() << "Mouse picking..";
 
     QThread *thread = new QThread;
-    m_mousePicker = new MousePicker(*m_currentOutcome, m_mouseRayNear, m_mouseRayFar);
+    m_vertexColorPainter = new VertexColorPainter(*m_currentOutcome, m_mouseRayNear, m_mouseRayFar);
+    
+    if (SkeletonDocumentEditMode::Paint == editMode) {
+        m_vertexColorPainter->setPaintMode(m_paintMode);
+        m_vertexColorPainter->setRadius(m_mousePickRadius);
+        m_vertexColorPainter->setMaskNodeIds(m_mousePickMaskNodeIds);
+    }
+    
+    m_vertexColorPainter->moveToThread(thread);
+    connect(thread, &QThread::started, m_vertexColorPainter, &VertexColorPainter::process);
+    connect(m_vertexColorPainter, &VertexColorPainter::finished, this, &Document::vertexColorsReady);
+    connect(m_vertexColorPainter, &VertexColorPainter::finished, thread, &QThread::quit);
+    connect(thread, &QThread::finished, thread, &QThread::deleteLater);
+    thread->start();
+}
+
+void Document::vertexColorsReady()
+{
+    m_mouseTargetPosition = m_vertexColorPainter->targetPosition();
+    
+    delete m_vertexColorPainter;
+    m_vertexColorPainter = nullptr;
+    
+    if (!m_isMouseTargetResultObsolete && m_saveNextPaintSnapshot) {
+        m_saveNextPaintSnapshot = false;
+        stopPaint();
+    }
+    
+    emit mouseTargetChanged();
+
+    //qDebug() << "Mouse pick done";
+
+    if (m_isMouseTargetResultObsolete) {
+        pickMouseTarget(m_mouseRayNear, m_mouseRayFar);
+    }
+}
+
+void Document::paintPartDeformMaps()
+{
+    if (nullptr != m_partDeformMapPainter) {
+        m_isMouseTargetResultObsolete = true;
+        return;
+    }
+    
+    m_isMouseTargetResultObsolete = false;
+    
+    if (!m_currentOutcome) {
+        qDebug() << "Model is null";
+        return;
+    }
+    
+    //qDebug() << "Mouse picking..";
+
+    QThread *thread = new QThread;
+    m_partDeformMapPainter = new PartDeformMapPainter(*m_currentOutcome, m_mouseRayNear, m_mouseRayFar);
     
     std::map<QUuid, QUuid> paintImages;
     for (const auto &it: partMap) {
@@ -2234,25 +2243,25 @@ void Document::doPickMouseTarget()
         }
     }
     if (SkeletonDocumentEditMode::Paint == editMode) {
-        m_mousePicker->setPaintImages(paintImages);
-        m_mousePicker->setPaintMode(m_paintMode);
-        m_mousePicker->setRadius(m_mousePickRadius);
-        m_mousePicker->setMaskNodeIds(m_mousePickMaskNodeIds);
+        m_partDeformMapPainter->setPaintImages(paintImages);
+        m_partDeformMapPainter->setPaintMode(m_paintMode);
+        m_partDeformMapPainter->setRadius(m_mousePickRadius);
+        m_partDeformMapPainter->setMaskNodeIds(m_mousePickMaskNodeIds);
     }
     
-    m_mousePicker->moveToThread(thread);
-    connect(thread, &QThread::started, m_mousePicker, &MousePicker::process);
-    connect(m_mousePicker, &MousePicker::finished, this, &Document::mouseTargetReady);
-    connect(m_mousePicker, &MousePicker::finished, thread, &QThread::quit);
+    m_partDeformMapPainter->moveToThread(thread);
+    connect(thread, &QThread::started, m_partDeformMapPainter, &PartDeformMapPainter::process);
+    connect(m_partDeformMapPainter, &PartDeformMapPainter::finished, this, &Document::partDeformMapsReady);
+    connect(m_partDeformMapPainter, &PartDeformMapPainter::finished, thread, &QThread::quit);
     connect(thread, &QThread::finished, thread, &QThread::deleteLater);
     thread->start();
 }
 
-void Document::mouseTargetReady()
+void Document::partDeformMapsReady()
 {
-    m_mouseTargetPosition = m_mousePicker->targetPosition();
-    const auto &changedPartIds = m_mousePicker->changedPartIds();
-    for (const auto &it: m_mousePicker->resultPaintImages()) {
+    m_mouseTargetPosition = m_partDeformMapPainter->targetPosition();
+    const auto &changedPartIds = m_partDeformMapPainter->changedPartIds();
+    for (const auto &it: m_partDeformMapPainter->resultPaintImages()) {
         const auto &partId = it.first;
         if (changedPartIds.find(partId) == changedPartIds.end())
             continue;
@@ -2261,8 +2270,8 @@ void Document::mouseTargetReady()
         setPartDeformMapImageId(partId, imageId);
     }
     
-    delete m_mousePicker;
-    m_mousePicker = nullptr;
+    delete m_partDeformMapPainter;
+    m_partDeformMapPainter = nullptr;
     
     if (!m_isMouseTargetResultObsolete && m_saveNextPaintSnapshot) {
         m_saveNextPaintSnapshot = false;
@@ -4086,19 +4095,23 @@ void Document::startPaint(void)
 
 void Document::stopPaint(void)
 {
-    if (m_mousePicker || m_isMouseTargetResultObsolete) {
+    if (m_partDeformMapPainter || 
+            m_vertexColorPainter ||
+            m_isMouseTargetResultObsolete) {
         m_saveNextPaintSnapshot = true;
         return;
     }
     saveSnapshot();
-    for (const auto &it: partMap) {
-        m_intermediatePaintImageIds.erase(it.second.deformMapImageId);
+    if (!m_intermediatePaintImageIds.empty()) {
+        for (const auto &it: partMap) {
+            m_intermediatePaintImageIds.erase(it.second.deformMapImageId);
+        }
+        for (const auto &it: m_intermediatePaintImageIds) {
+            //qDebug() << "Remove intermediate image:" << it;
+            ImageForever::remove(it);
+        }
+        m_intermediatePaintImageIds.clear();
     }
-    for (const auto &it: m_intermediatePaintImageIds) {
-        //qDebug() << "Remove intermediate image:" << it;
-        ImageForever::remove(it);
-    }
-    m_intermediatePaintImageIds.clear();
 }
 
 void Document::setMousePickMaskNodeIds(const std::set<QUuid> &nodeIds)

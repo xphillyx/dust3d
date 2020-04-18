@@ -20,6 +20,7 @@
 #include "graphicscontainerwidget.h"
 #include "normalanddepthmapsgenerator.h"
 #include "autosaver.h"
+#include "QtColorWidgets/ColorWheel"
 
 class SkeletonGraphicsWidget;
 
@@ -100,15 +101,16 @@ private:
     void updateTitle();
     void createPartSnapshotForFillMesh(const QUuid &fillMeshFileId, Snapshot *snapshot);
 private:
-    Document *m_document;
-    bool m_firstShow;
-    bool m_documentSaved;
-    ExportPreviewWidget *m_exportPreviewWidget;
-    PreferencesWidget *m_preferencesWidget;
+    Document *m_document = nullptr;
+    bool m_firstShow = true;
+    bool m_documentSaved = true;
+    ExportPreviewWidget *m_exportPreviewWidget = nullptr;
+    PreferencesWidget *m_preferencesWidget = nullptr;
     std::vector<QWidget *> m_dialogs;
-    bool m_isLastMeshGenerationSucceed;
-    quint64 m_currentUpdatedMeshId;
+    bool m_isLastMeshGenerationSucceed = true;
+    quint64 m_currentUpdatedMeshId = 0;
     QStringList m_waitingForExportToFilenames;
+    color_widgets::ColorWheel *m_colorWheelWidget = nullptr;
 private:
     QString m_currentFilename;
     

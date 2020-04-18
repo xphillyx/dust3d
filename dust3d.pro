@@ -132,8 +132,15 @@ win32 {
 
 include(thirdparty/QtAwesome/QtAwesome/QtAwesome.pri)
 include(thirdparty/qtsingleapplication/src/qtsingleapplication.pri)
+include(thirdparty/Qt-Color-Widgets/color_widgets.pri)
 
 INCLUDEPATH += src
+
+SOURCES += src/vertexcolorpainter.cpp
+HEADERS += src/vertexcolorpainter.h
+
+SOURCES += src/voxelgrid.cpp
+HEADERS += src/voxelgrid.h
 
 SOURCES += src/fixholes.cpp
 HEADERS += src/fixholes.h
@@ -443,8 +450,8 @@ HEADERS += src/intnumberwidget.h
 SOURCES += src/imagepreviewwidget.cpp
 HEADERS += src/imagepreviewwidget.h
 
-SOURCES += src/mousepicker.cpp
-HEADERS += src/mousepicker.h
+SOURCES += src/partdeformmappainter.cpp
+HEADERS += src/partdeformmappainter.h
 
 SOURCES += src/paintmode.cpp
 HEADERS += src/paintmode.h

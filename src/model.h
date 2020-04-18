@@ -9,12 +9,6 @@
 #include "outcome.h"
 #include "shadervertex.h"
 
-struct TriangulatedFace
-{
-    int indices[3];
-    QColor color;
-};
-
 class Model
 {
 public:
@@ -34,8 +28,6 @@ public:
     int toolVertexCount();
     const std::vector<QVector3D> &vertices();
     const std::vector<std::vector<size_t>> &faces();
-    const std::vector<QVector3D> &triangulatedVertices();
-    const std::vector<TriangulatedFace> &triangulatedFaces();
     void setTextureImage(QImage *textureImage);
     const QImage *textureImage();
     void setNormalMapImage(QImage *normalMapImage);
@@ -67,8 +59,6 @@ private:
     int m_toolVertexCount = 0;
     std::vector<QVector3D> m_vertices;
     std::vector<std::vector<size_t>> m_faces;
-    std::vector<QVector3D> m_triangulatedVertices;
-    std::vector<TriangulatedFace> m_triangulatedFaces;
     QImage *m_textureImage = nullptr;
     QImage *m_normalMapImage = nullptr;
     QImage *m_metalnessRoughnessAmbientOcclusionImage = nullptr;

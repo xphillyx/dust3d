@@ -10,12 +10,7 @@
 float Model::m_defaultMetalness = 0.0;
 float Model::m_defaultRoughness = 1.0;
 
-Model::Model(const Model &mesh) :
-    m_triangleVertices(nullptr),
-    m_triangleVertexCount(0),
-    m_edgeVertices(nullptr),
-    m_edgeVertexCount(0),
-    m_textureImage(nullptr)
+Model::Model(const Model &mesh)
 {
     if (nullptr != mesh.m_triangleVertices &&
             mesh.m_triangleVertexCount > 0) {
@@ -52,8 +47,6 @@ Model::Model(const Model &mesh) :
     }
     this->m_vertices = mesh.m_vertices;
     this->m_faces = mesh.m_faces;
-    this->m_triangulatedVertices = mesh.m_triangulatedVertices;
-    this->m_triangulatedFaces = mesh.m_triangulatedFaces;
     this->m_meshId = mesh.meshId();
 }
 
@@ -84,8 +77,7 @@ Model::Model(ShaderVertex *triangleVertices, int vertexNum, ShaderVertex *edgeVe
     m_triangleVertices(triangleVertices),
     m_triangleVertexCount(vertexNum),
     m_edgeVertices(edgeVertices),
-    m_edgeVertexCount(edgeVertexCount),
-    m_textureImage(nullptr)
+    m_edgeVertexCount(edgeVertexCount)
 {
 }
 
@@ -93,6 +85,9 @@ Model::Model(const std::vector<QVector3D> &vertices, const std::vector<std::vect
     const std::vector<std::vector<QVector3D>> &triangleVertexNormals,
     const QColor &color)
 {
+    m_vertices = vertices;
+    m_faces = triangles;
+    
     m_triangleVertexCount = triangles.size() * 3;
     m_triangleVertices = new ShaderVertex[m_triangleVertexCount];
     int destIndex = 0;
@@ -124,12 +119,7 @@ Model::Model(const std::vector<QVector3D> &vertices, const std::vector<std::vect
     }
 }
 
-Model::Model(Outcome &outcome) :
-    m_triangleVertices(nullptr),
-    m_triangleVertexCount(0),
-    m_edgeVertices(nullptr),
-    m_edgeVertexCount(0),
-    m_textureImage(nullptr)
+Model::Model(Outcome &outcome)
 {
     m_meshId = outcome.meshId;
     m_vertices = outcome.vertices;
@@ -210,12 +200,7 @@ Model::Model(Outcome &outcome) :
     }
 }
 
-Model::Model() :
-    m_triangleVertices(nullptr),
-    m_triangleVertexCount(0),
-    m_edgeVertices(nullptr),
-    m_edgeVertexCount(0),
-    m_textureImage(nullptr)
+Model::Model()
 {
 }
 
@@ -240,16 +225,6 @@ const std::vector<QVector3D> &Model::vertices()
 const std::vector<std::vector<size_t>> &Model::faces()
 {
     return m_faces;
-}
-
-const std::vector<QVector3D> &Model::triangulatedVertices()
-{
-    return m_triangulatedVertices;
-}
-
-const std::vector<TriangulatedFace> &Model::triangulatedFaces()
-{
-    return m_triangulatedFaces;
 }
 
 ShaderVertex *Model::triangleVertices()
