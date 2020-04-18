@@ -293,7 +293,7 @@ Consejos:
     </message>
     <message>
         <source>Show Model</source>
-        <translation>Mostrar Modelo</translation>
+        <translation type="vanished">Mostrar Modelo</translation>
     </message>
     <message>
         <source>Toggle Wireframe</source>

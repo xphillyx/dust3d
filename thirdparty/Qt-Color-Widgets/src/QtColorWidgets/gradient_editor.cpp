@@ -30,6 +30,7 @@
 #include <QMimeData>
 #include <QDropEvent>
 #include <QDragEnterEvent>
+#include <cmath>
 
 #include "QtColorWidgets/gradient_helper.hpp"
 #include "QtColorWidgets/color_dialog.hpp"

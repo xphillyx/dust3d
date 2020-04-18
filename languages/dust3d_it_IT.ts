@@ -232,7 +232,7 @@ Suggerimenti:
     </message>
     <message>
         <source>Show Model</source>
-        <translation>Mostra modello</translation>
+        <translation type="vanished">Mostra modello</translation>
     </message>
     <message>
         <source>Toggle Wireframe</source>

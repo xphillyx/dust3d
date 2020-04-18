@@ -229,7 +229,7 @@ Tips:
     </message>
     <message>
         <source>Show Model</source>
-        <translation>显示模型</translation>
+        <translation type="vanished">显示模型</translation>
     </message>
     <message>
         <source>Toggle Wireframe</source>
