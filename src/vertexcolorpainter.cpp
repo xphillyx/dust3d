@@ -8,6 +8,8 @@
 #include "util.h"
 #include "imageforever.h"
 
+const int VertexColorPainter::m_gridSize = 127;
+
 QColor operator+(const QColor &first, const QColor &second)
 {
     float total = first.alphaF() + second.alphaF();
@@ -176,10 +178,10 @@ void VertexColorPainter::createPaintedModel()
 int VertexColorPainter::toVoxelLength(float length)
 {
     int voxelLength = length * 100;
-    if (voxelLength > 127)
-        voxelLength = 127;
-    else if (voxelLength < -127)
-        voxelLength = -127;
+    if (voxelLength > m_gridSize)
+        voxelLength = m_gridSize;
+    else if (voxelLength < -m_gridSize)
+        voxelLength = -m_gridSize;
     return voxelLength;
 }
 

@@ -48,6 +48,8 @@ private:
     void paintToVoxelGrid();
     int toVoxelLength(float length);
     void createPaintedModel();
+public:
+    static const int m_gridSize;
 };
 
 #endif

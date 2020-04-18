@@ -1,7 +1,7 @@
 #ifndef DUST3D_VOXEL_GRID_H
 #define DUST3D_VOXEL_GRID_H
 #include <QtGlobal>
-#include <map>
+#include <unordered_map>
 
 template<typename T>
 class VoxelGrid
@@ -12,29 +12,23 @@ public:
         qint8 x;
         qint8 y;
         qint8 z;
-        
-        bool operator<(const Voxel &right) const
+    };
+    
+    struct VoxelHash
+    {
+        size_t operator()(const Voxel &voxel) const
         {
-            if (x < right.x)
-                return true;
-            if (x > right.x)
-                return false;
-            if (y < right.y)
-                return true;
-            if (y > right.y)
-                return false;
-            if (z < right.z)
-                return true;
-            if (z > right.z)
-                return false;
-            return false;
+            return (voxel.z << 16) | (voxel.y << 8) | voxel.z;
         }
-        
-        bool operator==(const Voxel &right) const
+    };
+
+    struct VoxelEqual 
+    {
+        bool operator()(const Voxel &left, const Voxel &right) const
         {
-            return x == right.x &&
-                y == right.y &&
-                z == right.z;
+            return (left.x == right.x) && 
+                (left.y == right.y) && 
+                (left.z == right.z);
         }
     };
     
@@ -84,7 +78,7 @@ public:
     }
     
 private:
-    std::map<Voxel, T> m_grid;
+    std::unordered_map<Voxel, T, VoxelHash, VoxelEqual> m_grid;
     T m_nullValue;
 };
 
