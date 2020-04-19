@@ -136,6 +136,9 @@ include(thirdparty/Qt-Color-Widgets/color_widgets.pri)
 
 INCLUDEPATH += src
 
+SOURCES += src/vertexdisplacementpainter.cpp
+HEADERS += src/vertexdisplacementpainter.h
+
 SOURCES += src/vertexcolorpainter.cpp
 HEADERS += src/vertexcolorpainter.h
 

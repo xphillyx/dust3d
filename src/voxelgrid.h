@@ -79,7 +79,7 @@ public:
     
 private:
     std::unordered_map<Voxel, T, VoxelHash, VoxelEqual> m_grid;
-    T m_nullValue;
+    T m_nullValue = T();
 };
 
 #endif

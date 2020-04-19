@@ -21,6 +21,7 @@
 #include "imageforever.h"
 #include "contourtopartconverter.h"
 #include "vertexcolorpainter.h"
+#include "vertexdisplacementpainter.h"
 
 unsigned long Document::m_maxSnapshot = 1000;
 const float Component::defaultClothStiffness = 0.5f;
@@ -2169,7 +2170,7 @@ void Document::pickMouseTarget(const QVector3D &nearPosition, const QVector3D &f
 
 void Document::doPickMouseTarget()
 {
-    paintVertexColors();
+    paintVertexDisplacements();
 }
 
 void Document::paintVertexColors()
@@ -2222,6 +2223,71 @@ void Document::vertexColorsReady()
     
     delete m_vertexColorPainter;
     m_vertexColorPainter = nullptr;
+    
+    if (!m_isMouseTargetResultObsolete && m_saveNextPaintSnapshot) {
+        m_saveNextPaintSnapshot = false;
+        stopPaint();
+    }
+    
+    emit mouseTargetChanged();
+
+    //qDebug() << "Mouse pick done";
+
+    if (m_isMouseTargetResultObsolete) {
+        pickMouseTarget(m_mouseRayNear, m_mouseRayFar);
+    }
+}
+
+void Document::paintVertexDisplacements()
+{
+    if (nullptr != m_vertexDisplacementPainter) {
+        m_isMouseTargetResultObsolete = true;
+        return;
+    }
+    
+    m_isMouseTargetResultObsolete = false;
+    
+    if (!m_currentOutcome) {
+        qDebug() << "Model is null";
+        return;
+    }
+    
+    //qDebug() << "Mouse picking..";
+
+    QThread *thread = new QThread;
+    m_vertexDisplacementPainter = new VertexDisplacementPainter(new Outcome(*m_currentOutcome), m_mouseRayNear, m_mouseRayFar);
+    if (SkeletonDocumentEditMode::Paint == editMode) {
+        if (nullptr == m_vertexDisplacementVoxelGrid) {
+            m_vertexDisplacementVoxelGrid = new VoxelGrid<int>();
+        }
+        m_vertexDisplacementPainter->setVoxelGrid(m_vertexDisplacementVoxelGrid);
+        m_vertexDisplacementPainter->setPaintMode(m_paintMode);
+        m_vertexDisplacementPainter->setRadius(m_mousePickRadius);
+        m_vertexDisplacementPainter->setMaskNodeIds(m_mousePickMaskNodeIds);
+    }
+    
+    m_vertexDisplacementPainter->moveToThread(thread);
+    connect(thread, &QThread::started, m_vertexDisplacementPainter, &VertexDisplacementPainter::process);
+    connect(m_vertexDisplacementPainter, &VertexDisplacementPainter::finished, this, &Document::vertexDisplacementsReady);
+    connect(m_vertexDisplacementPainter, &VertexDisplacementPainter::finished, thread, &QThread::quit);
+    connect(thread, &QThread::finished, thread, &QThread::deleteLater);
+    thread->start();
+}
+
+void Document::vertexDisplacementsReady()
+{
+    m_mouseTargetPosition = m_vertexDisplacementPainter->targetPosition();
+    Model *model = m_vertexDisplacementPainter->takePaintedModel();
+    if (nullptr != model) {
+        delete m_paintedMesh;
+        m_paintedMesh = model;
+        emit paintedMeshChanged();
+    }
+    
+    
+    
+    delete m_vertexDisplacementPainter;
+    m_vertexDisplacementPainter = nullptr;
     
     if (!m_isMouseTargetResultObsolete && m_saveNextPaintSnapshot) {
         m_saveNextPaintSnapshot = false;
@@ -4116,6 +4182,7 @@ void Document::stopPaint(void)
 {
     if (m_partDeformMapPainter || 
             m_vertexColorPainter ||
+            m_vertexDisplacementPainter ||
             m_isMouseTargetResultObsolete) {
         m_saveNextPaintSnapshot = true;
         return;
