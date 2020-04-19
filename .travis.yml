@@ -53,14 +53,7 @@ install:
   - cd build
   - cmake ../
   - make -j 4
-  - cd ${TRAVIS_BUILD_DIR}
-
-  # Build OpenSubdiv
-  - cd thirdparty/opensubdiv/OpenSubdiv-3_4_3
-  - mkdir build
-  - cd build
-  - cmake -DNO_PTEX=1 -DNO_DOC=1 -DNO_OMP=1 -DNO_TBB=0 -DNO_CUDA=1 -DNO_OPENCL=1 -DNO_CLEW=1 -DNO_OPENGL=1 -DNO_METAL=1 -DNO_LIB=0 -DNO_EXAMPLES=1 -DNO_TUTORIALS=1 -DNO_REGRESSION=1 -DBUILD_SHARED_LIBS=0 -D"TBB_INCLUDE_DIR=${TRAVIS_BUILD_DIR}/thirdparty/instant-meshes/instant-meshes-dust3d/ext/tbb/include" -D"TBB_LIBRARIES=${TRAVIS_BUILD_DIR}/thirdparty/instant-meshes/build/ext_build/tbb/libtbb_static.a" ../
-  - cd ${TRAVIS_BUILD_DIR}
+  - cd ../../../
 
   # (Mac) Install Qt5
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then HOMEBREW_VERBOSE_USING_DOTS=1 brew reinstall --verbose qt; fi
