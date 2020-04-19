@@ -136,6 +136,9 @@ include(thirdparty/Qt-Color-Widgets/color_widgets.pri)
 
 INCLUDEPATH += src
 
+SOURCES += src/subdivision.cpp
+HEADERS += src/subdivision.h
+
 SOURCES += src/vertexdisplacementpainter.cpp
 HEADERS += src/vertexdisplacementpainter.h
 
@@ -571,6 +574,11 @@ win32 {
 	DEFINES += _USE_MATH_DEFINES
 	LIBS += -Lthirdparty/instant-meshes/build/RelWithDebInfo -linstant-meshes
 	LIBS += -Lthirdparty/instant-meshes/build/ext_build/tbb/RelWithDebInfo -ltbb
+}
+
+INCLUDEPATH += thirdparty/opensubdiv/OpenSubdiv-3_4_3
+win32 {
+    LIBS += -Lthirdparty/opensubdiv/OpenSubdiv-3_4_3/build/lib/Release -losdCPU
 }
 
 INCLUDEPATH += thirdparty/bullet3/src

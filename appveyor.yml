@@ -46,6 +46,15 @@ install:
     cmake -G "Visual Studio 15 2017" ../
   - msbuild /p:Configuration=RelWithDebInfo ALL_BUILD.vcxproj
   - cd %APPVEYOR_BUILD_FOLDER%
+  
+  - cd thirdparty/opensubdiv/OpenSubdiv-3_4_3
+  - mkdir build
+  - cd build
+  - if "%PLATFORM%" == "x64"
+    cmake -G "Visual Studio 15 2017" -A %PLATFORM% -D NO_PTEX=1 -D NO_DOC=1 -D NO_OMP=1 -D NO_TBB=0 -D NO_CUDA=1 -D NO_OPENCL=1 -D NO_CLEW=1 -D NO_OPENGL=1 -D NO_METAL=1 -D NO_LIB=0 -D NO_EXAMPLES=1 -D NO_TUTORIALS=1 -D NO_REGRESSION=1 -D "TBB_INCLUDE_DIR=%APPVEYOR_BUILD_FOLDER%/dust3d/thirdparty/instant-meshes/instant-meshes-dust3d/ext/tbb/include" -D "TBB_LIBRARIES=%APPVEYOR_BUILD_FOLDER%/thirdparty/instant-meshes/build/ext_build/tbb/RelWithDebInfo/tbb.lib" ../
+  - if "%PLATFORM%" == "x86"
+    cmake -G "Visual Studio 15 2017" -D NO_PTEX=1 -D NO_DOC=1 -D NO_OMP=1 -D NO_TBB=0 -D NO_CUDA=1 -D NO_OPENCL=1 -D NO_CLEW=1 -D NO_OPENGL=1 -D NO_METAL=1 -D NO_LIB=0 -D NO_EXAMPLES=1 -D NO_TUTORIALS=1 -D NO_REGRESSION=1 -D "TBB_INCLUDE_DIR=%APPVEYOR_BUILD_FOLDER%/thirdparty/instant-meshes/instant-meshes-dust3d/ext/tbb/include" -D "TBB_LIBRARIES=%APPVEYOR_BUILD_FOLDER%/thirdparty/instant-meshes/build/ext_build/tbb/RelWithDebInfo/tbb.lib" ../
+  - cmake --build . --config Release
 
 build: false
 

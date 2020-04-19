@@ -6,7 +6,7 @@
 #include <QGuiApplication>
 #include "vertexcolorpainter.h"
 #include "util.h"
-#include "imageforever.h"
+#include "subdivision.h"
 
 const int VertexColorPainter::m_gridSize = 127;
 
