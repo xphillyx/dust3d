@@ -31,10 +31,9 @@ Outcome *VertexDisplacementPainter::takeOutcome()
     return outcome;
 }
 
-void VertexDisplacementPainter::setVoxelGrid(VoxelGrid<int> *voxelGrid)
+void VertexDisplacementPainter::setVoxelGrid(VoxelGrid<QVector3D> *voxelGrid)
 {
     m_voxelGrid = voxelGrid;
-    m_voxelGrid->setNullValue(0);
 }
 
 void VertexDisplacementPainter::setPaintMode(PaintMode paintMode)
@@ -75,7 +74,10 @@ void VertexDisplacementPainter::paintToVoxelGrid()
     int voxelZ = toVoxelLength(m_targetPosition.z());
     int voxelRadius = toVoxelLength(m_radius);
     int range2 = voxelRadius * voxelRadius;
-    m_voxelGrid->add(voxelX, voxelY, voxelZ, m_brushWeight);
+    
+    auto deformNormal = (m_mouseRayNear - m_mouseRayFar).normalized();
+    
+    m_voxelGrid->add(voxelX, voxelY, voxelZ, deformNormal * m_brushWeight);
     qDebug() << "voxelRadius:" << voxelRadius
         << "voxelX:" << voxelX << "voxelY:" << voxelY << "voxelZ:" << voxelZ;
     for (int i = -voxelRadius; i <= voxelRadius; ++i) {
@@ -91,7 +93,7 @@ void VertexDisplacementPainter::paintToVoxelGrid()
                 if (dist2 <= range2) {
                     int dist = std::sqrt(dist2);
                     float alpha = 1.0 - (float)dist / voxelRadius;
-                    m_voxelGrid->add(x, y, z, (int)(alpha * m_brushWeight));
+                    m_voxelGrid->add(x, y, z, deformNormal * alpha * m_brushWeight);
                 }
             }
         }
@@ -121,12 +123,11 @@ void VertexDisplacementPainter::createPaintedModel()
             int voxelX = toVoxelLength(srcVert->x());
             int voxelY = toVoxelLength(srcVert->y());
             int voxelZ = toVoxelLength(srcVert->z());
-            int offsetHeight = m_voxelGrid->query(voxelX, voxelY, voxelZ);
-            if (0 == offsetHeight)
+            QVector3D offsetVector = m_voxelGrid->query(voxelX, voxelY, voxelZ);
+            if (offsetVector.isNull())
                 continue;
-            QVector3D offsetedPosition = *srcNormal * offsetHeight / 10000;
             auto &offset = vertexOffsetMap[vertexIndex];
-            offset.first += offsetedPosition;
+            offset.first += (*srcNormal + offsetVector.normalized()).normalized() * offsetVector.length();
             offset.second++;
         }
     }

@@ -18,7 +18,7 @@ public:
     {
         size_t operator()(const Voxel &voxel) const
         {
-            return (voxel.z << 16) | (voxel.y << 8) | voxel.z;
+            return ((size_t)voxel.x ^ ((size_t)voxel.y << 1)) ^ (size_t)voxel.z;
         }
     };
 

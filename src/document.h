@@ -825,7 +825,7 @@ private: // need initialize
     float m_mousePickRadius = 0.2;
     bool m_saveNextPaintSnapshot = false;
     VoxelGrid<QColor> *m_vertexColorVoxelGrid = nullptr;
-    VoxelGrid<int> *m_vertexDisplacementVoxelGrid = nullptr;
+    VoxelGrid<QVector3D> *m_vertexDisplacementVoxelGrid = nullptr;
 private:
     static unsigned long m_maxSnapshot;
     std::deque<HistoryItem> m_undoItems;

@@ -18,7 +18,7 @@ public:
     void setRadius(float radius);
     void setPaintMode(PaintMode paintMode);
     void setMaskNodeIds(const std::set<QUuid> &nodeIds);
-    void setVoxelGrid(VoxelGrid<int> *voxelGrid);
+    void setVoxelGrid(VoxelGrid<QVector3D> *voxelGrid);
     
     ~VertexDisplacementPainter();
     Model *takePaintedModel();
@@ -31,14 +31,14 @@ public slots:
     void paint();
 private:
     float m_radius = 0.0;
-    int m_brushWeight = 10;
+    float m_brushWeight = 0.001;
     PaintMode m_paintMode = PaintMode::None;
     std::set<QUuid> m_mousePickMaskNodeIds;
     Outcome *m_outcome = nullptr;
     QVector3D m_mouseRayNear;
     QVector3D m_mouseRayFar;
     QVector3D m_targetPosition;
-    VoxelGrid<int> *m_voxelGrid = nullptr;
+    VoxelGrid<QVector3D> *m_voxelGrid = nullptr;
     Model *m_model = nullptr;
     bool calculateMouseModelPosition(QVector3D &mouseModelPosition);
     void paintToVoxelGrid();

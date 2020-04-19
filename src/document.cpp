@@ -2170,7 +2170,7 @@ void Document::pickMouseTarget(const QVector3D &nearPosition, const QVector3D &f
 
 void Document::doPickMouseTarget()
 {
-    paintVertexDisplacements();
+    paintVertexColors();
 }
 
 void Document::paintVertexColors()
@@ -2258,7 +2258,7 @@ void Document::paintVertexDisplacements()
     m_vertexDisplacementPainter = new VertexDisplacementPainter(new Outcome(*m_currentOutcome), m_mouseRayNear, m_mouseRayFar);
     if (SkeletonDocumentEditMode::Paint == editMode) {
         if (nullptr == m_vertexDisplacementVoxelGrid) {
-            m_vertexDisplacementVoxelGrid = new VoxelGrid<int>();
+            m_vertexDisplacementVoxelGrid = new VoxelGrid<QVector3D>();
         }
         m_vertexDisplacementPainter->setVoxelGrid(m_vertexDisplacementVoxelGrid);
         m_vertexDisplacementPainter->setPaintMode(m_paintMode);
