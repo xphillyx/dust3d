@@ -577,6 +577,9 @@ win32 {
 }
 
 INCLUDEPATH += thirdparty/opensubdiv/OpenSubdiv-3_4_3
+unix {
+	LIBS += -Lthirdparty/opensubdiv/OpenSubdiv-3_4_3/build/lib -losdCPU
+}
 win32 {
     LIBS += -Lthirdparty/opensubdiv/OpenSubdiv-3_4_3/build/lib/Release -losdCPU
 }

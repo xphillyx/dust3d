@@ -277,7 +277,7 @@ if (NOT NO_LIB)
             $<TARGET_OBJECTS:vtr_obj>
             $<TARGET_OBJECTS:far_obj>
             $<TARGET_OBJECTS:osd_cpu_obj>
-            $<TARGET_OBJECTS:osd_gpu_obj>
+#            $<TARGET_OBJECTS:osd_gpu_obj>
             ${OPENGL_LOADER_OBJS}
         )
 

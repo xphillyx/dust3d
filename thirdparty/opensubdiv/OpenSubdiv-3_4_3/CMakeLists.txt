@@ -303,16 +303,16 @@ option(NO_OPENCL "Disable OpenCL backend" OFF)
 option(NO_CLEW "Disable CLEW wrapper library" OFF)
 option(NO_OPENGL "Disable OpenGL support")
 option(NO_METAL "Disable Metal support" OFF)
-option(NO_DX "Disable DirectX support")
-option(NO_TESTS "Disable all tests")
-option(NO_GLTESTS "Disable GL tests")
-option(NO_GLEW "Disable use of GLEW" ON)
+option(NO_DX "Disable DirectX support" OFF)
+option(NO_TESTS "Disable all tests" OFF)
+option(NO_GLTESTS "Disable GL tests" OFF)
+option(NO_GLEW "Disable use of GLEW" OFF)
 option(NO_GLFW "Disable components depending on GLFW" OFF)
 option(NO_GLFW_X11 "Disable GLFW components depending on X11" OFF)
 
 option(OPENSUBDIV_GREGORY_EVAL_TRUE_DERIVATIVES "Enable true derivative evaluation for Gregory basis patches" OFF)
 
-option(BUILD_SHARED_LIBS "Build shared libraries" ON)
+option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 
 # Save the current value of BUILD_SHARED_LIBS and restore it after
 # processing Find* modules, since some of the Find* modules invoked
@@ -511,12 +511,12 @@ else()
     endif()
 endif()
 
-if(OPENGLES_FOUND)
-    add_definitions(
-        -DOPENSUBDIV_HAS_OPENGLES
-    )
-    set(OSD_GPU TRUE)
-endif()
+#if(OPENGLES_FOUND)
+#    add_definitions(
+#        -DOPENSUBDIV_HAS_OPENGLES
+#    )
+#    set(OSD_GPU TRUE)
+#endif()
 
 if(OPENCL_FOUND)
     add_definitions(
@@ -652,7 +652,7 @@ if (WIN32)
             "environment variable."
         )
     endif()
-    
+
     # Link examples & regressions statically against Osd for
     # Windows until all the kinks can be worked out.
     if( OSD_GPU )
@@ -660,7 +660,7 @@ if (WIN32)
     else()
         set( OSD_LINK_TARGET osd_static_cpu )
     endif()
-    
+
 endif()
 
 
@@ -817,9 +817,9 @@ if (NOT OPENSUBDIV_INCLUDE_DIR)
     set(OPENSUBDIV_INCLUDE_DIR "${PROJECT_SOURCE_DIR}")
 endif()
 
-if (NOT NO_TESTS)
-    enable_testing()
-endif()
+#if (NOT NO_TESTS)
+#    enable_testing()
+#endif()
 
 if (NOT NO_OPENGL)
     add_subdirectory(glLoader)
@@ -827,9 +827,9 @@ endif()
 
 add_subdirectory(opensubdiv)
 
-if (NOT ANDROID) # XXXdyu
-    add_subdirectory(regression)
-endif()
+#if (NOT ANDROID) # XXXdyu
+#    add_subdirectory(regression)
+#endif()
 
 if (NOT NO_EXAMPLES)
     add_subdirectory(examples)
