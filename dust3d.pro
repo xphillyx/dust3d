@@ -136,6 +136,12 @@ include(thirdparty/Qt-Color-Widgets/color_widgets.pri)
 
 INCLUDEPATH += src
 
+SOURCES += src/voxelmesh.cpp
+HEADERS += src/voxelmesh.h
+
+SOURCES += src/element.cpp
+HEADERS += src/element.h
+
 SOURCES += src/vertexdisplacementpainter.cpp
 HEADERS += src/vertexdisplacementpainter.h
 
@@ -546,6 +552,15 @@ HEADERS += src/fileforever.h
 SOURCES += src/main.cpp
 
 HEADERS += src/version.h
+
+INCLUDEPATH += thirdparty/openvdb/openvdb-7.0.0
+INCLUDEPATH += thirdparty/openexr/openexr-2.4.1
+unix {
+	LIBS += -Lthirdparty/openvdb/openvdb-7.0.0/build/openvdb -lopenvdb
+	LIBS += -Lthirdparty/openexr/openexr-2.4.1/build/IlmBase/Half -lHalf-2_4
+	LIBS += -Lthirdparty/zlib/zlib-1.2.11/build -lz
+	LIBS += -Lthirdparty/blosc/c-blosc-1.18.1/build/blosc -lblosc
+}
 
 INCLUDEPATH += thirdparty/FastMassSpring/ClothApp
 SOURCES += thirdparty/FastMassSpring/ClothApp/MassSpringSolver.cpp

@@ -24,6 +24,7 @@ signals:
     void setComponentSmoothAll(QUuid componentId, float toSmoothAll);
     void setComponentSmoothSeam(QUuid componentId, float toSmoothSeam);
     void setComponentPolyCount(QUuid componentId, PolyCount count);
+    void setComponentElement(QUuid componentId, Element element);
     void setComponentLayer(QUuid componentId, ComponentLayer layer);
     void setPartTarget(QUuid partId, PartTarget target);
     void setPartBase(QUuid partId, PartBase base);

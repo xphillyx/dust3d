@@ -792,6 +792,10 @@ Suggerimenti:
         <source>Not Change</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Element</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>PartWidget</name>
@@ -1164,6 +1168,14 @@ Suggerimenti:
     </message>
     <message>
         <source>Line Only</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Polygon</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Voxel</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

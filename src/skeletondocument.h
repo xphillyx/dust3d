@@ -213,6 +213,10 @@ public:
     {
         return PartTarget::Model == target;
     }
+    bool hasElementFunction() const
+    {
+        return PartTarget::Model == target;
+    }
     bool hasSubdivFunction() const
     {
         return PartTarget::Model == target && fillMeshLinkedId.isNull();

@@ -1200,6 +1200,8 @@ void Document::toSnapshot(Snapshot *snapshot, const std::set<QUuid> &limitNodeId
                 component["smoothSeam"] = QString::number(componentIt.second.smoothSeam);
             if (componentIt.second.polyCount != PolyCount::Original)
                 component["polyCount"] = PolyCountToString(componentIt.second.polyCount);
+			if (componentIt.second.element != Element::Polygon)
+				component["element"] = ElementToString(componentIt.second.element);
             if (componentIt.second.layer != ComponentLayer::Body)
                 component["layer"] = ComponentLayerToString(componentIt.second.layer);
             if (componentIt.second.clothStiffnessAdjusted())
@@ -1326,6 +1328,8 @@ void Document::toSnapshot(Snapshot *snapshot, const std::set<QUuid> &limitNodeId
         canvas["rigType"] = RigTypeToString(rigType);
         if (this->polyCount != PolyCount::Original)
             canvas["polyCount"] = PolyCountToString(this->polyCount);
+		if (this->element != Element::Polygon)
+			canvas["element"] = ElementToString(this->element);
         snapshot->canvas = canvas;
     }
 }
@@ -1422,6 +1426,7 @@ void Document::addFromSnapshot(const Snapshot &snapshot, enum SnapshotSource sou
     if (SnapshotSource::Paste != source &&
             SnapshotSource::Import != source) {
         this->polyCount = PolyCountFromString(valueOfKeyInMapOrEmpty(snapshot.canvas, "polyCount").toUtf8().constData());
+        this->element = ElementFromString(valueOfKeyInMapOrEmpty(snapshot.canvas, "element").toUtf8().constData());
         const auto &originXit = snapshot.canvas.find("originX");
         const auto &originYit = snapshot.canvas.find("originY");
         const auto &originZit = snapshot.canvas.find("originZ");
@@ -1664,6 +1669,7 @@ void Document::addFromSnapshot(const Snapshot &snapshot, enum SnapshotSource sou
         if (smoothSeamIt != componentKv.second.end())
             component.setSmoothSeam(smoothSeamIt->second.toFloat());
         component.polyCount = PolyCountFromString(valueOfKeyInMapOrEmpty(componentKv.second, "polyCount").toUtf8().constData());
+        component.element = ElementFromString(valueOfKeyInMapOrEmpty(componentKv.second, "element").toUtf8().constData());
         component.layer = ComponentLayerFromString(valueOfKeyInMapOrEmpty(componentKv.second, "layer").toUtf8().constData());
         auto findClothStiffness = componentKv.second.find("clothStiffness");
         if (findClothStiffness != componentKv.second.end())
@@ -2626,6 +2632,29 @@ void Document::setComponentPolyCount(QUuid componentId, PolyCount count)
     component->polyCount = count;
     component->dirty = true;
     emit componentPolyCountChanged(componentId);
+    emit skeletonChanged();
+}
+
+void Document::setComponentElement(QUuid componentId, Element toElement)
+{
+    if (componentId.isNull()) {
+        if (element == toElement)
+            return;
+        element = toElement;
+        emit componentElementChanged(componentId);
+        emit skeletonChanged();
+        return;
+    }
+
+    Component *component = (Component *)findComponent(componentId);
+    if (nullptr == component)
+        return;
+    if (component->element == toElement)
+        return;
+    
+    component->element = toElement;
+    component->dirty = true;
+    emit componentElementChanged(componentId);
     emit skeletonChanged();
 }
 

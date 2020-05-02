@@ -1,3 +1,4 @@
+#include "voxelmesh.h"
 #include <QDebug>
 #include <QElapsedTimer>
 #include <QVector2D>

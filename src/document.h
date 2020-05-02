@@ -32,6 +32,7 @@
 #include "componentlayer.h"
 #include "clothforce.h"
 #include "voxelgrid.h"
+#include "element.h"
 
 class MaterialPreviewsGenerator;
 class MotionsGenerator;
@@ -80,6 +81,7 @@ public:
     float clothOffset = 0.0f;
     size_t clothIteration = defaultClothIteration;
     std::vector<QUuid> childrenIds;
+    Element element = Element::Polygon;
     QString linkData() const
     {
         return linkToPartId.isNull() ? QString() : linkToPartId.toString();
@@ -424,6 +426,7 @@ signals:
     void componentSmoothAllChanged(QUuid componentId);
     void componentSmoothSeamChanged(QUuid componentId);
     void componentPolyCountChanged(QUuid componentId);
+    void componentElementChanged(QUuid componentId);
     void componentLayerChanged(QUuid componentId);
     void componentClothStiffnessChanged(QUuid componentId);
     void componentClothIterationChanged(QUuid componentId);
@@ -542,6 +545,7 @@ public:
     bool weldEnabled = true;
     PolyCount polyCount = PolyCount::Original;
     QColor brushColor = Qt::white;
+    Element element = Element::Polygon;
 public:
     Document();
     ~Document();
@@ -697,6 +701,7 @@ public slots:
     void setComponentSmoothAll(QUuid componentId, float toSmoothAll);
     void setComponentSmoothSeam(QUuid componentId, float toSmoothSeam);
     void setComponentPolyCount(QUuid componentId, PolyCount count);
+    void setComponentElement(QUuid componentId, Element toElement);
     void setComponentLayer(QUuid componentId, ComponentLayer layer);
     void setComponentClothStiffness(QUuid componentId, float stiffness);
     void setComponentClothIteration(QUuid componentId, size_t iteration);

@@ -228,10 +228,6 @@ Tips:
         <translation>取消全选</translation>
     </message>
     <message>
-        <source>Show Model</source>
-        <translation type="vanished">显示模型</translation>
-    </message>
-    <message>
         <source>Toggle Wireframe</source>
         <translation>切换网格线</translation>
     </message>
@@ -781,6 +777,10 @@ Tips:
         <source>Not Change</source>
         <translation>不修改</translation>
     </message>
+    <message>
+        <source>Element</source>
+        <translation>元素</translation>
+    </message>
 </context>
 <context>
     <name>PartWidget</name>
@@ -1154,6 +1154,14 @@ Tips:
     <message>
         <source>Line Only</source>
         <translation>只有线</translation>
+    </message>
+    <message>
+        <source>Polygon</source>
+        <translation>多边形</translation>
+    </message>
+    <message>
+        <source>Voxel</source>
+        <translation>体素</translation>
     </message>
 </context>
 <context>
