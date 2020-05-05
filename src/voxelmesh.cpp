@@ -4,7 +4,7 @@
 #include <QDebug>
 #include <QElapsedTimer>
 
-float VoxelMesh::m_scale = 100;
+float VoxelMesh::m_scale = 200;
 
 void VoxelMesh::fromMesh(const std::vector<QVector3D> &vertices,
 	const std::vector<std::vector<size_t>> &faces)
