@@ -4,7 +4,7 @@
 #include <QDebug>
 #include <QElapsedTimer>
 
-float VoxelMesh::m_scale = 200;
+float VoxelMesh::m_scale = 400;
 bool VoxelMesh::m_openvdbInitialized = false;
 
 VoxelMesh::VoxelMesh()
@@ -29,16 +29,16 @@ void VoxelMesh::fromMesh(const std::vector<QVector3D> &vertices,
 	
 	for (const auto &face: faces) {
 		if (3 == face.size()) {
-			triangles.push_back(openvdb::Vec3I(face[0], face[1], face[2]));
+			triangles.push_back(openvdb::Vec3I(face[2], face[1], face[0]));
 		} else if (4 == face.size()) {
-			quads.push_back(openvdb::Vec4I(face[0], face[1], face[2], face[3]));
+			quads.push_back(openvdb::Vec4I(face[3], face[2], face[1], face[0]));
 		}
 	}
 	
 	openvdb::math::Transform::Ptr xform = openvdb::math::Transform::createLinearTransform();
 	
 	m_grid = openvdb::tools::meshToLevelSet<openvdb::FloatGrid>(
-		*xform, points, triangles, quads, 0.5);
+		*xform, points, triangles, quads, 1.0);
 }
 
 void VoxelMesh::toMesh(std::vector<QVector3D> *vertices,
