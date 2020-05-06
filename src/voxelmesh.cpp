@@ -4,7 +4,7 @@
 #include <QDebug>
 #include <QElapsedTimer>
 
-float VoxelMesh::m_scale = 400;
+float VoxelMesh::m_voxelSize = 0.0025;
 bool VoxelMesh::m_openvdbInitialized = false;
 
 VoxelMesh::VoxelMesh()
@@ -24,18 +24,18 @@ void VoxelMesh::fromMesh(const std::vector<QVector3D> &vertices,
 	
 	for (size_t i = 0; i < vertices.size(); ++i) {
 		const auto &src = vertices[i];
-		points[i] = openvdb::Vec3s(src.x() * m_scale, src.y() * m_scale, src.z() * m_scale);
+		points[i] = openvdb::Vec3s(src.x(), src.y(), src.z());
 	}
 	
 	for (const auto &face: faces) {
 		if (3 == face.size()) {
-			triangles.push_back(openvdb::Vec3I(face[2], face[1], face[0]));
+			triangles.push_back(openvdb::Vec3I(face[0], face[1], face[2]));
 		} else if (4 == face.size()) {
-			quads.push_back(openvdb::Vec4I(face[3], face[2], face[1], face[0]));
+			quads.push_back(openvdb::Vec4I(face[0], face[1], face[2], face[3]));
 		}
 	}
 	
-	openvdb::math::Transform::Ptr xform = openvdb::math::Transform::createLinearTransform();
+	openvdb::math::Transform::Ptr xform = openvdb::math::Transform::createLinearTransform(m_voxelSize);
 	
 	m_grid = openvdb::tools::meshToLevelSet<openvdb::FloatGrid>(
 		*xform, points, triangles, quads, 1.0);
@@ -51,8 +51,8 @@ void VoxelMesh::toMesh(std::vector<QVector3D> *vertices,
 	QElapsedTimer timer;
 	timer.start();
 	
-	openvdb::tools::LevelSetFilter<openvdb::FloatGrid> filter(*m_grid);
-	filter.laplacian();
+	//openvdb::tools::LevelSetFilter<openvdb::FloatGrid> filter(*m_grid);
+	//filter.laplacian();
 	
 	std::vector<openvdb::Vec3s> points;
 	std::vector<openvdb::Vec3I> triangles;
@@ -64,7 +64,7 @@ void VoxelMesh::toMesh(std::vector<QVector3D> *vertices,
 	vertices->resize(points.size());
 	for (size_t i = 0; i < points.size(); ++i) {
 		const auto &src = points[i];
-		(*vertices)[i] = QVector3D(src.x() / m_scale, src.y() / m_scale, src.z() / m_scale);
+		(*vertices)[i] = QVector3D(src.x(), src.y(), src.z());
 	}
 	
 	for (const auto &it: triangles) {

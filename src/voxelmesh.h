@@ -19,7 +19,7 @@ public:
 		std::vector<std::vector<size_t>> *faces);
 		
 private:
-	static float m_scale;
+	static float m_voxelSize;
 	static bool m_openvdbInitialized;
 };
 
