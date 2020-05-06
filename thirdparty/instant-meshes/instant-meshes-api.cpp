@@ -54,8 +54,6 @@ derivative works thereof, in binary and source code form.
 #include <map>
 #include "instant-meshes-api.h"
 
-static bool g_engineInitialized = false;
-int nprocs = -1;
 static std::vector<Dust3D_InstantMeshesVertex> g_resultVertices;
 static std::vector<Dust3D_InstantMeshesTriangle> g_resultTriangles;
 static std::vector<Dust3D_InstantMeshesQuad> g_resultQuads;
@@ -70,11 +68,6 @@ void DUST3D_INSTANT_MESHES_FUNCTION_CONVENTION Dust3D_instantMeshesRemesh(const 
     const Dust3D_InstantMeshesQuad **resultQuads,
     size_t *nResultQuads)
 {
-    if (!g_engineInitialized) {
-        g_engineInitialized = true;
-        tbb::task_scheduler_init init(nprocs == -1 ? tbb::task_scheduler_init::automatic : nprocs);
-    }
-
     int rosy = 4;
     int posy = 4;
     Float scale = -1;

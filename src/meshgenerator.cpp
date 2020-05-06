@@ -1,4 +1,3 @@
-#include "voxelmesh.h"
 #include <QDebug>
 #include <QElapsedTimer>
 #include <QVector2D>
@@ -1447,11 +1446,6 @@ void MeshGenerator::generate()
 {
     if (nullptr == m_snapshot)
         return;
-        
-	if (!m_openvdbInitialized) {
-		m_openvdbInitialized = true;
-		openvdb::initialize();
-	}
     
     m_isSuccessful = true;
     
@@ -1557,13 +1551,6 @@ void MeshGenerator::generate()
                 } while (affectedNum > 0);
             }
         }
-        {
-			VoxelMesh voxelMesh;
-			voxelMesh.fromMesh(combinedVertices, combinedFaces);
-			combinedVertices.clear();
-			combinedFaces.clear();
-			voxelMesh.toMesh(&combinedVertices, &combinedFaces);
-		}
         recoverQuads(combinedVertices, combinedFaces, componentCache.sharedQuadEdges, m_outcome->triangleAndQuads);
         m_outcome->vertices = combinedVertices;
         m_outcome->triangles = combinedFaces;

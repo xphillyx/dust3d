@@ -5,6 +5,15 @@
 #include <QElapsedTimer>
 
 float VoxelMesh::m_scale = 200;
+bool VoxelMesh::m_openvdbInitialized = false;
+
+VoxelMesh::VoxelMesh()
+{
+	if (!m_openvdbInitialized) {
+		m_openvdbInitialized = true;
+		openvdb::initialize();
+	}
+}
 
 void VoxelMesh::fromMesh(const std::vector<QVector3D> &vertices,
 	const std::vector<std::vector<size_t>> &faces)

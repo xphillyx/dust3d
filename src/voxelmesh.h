@@ -12,6 +12,7 @@ class VoxelMesh
 public:
 	openvdb::FloatGrid::Ptr m_grid;
 	
+	VoxelMesh();
 	void fromMesh(const std::vector<QVector3D> &vertices,
 		const std::vector<std::vector<size_t>> &faces);
 	void toMesh(std::vector<QVector3D> *vertices,
@@ -19,6 +20,7 @@ public:
 		
 private:
 	static float m_scale;
+	static bool m_openvdbInitialized;
 };
 
 #endif

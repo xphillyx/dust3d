@@ -132,7 +132,6 @@ private:
     std::vector<QVector3D> m_clothCollisionVertices;
     std::vector<std::vector<size_t>> m_clothCollisionTriangles;
     bool m_weldEnabled = true;
-    bool m_openvdbInitialized = false;
     
     void collectParts();
     void collectIncombinableComponentMeshes(const QString &componentIdString);

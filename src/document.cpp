@@ -2176,7 +2176,7 @@ void Document::pickMouseTarget(const QVector3D &nearPosition, const QVector3D &f
 
 void Document::doPickMouseTarget()
 {
-    paintVertexColors();
+    paintVertexDisplacements();
 }
 
 void Document::paintVertexColors()
