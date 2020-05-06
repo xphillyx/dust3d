@@ -3,6 +3,8 @@
 #include <QFile>
 #include <unordered_set>
 #include <unordered_map>
+#include <tbb/parallel_for.h>
+#include <tbb/blocked_range.h>
 #include "util.h"
 #include "version.h"
 
@@ -556,6 +558,57 @@ bool intersectSegmentAndTriangle(const QVector3D &segmentPoint0, const QVector3D
     return true;
 }
 
+class RayAndPolyhedronIntersector
+{
+public:
+	struct Intersection
+	{
+		QVector3D point;
+		bool foundPosition = false;
+		float distance2 = 0.0;
+	};
+	struct Parameters
+	{
+		const QVector3D *rayNear;
+		const QVector3D *rayFar;
+		const QVector3D *ray;
+		const std::vector<QVector3D> *vertices;
+		const std::vector<std::vector<size_t>> *triangles;
+		const std::vector<QVector3D> *triangleNormals;
+		std::vector<Intersection> *intersections;
+	};
+	RayAndPolyhedronIntersector(Parameters *parameters) :
+		m_parameters(parameters)
+	{
+	}
+	void operator()(const tbb::blocked_range<size_t> &range) const
+	{
+		for (size_t i = range.begin(); i != range.end(); ++i) {
+			const auto &triangleIndices = (*m_parameters->triangles)[i];
+			std::vector<QVector3D> triangle = {
+				(*m_parameters->vertices)[triangleIndices[0]],
+				(*m_parameters->vertices)[triangleIndices[1]],
+				(*m_parameters->vertices)[triangleIndices[2]],
+			};
+			const auto &triangleNormal = (*m_parameters->triangleNormals)[i];
+			if (QVector3D::dotProduct(triangleNormal, *m_parameters->ray) <= 0)
+				continue;
+			QVector3D point;
+			if (intersectSegmentAndTriangle(*m_parameters->rayNear, *m_parameters->rayFar,
+					triangle,
+					triangleNormal,
+					&point)) {
+				auto &intersection = (*m_parameters->intersections)[i];
+				intersection.point = point;
+				intersection.foundPosition = true;
+				intersection.distance2 = (point - *m_parameters->rayNear).lengthSquared();
+			}
+		}
+	}
+private:
+	Parameters *m_parameters = nullptr;
+};
+
 bool intersectRayAndPolyhedron(const QVector3D &rayNear,
     const QVector3D &rayFar,
     const std::vector<QVector3D> &vertices,
@@ -563,32 +616,34 @@ bool intersectRayAndPolyhedron(const QVector3D &rayNear,
     const std::vector<QVector3D> &triangleNormals,
     QVector3D *intersection)
 {
-    bool foundPosition = false;
-    auto ray = (rayNear - rayFar).normalized();
-    float minDistance2 = std::numeric_limits<float>::max();
-    for (size_t i = 0; i < triangles.size(); ++i) {
-        const auto &triangleIndices = triangles[i];
-        std::vector<QVector3D> triangle = {
-            vertices[triangleIndices[0]],
-            vertices[triangleIndices[1]],
-            vertices[triangleIndices[2]],
-        };
-        const auto &triangleNormal = triangleNormals[i];
-        if (QVector3D::dotProduct(triangleNormal, ray) <= 0)
-            continue;
-        QVector3D point;
-        if (intersectSegmentAndTriangle(rayNear, rayFar,
-                triangle,
-                triangleNormal,
-                &point)) {
-            float distance2 = (point - rayNear).lengthSquared();
-            if (distance2 < minDistance2) {
-                if (nullptr != intersection)
-                    *intersection = point;
-                minDistance2 = distance2;
+	auto ray = (rayNear - rayFar).normalized();
+	
+	std::vector<RayAndPolyhedronIntersector::Intersection> intersections(triangles.size());
+	
+	RayAndPolyhedronIntersector::Parameters parameters;
+	parameters.rayNear = &rayNear;
+	parameters.rayFar = &rayFar;
+	parameters.ray = &ray;
+	parameters.vertices = &vertices;
+	parameters.triangles = &triangles;
+	parameters.triangleNormals = &triangleNormals;
+	parameters.intersections = &intersections;
+	
+	tbb::parallel_for(tbb::blocked_range<size_t>(0, triangles.size()),
+		RayAndPolyhedronIntersector(&parameters));
+	
+	bool foundPosition = false;
+	float minDistance2 = std::numeric_limits<float>::max();
+	for (size_t i = 0; i < triangles.size(); ++i) {
+		const auto &result = intersections[i];
+		if (result.foundPosition) {
+			if (result.distance2 < minDistance2) {
+				if (nullptr != intersection)
+					*intersection = result.point;
+				minDistance2 = result.distance2;
                 foundPosition = true;
-            }
-        }
-    }
-    return foundPosition;
+			}
+		}
+	}
+	return foundPosition;
 }
