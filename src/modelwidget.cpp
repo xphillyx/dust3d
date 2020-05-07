@@ -38,11 +38,11 @@ ModelWidget::ModelWidget(QWidget *parent) :
         setAttribute(Qt::WA_TranslucentBackground);
         QSurfaceFormat fmt = format();
         fmt.setAlphaBufferSize(8);
-        fmt.setSamples(4);
+        fmt.setSamples(1);
         setFormat(fmt);
     } else {
         QSurfaceFormat fmt = format();
-        fmt.setSamples(4);
+        fmt.setSamples(1);
         setFormat(fmt);
     }
     setContextMenuPolicy(Qt::CustomContextMenu);

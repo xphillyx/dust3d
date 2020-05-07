@@ -3,6 +3,7 @@
 #include "voxelmesh.h"
 #include <QDebug>
 #include <QElapsedTimer>
+#include "util.h"
 
 float VoxelMesh::m_voxelSize = 0.0025;
 bool VoxelMesh::m_openvdbInitialized = false;
@@ -79,5 +80,9 @@ void VoxelMesh::toMesh(std::vector<QVector3D> *vertices,
 	
 	auto elapsedMilliseconds = timer.elapsed();
 	
-	qDebug() << "Voxel to mesh took milliseconds:" << elapsedMilliseconds;
+	qDebug() << "Voxel to mesh took milliseconds:" << elapsedMilliseconds <<
+		"vertices:" << vertices->size() << "faces:" << faces->size() <<
+		"(triangles:" << triangles.size() << "quads:" << quads.size() << ")";
+		
+	//saveAsObj("/Users/jeremy/Desktop/test.obj", *vertices, *faces);
 }
