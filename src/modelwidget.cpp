@@ -36,14 +36,9 @@ ModelWidget::ModelWidget(QWidget *parent) :
     if (m_transparent) {
         setAttribute(Qt::WA_AlwaysStackOnTop);
         setAttribute(Qt::WA_TranslucentBackground);
-        QSurfaceFormat fmt = format();
-        fmt.setAlphaBufferSize(8);
-        fmt.setSamples(1);
-        setFormat(fmt);
+        setFormat(format());
     } else {
-        QSurfaceFormat fmt = format();
-        fmt.setSamples(1);
-        setFormat(fmt);
+        setFormat(format());
     }
     setContextMenuPolicy(Qt::CustomContextMenu);
     
