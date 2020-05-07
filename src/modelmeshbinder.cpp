@@ -260,27 +260,27 @@ void ModelMeshBinder::paint(ModelShaderProgram *program)
             }
         }
     }
-    program->setUniformValue(program->textureIdLoc(), 0);
-    program->setUniformValue(program->normalMapIdLoc(), 1);
-    program->setUniformValue(program->metalnessRoughnessAmbientOcclusionMapIdLoc(), 2);
-    program->setUniformValue(program->environmentIrradianceMapIdLoc(), 3);
-    program->setUniformValue(program->environmentSpecularMapIdLoc(), 4);
-    program->setUniformValue(program->toonNormalMapIdLoc(), 5);
-    program->setUniformValue(program->toonDepthMapIdLoc(), 6);
+    program->setTextureIdValue(0);
+    program->setNormalMapIdValue(1);
+    program->setMetalnessRoughnessAmbientOcclusionMapIdValue(2);
+    program->setEnvironmentIrradianceMapIdValue(3);
+    program->setEnvironmentSpecularMapIdValue(4);
+    program->setToonNormalMapIdValue(5);
+    program->setToonDepthMapIdValue(6);
     if (m_showWireframe) {
         if (m_renderEdgeVertexCount > 0) {
             QOpenGLVertexArrayObject::Binder vaoBinder(&m_vaoEdge);
 			QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();
             // glDrawArrays GL_LINES crashs on Mesa GL
             if (program->isCoreProfile()) {
-                program->setUniformValue(program->textureEnabledLoc(), 0);
-                program->setUniformValue(program->normalMapEnabledLoc(), 0);
-                program->setUniformValue(program->metalnessMapEnabledLoc(), 0);
-                program->setUniformValue(program->roughnessMapEnabledLoc(), 0);
-                program->setUniformValue(program->ambientOcclusionMapEnabledLoc(), 0);
+                program->setTextureEnabledValue(0);
+                program->setNormalMapEnabledValue(0);
+                program->setMetalnessMapEnabledValue(0);
+                program->setRoughnessMapEnabledValue(0);
+                program->setAmbientOcclusionMapEnabledValue(0);
                 if (program->isCoreProfile()) {
-                    program->setUniformValue(program->environmentIrradianceMapEnabledLoc(), 0);
-                    program->setUniformValue(program->environmentSpecularMapEnabledLoc(), 0);
+                    program->setEnvironmentIrradianceMapEnabledValue(0);
+                    program->setEnvironmentSpecularMapEnabledValue(0);
                 }
                 f->glDrawArrays(GL_LINES, 0, m_renderEdgeVertexCount);
             }
@@ -292,42 +292,42 @@ void ModelMeshBinder::paint(ModelShaderProgram *program)
         if (m_hasTexture) {
             if (m_texture)
                 m_texture->bind(0);
-            program->setUniformValue(program->textureEnabledLoc(), 1);
+            program->setTextureEnabledValue(1);
         } else {
-            program->setUniformValue(program->textureEnabledLoc(), 0);
+            program->setTextureEnabledValue(0);
         }
         if (m_hasNormalMap) {
             if (m_normalMap)
                 m_normalMap->bind(1);
-            program->setUniformValue(program->normalMapEnabledLoc(), 1);
+            program->setNormalMapEnabledValue(1);
         } else {
-            program->setUniformValue(program->normalMapEnabledLoc(), 0);
+            program->setNormalMapEnabledValue(0);
         }
         if (m_hasMetalnessMap || m_hasRoughnessMap || m_hasAmbientOcclusionMap) {
             if (m_metalnessRoughnessAmbientOcclusionMap)
                 m_metalnessRoughnessAmbientOcclusionMap->bind(2);
 		}
-        program->setUniformValue(program->metalnessMapEnabledLoc(), m_hasMetalnessMap ? 1 : 0);
-        program->setUniformValue(program->roughnessMapEnabledLoc(), m_hasRoughnessMap ? 1 : 0);
-        program->setUniformValue(program->ambientOcclusionMapEnabledLoc(), m_hasAmbientOcclusionMap ? 1 : 0);
+        program->setMetalnessMapEnabledValue(m_hasMetalnessMap ? 1 : 0);
+        program->setRoughnessMapEnabledValue(m_hasRoughnessMap ? 1 : 0);
+        program->setAmbientOcclusionMapEnabledValue(m_hasAmbientOcclusionMap ? 1 : 0);
         if (program->isCoreProfile()) {
             if (nullptr != m_environmentIrradianceMap) {
                 m_environmentIrradianceMap->bind(3);
-                program->setUniformValue(program->environmentIrradianceMapEnabledLoc(), 1);
+                program->setEnvironmentIrradianceMapEnabledValue(1);
             } else {
-                program->setUniformValue(program->environmentIrradianceMapEnabledLoc(), 0);
+                program->setEnvironmentIrradianceMapEnabledValue(0);
             }
             if (nullptr != m_environmentSpecularMap) {
                 m_environmentSpecularMap->bind(4);
-                program->setUniformValue(program->environmentSpecularMapEnabledLoc(), 1);
+                program->setEnvironmentSpecularMapEnabledValue(1);
             } else {
-                program->setUniformValue(program->environmentSpecularMapEnabledLoc(), 0);
+                program->setEnvironmentSpecularMapEnabledValue(0);
             }
         }
         if (nullptr != m_toonNormalMap && nullptr != m_toonDepthMap) {
             m_toonNormalMap->bind(5);
             m_toonDepthMap->bind(6);
-            program->setUniformValue(program->toonEdgeEnabledLoc(), (int)Preferences::instance().toonLine());
+            program->setToonEdgeEnabledValue((int)Preferences::instance().toonLine());
         }
         f->glDrawArrays(GL_TRIANGLES, 0, m_renderTriangleVertexCount);
     }
@@ -335,14 +335,14 @@ void ModelMeshBinder::paint(ModelShaderProgram *program)
         if (m_renderToolVertexCount > 0) {
             QOpenGLVertexArrayObject::Binder vaoBinder(&m_vaoTool);
             QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();
-            program->setUniformValue(program->textureEnabledLoc(), 0);
-            program->setUniformValue(program->normalMapEnabledLoc(), 0);
-            program->setUniformValue(program->metalnessMapEnabledLoc(), 0);
-            program->setUniformValue(program->roughnessMapEnabledLoc(), 0);
-            program->setUniformValue(program->ambientOcclusionMapEnabledLoc(), 0);
+            program->setTextureEnabledValue(0);
+            program->setNormalMapEnabledValue(0);
+            program->setMetalnessMapEnabledValue(0);
+            program->setRoughnessMapEnabledValue(0);
+            program->setAmbientOcclusionMapEnabledValue(0);
             if (program->isCoreProfile()) {
-                program->setUniformValue(program->environmentIrradianceMapEnabledLoc(), 0);
-                program->setUniformValue(program->environmentSpecularMapEnabledLoc(), 0);
+                program->setEnvironmentIrradianceMapEnabledValue(0);
+                program->setEnvironmentSpecularMapEnabledValue(0);
             }
             f->glDrawArrays(GL_TRIANGLES, 0, m_renderToolVertexCount);
         }

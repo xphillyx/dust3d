@@ -173,23 +173,23 @@ QImage ModelOffscreenRender::toImage(const QSize &size)
         camera.translate(m_eyePosition);
         
         program->bind();
-        program->setUniformValue(program->eyePosLoc(), m_eyePosition);
-        program->setUniformValue(program->toonShadingEnabledLoc(), m_toonShading ? 1 : 0);
-        program->setUniformValue(program->projectionMatrixLoc(), projection);
-        program->setUniformValue(program->modelMatrixLoc(), world);
+        program->setEyePosValue(m_eyePosition);
+        program->setToonShadingEnabledValue(m_toonShading ? 1 : 0);
+        program->setProjectionMatrixValue(projection);
+        program->setModelMatrixValue(world);
         QMatrix3x3 normalMatrix = world.normalMatrix();
-        program->setUniformValue(program->normalMatrixLoc(), normalMatrix);
-        program->setUniformValue(program->viewMatrixLoc(), camera);
-        program->setUniformValue(program->textureEnabledLoc(), 0);
-        program->setUniformValue(program->normalMapEnabledLoc(), 0);
-        program->setUniformValue(program->mousePickEnabledLoc(), 0);
-        program->setUniformValue(program->renderPurposeLoc(), m_renderPurpose);
+        program->setNormalMatrixValue(normalMatrix);
+        program->setViewMatrixValue(camera);
+        program->setTextureEnabledValue(0);
+        program->setNormalMapEnabledValue(0);
+        program->setMousePickEnabledValue(0);
+        program->setRenderPurposeValue(m_renderPurpose);
         
-        program->setUniformValue(program->toonEdgeEnabledLoc(), 0);
-        program->setUniformValue(program->screenWidthLoc(), (GLfloat)size.width());
-        program->setUniformValue(program->screenHeightLoc(), (GLfloat)size.height());
-        program->setUniformValue(program->toonNormalMapIdLoc(), 0);
-        program->setUniformValue(program->toonDepthMapIdLoc(), 0);
+        program->setToonEdgeEnabledValue(0);
+        program->setScreenWidthValue((GLfloat)size.width());
+        program->setScreenHeightValue((GLfloat)size.height());
+        program->setToonNormalMapIdValue(0);
+        program->setToonDepthMapIdValue(0);
 
         meshBinder.updateMesh(m_mesh);
         meshBinder.paint(program);

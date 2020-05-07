@@ -218,32 +218,31 @@ void ModelWidget::paintGL()
     m_camera.translate(m_eyePosition.x(), m_eyePosition.y(), m_eyePosition.z());
 
     m_program->bind();
-    m_program->setUniformValue(m_program->eyePosLoc(), m_eyePosition);
-    m_program->setUniformValue(m_program->toonShadingEnabledLoc(), Preferences::instance().toonShading() ? 1 : 0);
-    m_program->setUniformValue(m_program->projectionMatrixLoc(), m_projection);
-    m_program->setUniformValue(m_program->modelMatrixLoc(), m_world);
+    m_program->setEyePosValue(m_eyePosition);
+    m_program->setToonShadingEnabledValue(Preferences::instance().toonShading() ? 1 : 0);
+    m_program->setProjectionMatrixValue(m_projection);
+    m_program->setModelMatrixValue(m_world);
     QMatrix3x3 normalMatrix = m_world.normalMatrix();
-    m_program->setUniformValue(m_program->normalMatrixLoc(), normalMatrix);
-    m_program->setUniformValue(m_program->viewMatrixLoc(), m_camera);
-    m_program->setUniformValue(m_program->textureEnabledLoc(), 0);
-    m_program->setUniformValue(m_program->normalMapEnabledLoc(), 0);
-    m_program->setUniformValue(m_program->renderPurposeLoc(), 0);
+    m_program->setNormalMatrixValue(normalMatrix);
+    m_program->setViewMatrixValue(m_camera);
+    m_program->setTextureEnabledValue(0);
+    m_program->setNormalMapEnabledValue(0);
+    m_program->setRenderPurposeValue(0);
     
-    m_program->setUniformValue(m_program->toonEdgeEnabledLoc(), 0);
-    m_program->setUniformValue(m_program->screenWidthLoc(), (GLfloat)m_widthInPixels);
-    m_program->setUniformValue(m_program->screenHeightLoc(), (GLfloat)m_heightInPixels);
-    m_program->setUniformValue(m_program->toonNormalMapIdLoc(), 0);
-    m_program->setUniformValue(m_program->toonDepthMapIdLoc(), 0);
+    m_program->setToonEdgeEnabledValue(0);
+    m_program->setScreenWidthValue((GLfloat)m_widthInPixels);
+    m_program->setScreenHeightValue((GLfloat)m_heightInPixels);
+    m_program->setToonNormalMapIdValue(0);
+    m_program->setToonDepthMapIdValue(0);
     
     if (m_mousePickingEnabled && !m_mousePickTargetPositionInModelSpace.isNull()) {
-        m_program->setUniformValue(m_program->mousePickEnabledLoc(), 1);
-        m_program->setUniformValue(m_program->mousePickTargetPositionLoc(),
-            m_world * m_mousePickTargetPositionInModelSpace);
+        m_program->setMousePickEnabledValue(1);
+        m_program->setMousePickTargetPositionValue(m_world * m_mousePickTargetPositionInModelSpace);
     } else {
-        m_program->setUniformValue(m_program->mousePickEnabledLoc(), 0);
-        m_program->setUniformValue(m_program->mousePickTargetPositionLoc(), QVector3D());
+        m_program->setMousePickEnabledValue(0);
+        m_program->setMousePickTargetPositionValue(QVector3D());
     }
-    m_program->setUniformValue(m_program->mousePickRadiusLoc(), m_mousePickRadius);
+    m_program->setMousePickRadiusValue(m_mousePickRadius);
     
     m_meshBinder.paint(m_program);
 
