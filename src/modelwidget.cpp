@@ -160,6 +160,14 @@ void ModelWidget::initializeGL()
     connect(context(), &QOpenGLContext::aboutToBeDestroyed, this, &ModelWidget::cleanup);
 
     initializeOpenGLFunctions();
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable(GL_DEPTH_TEST);
+	if (m_enableCullFace)
+		glEnable(GL_CULL_FACE);
+#ifdef GL_LINE_SMOOTH
+	glEnable(GL_LINE_SMOOTH);
+#endif
     if (m_transparent) {
         glClearColor(0, 0, 0, 0);
     } else {
@@ -199,14 +207,6 @@ void ModelWidget::setMoveToPosition(const QVector3D &moveToPosition)
 void ModelWidget::paintGL()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_DEPTH_TEST);
-    if (m_enableCullFace)
-        glEnable(GL_CULL_FACE);
-#ifdef GL_LINE_SMOOTH
-    glEnable(GL_LINE_SMOOTH);
-#endif
 	glViewport(0, 0, m_widthInPixels, m_heightInPixels);
 
     m_world.setToIdentity();
