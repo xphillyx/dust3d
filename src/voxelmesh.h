@@ -11,10 +11,14 @@ class VoxelMesh
 {
 public:
 	openvdb::FloatGrid::Ptr m_grid;
+	openvdb::math::Transform::Ptr m_transform;
 	
 	VoxelMesh();
+	void makeSphere(const QVector3D &center, float radius);
 	void fromMesh(const std::vector<QVector3D> &vertices,
 		const std::vector<std::vector<size_t>> &faces);
+	void unionWith(const VoxelMesh &other);
+	void diffWith(const VoxelMesh &other);
 	void toMesh(std::vector<QVector3D> *vertices,
 		std::vector<std::vector<size_t>> *faces);
 		

@@ -1,5 +1,7 @@
 #include <openvdb/tools/RayIntersector.h>
 #include <openvdb/tools/RayTracer.h>
+#include <openvdb/tools/Composite.h>
+#include <openvdb/tools/LevelSetSphere.h>
 #include "voxelmesh.h"
 #include <QDebug>
 #include <QElapsedTimer>
@@ -14,6 +16,14 @@ VoxelMesh::VoxelMesh()
 		m_openvdbInitialized = true;
 		openvdb::initialize();
 	}
+	m_transform = openvdb::math::Transform::createLinearTransform(m_voxelSize);
+	m_grid = openvdb::FloatGrid::create(m_voxelSize);
+	m_grid->setTransform(m_transform);
+}
+
+void VoxelMesh::makeSphere(const QVector3D &center, float radius)
+{
+	m_grid = openvdb::tools::createLevelSetSphere<openvdb::FloatGrid>(radius, openvdb::Vec3f(center.x(), center.y(), center.z()), m_voxelSize);
 }
 
 void VoxelMesh::fromMesh(const std::vector<QVector3D> &vertices,
@@ -36,10 +46,18 @@ void VoxelMesh::fromMesh(const std::vector<QVector3D> &vertices,
 		}
 	}
 	
-	openvdb::math::Transform::Ptr xform = openvdb::math::Transform::createLinearTransform(m_voxelSize);
-	
 	m_grid = openvdb::tools::meshToLevelSet<openvdb::FloatGrid>(
-		*xform, points, triangles, quads, 1.0);
+		*m_transform, points, triangles, quads, 1.0);
+}
+
+void VoxelMesh::unionWith(const VoxelMesh &other)
+{
+	openvdb::tools::csgUnion(*m_grid, *other.m_grid);
+}
+
+void VoxelMesh::diffWith(const VoxelMesh &other)
+{
+	openvdb::tools::csgDifference(*m_grid, *other.m_grid);
 }
 
 void VoxelMesh::toMesh(std::vector<QVector3D> *vertices,

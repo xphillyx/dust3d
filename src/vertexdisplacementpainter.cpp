@@ -5,6 +5,7 @@
 #include "util.h"
 
 const int VertexDisplacementPainter::m_gridSize = 127;
+VoxelMesh *VertexDisplacementPainter::m_positiveVoxelMesh = nullptr;
 
 VertexDisplacementPainter::VertexDisplacementPainter(Outcome *outcome, const QVector3D &mouseRayNear, const QVector3D &mouseRayFar) :
     m_outcome(outcome),
@@ -65,17 +66,31 @@ bool VertexDisplacementPainter::calculateMouseModelPosition(QVector3D &mouseMode
 
 void VertexDisplacementPainter::paintToVoxelGrid()
 {
-    // TODO:
+	if (nullptr == m_positiveVoxelMesh) {
+		m_positiveVoxelMesh = new VoxelMesh;
+	}
 }
 
 void VertexDisplacementPainter::createPaintedModel()
 {
-	VoxelMesh voxelMesh;
-	voxelMesh.fromMesh(m_outcome->vertices, m_outcome->triangleAndQuads);
+	static VoxelMesh *voxelMesh = nullptr;
+	if (nullptr == voxelMesh) {
+		voxelMesh = new VoxelMesh;
+		voxelMesh->fromMesh(m_outcome->vertices, m_outcome->triangleAndQuads);
+	}
+	
+	if (nullptr != m_positiveVoxelMesh) {
+		VoxelMesh sphereMesh;
+		sphereMesh.makeSphere(m_targetPosition, m_radius);
+		
+		m_positiveVoxelMesh->unionWith(sphereMesh);
+		
+		voxelMesh->diffWith(*m_positiveVoxelMesh);
+	}
 	
 	std::vector<QVector3D> voxelVertices;
 	std::vector<std::vector<size_t>> voxelTriangles;
-	voxelMesh.toMesh(&voxelVertices, &voxelTriangles);
+	voxelMesh->toMesh(&voxelVertices, &voxelTriangles);
 	std::vector<QVector3D> voxelTriangleNormals(voxelTriangles.size());
 	for (size_t i = 0; i < voxelTriangles.size(); ++i)
 		voxelTriangleNormals[i] = polygonNormal(voxelVertices, voxelTriangles[i]);

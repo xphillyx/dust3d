@@ -10,6 +10,8 @@
 #include "voxelgrid.h"
 #include "model.h"
 
+class VoxelMesh;
+
 class VertexDisplacementPainter : public QObject
 {
     Q_OBJECT
@@ -46,6 +48,7 @@ private:
     void createPaintedModel();
 public:
     static const int m_gridSize;
+    static VoxelMesh *m_positiveVoxelMesh;
 };
 
 #endif
