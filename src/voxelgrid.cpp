@@ -1,5 +1,4 @@
 #include <openvdb/tools/RayIntersector.h>
-#include <openvdb/tools/RayTracer.h>
 #include <openvdb/tools/Composite.h>
 #include <openvdb/tools/LevelSetSphere.h>
 #include "voxelgrid.h"
@@ -7,7 +6,7 @@
 #include <QElapsedTimer>
 #include "util.h"
 
-float VoxelGrid::m_voxelSize = 0.0025;
+float VoxelGrid::m_voxelSize = 0.005; //0.0025;
 bool VoxelGrid::m_openvdbInitialized = false;
 
 VoxelGrid::VoxelGrid()
@@ -25,6 +24,24 @@ VoxelGrid::VoxelGrid(const VoxelGrid &other)
 {
 	m_transform = openvdb::math::Transform::Ptr(new openvdb::math::Transform(*other.m_transform));
 	m_grid = other.m_grid->deepCopy();
+}
+
+bool VoxelGrid::intersects(const QVector3D &near, const QVector3D &far,
+	QVector3D *intersection)
+{
+	QVector3D direction = (far - near).normalized();
+	openvdb::math::Ray<double> ray(openvdb::math::Vec3<double>(near.x(), near.y(), near.z()),
+		openvdb::math::Vec3<double>(direction.x(), direction.y(), direction.z()));
+	openvdb::tools::LevelSetRayIntersector<openvdb::FloatGrid> rayIntersector(*m_grid);
+	openvdb::math::Vec3<double> intersectsAt;
+	if (!rayIntersector.intersectsWS(ray, intersectsAt))
+		return false;
+	if (nullptr != intersection) {
+		intersection->setX(intersectsAt.x());
+		intersection->setY(intersectsAt.y());
+		intersection->setZ(intersectsAt.z());
+	}
+	return true;
 }
 
 void VoxelGrid::makeSphere(const QVector3D &center, float radius)

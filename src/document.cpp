@@ -971,6 +971,7 @@ void Document::setEditMode(SkeletonDocumentEditMode mode)
     editMode = mode;
     if (editMode != SkeletonDocumentEditMode::Paint)
         m_paintMode = PaintMode::None;
+        
     emit editModeChanged();
 }
 
@@ -2244,6 +2245,7 @@ void Document::paintVertexDisplacements()
 		if (nullptr == m_voxelPainterContext) {
 			m_voxelPainterContext = new VoxelPainterContext;
 		}
+		m_voxelPainter->setLastPaintPosition(m_mouseTargetPosition);
 		m_voxelPainter->setContext(m_voxelPainterContext);
 		m_voxelPainterContext = nullptr;
         m_voxelPainter->setPaintMode(m_paintMode);
@@ -4207,6 +4209,7 @@ void Document::stopPaint(void)
         }
         m_intermediatePaintImageIds.clear();
     }
+    m_mouseTargetPosition = QVector3D();
 }
 
 void Document::setMousePickMaskNodeIds(const std::set<QUuid> &nodeIds)

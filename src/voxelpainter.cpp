@@ -10,6 +10,7 @@ VoxelPainterContext::~VoxelPainterContext()
 	delete sourceVoxelGrid;
 	delete positiveVoxelGrid;
 	delete negativeVoxelGrid;
+	delete lastResultVoxelGrid;
 }
 
 VoxelPainter::VoxelPainter(Outcome *outcome, const QVector3D &mouseRayNear, const QVector3D &mouseRayFar) :
@@ -54,6 +55,11 @@ void VoxelPainter::setRadius(float radius)
     m_radius = radius;
 }
 
+void VoxelPainter::setLastPaintPosition(const QVector3D &lastPaintPosition)
+{
+	m_lastPaintPosition = lastPaintPosition;
+}
+
 VoxelPainter::~VoxelPainter()
 {
     delete m_outcome;
@@ -63,12 +69,12 @@ VoxelPainter::~VoxelPainter()
 
 bool VoxelPainter::calculateMouseModelPosition(QVector3D &mouseModelPosition)
 {
-    return intersectRayAndPolyhedron(m_mouseRayNear,
-        m_mouseRayFar,
-        m_outcome->vertices,
-        m_outcome->triangles,
-        m_outcome->triangleNormals,
-        &mouseModelPosition);
+	//if (nullptr != m_context->lastResultVoxelGrid) {
+	//	return m_context->lastResultVoxelGrid->intersects(m_mouseRayNear, m_mouseRayFar,
+	//		&mouseModelPosition);
+	//}
+	return m_context->sourceVoxelGrid->intersects(m_mouseRayNear, m_mouseRayFar,
+		&mouseModelPosition);
 }
 
 void VoxelPainter::paintToVoxelGrid()
@@ -78,14 +84,6 @@ void VoxelPainter::paintToVoxelGrid()
 
 	QElapsedTimer timer;
 	timer.start();
-
-	if (nullptr == m_context->sourceVoxelGrid) {
-		auto meshToVoxelsStartTime = timer.elapsed();
-		m_context->sourceVoxelGrid = new VoxelGrid;
-		m_context->sourceVoxelGrid->fromMesh(m_outcome->vertices, m_outcome->triangleAndQuads);
-		auto meshToVoxelsConsumedTime = timer.elapsed() - meshToVoxelsStartTime;
-		qDebug() << "VOXEL meshToVoxels took milliseconds:" << meshToVoxelsConsumedTime;
-	}
 	
 	m_resultVoxelGrid = new VoxelGrid(*m_context->sourceVoxelGrid);
 	
@@ -98,14 +96,24 @@ void VoxelPainter::paintToVoxelGrid()
 	
 	auto constructSphereStartTime = timer.elapsed();
 	
-	VoxelGrid sphereMesh;
-	sphereMesh.makeSphere(m_targetPosition, m_radius);
-	if (PaintMode::Pull == m_paintMode) {
-		m_context->positiveVoxelGrid->unionWith(sphereMesh);
-	} else if (PaintMode::Push == m_paintMode) {
-		m_context->negativeVoxelGrid->unionWith(sphereMesh);
-		m_context->positiveVoxelGrid->diffWith(sphereMesh);
-	}
+	QVector3D beginPosition = m_targetPosition;
+	QVector3D endPosition = m_lastPaintPosition.isNull() ? m_targetPosition : m_lastPaintPosition;
+	QVector3D moveDirection = (endPosition - beginPosition).normalized();
+	float moveDistance = (endPosition - beginPosition).length();
+	float currentDistance = 0;
+	do
+	{
+		auto sphereCenter = beginPosition + moveDirection * currentDistance;
+		VoxelGrid sphereGrid;
+		sphereGrid.makeSphere(sphereCenter, m_radius);
+		if (PaintMode::Pull == m_paintMode) {
+			m_context->positiveVoxelGrid->unionWith(sphereGrid);
+		} else if (PaintMode::Push == m_paintMode) {
+			m_context->negativeVoxelGrid->unionWith(sphereGrid);
+			m_context->positiveVoxelGrid->diffWith(sphereGrid);
+		}
+		currentDistance += VoxelGrid::m_voxelSize / 2;
+	} while (currentDistance <= moveDistance);
 	
 	auto constructSphereConsumedTime = timer.elapsed() - constructSphereStartTime;
 	qDebug() << "VOXEL constructSphere took milliseconds:" << constructSphereConsumedTime;
@@ -117,10 +125,26 @@ void VoxelPainter::paintToVoxelGrid()
 	
 	auto applyToTargetConsumedTime = timer.elapsed() - applyToTargetStartTime;
 	qDebug() << "VOXEL applyToTarget took milliseconds:" << applyToTargetConsumedTime;
+	
+	delete m_context->lastResultVoxelGrid;
+	m_context->lastResultVoxelGrid = new VoxelGrid(*m_resultVoxelGrid);
 }
 
 void VoxelPainter::paint()
 {
+	if (nullptr == m_context)
+		return;
+		
+	if (nullptr == m_context->sourceVoxelGrid ||
+			m_context->meshId != m_outcome->meshId) {
+		delete m_context->sourceVoxelGrid;
+		m_context->sourceVoxelGrid = nullptr;
+
+		m_context->sourceVoxelGrid = new VoxelGrid;
+		m_context->sourceVoxelGrid->fromMesh(m_outcome->vertices, m_outcome->triangleAndQuads);
+		m_context->meshId = m_outcome->meshId;
+	}
+	
     if (!calculateMouseModelPosition(m_targetPosition))
         return;
     
