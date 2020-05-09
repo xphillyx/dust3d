@@ -1,85 +1,29 @@
 #ifndef DUST3D_VOXEL_GRID_H
 #define DUST3D_VOXEL_GRID_H
-#include <QtGlobal>
-#include <unordered_map>
+#include <openvdb/openvdb.h>
+#include <openvdb/tools/MeshToVolume.h>
+#include <openvdb/tools/VolumeToMesh.h>
+#include <openvdb/tools/LevelSetFilter.h>
+#include <vector>
+#include <QVector3D>
 
-template<typename T>
 class VoxelGrid
 {
 public:
-    struct Voxel
-    {
-        qint8 x;
-        qint8 y;
-        qint8 z;
-    };
-    
-    struct VoxelHash
-    {
-        size_t operator()(const Voxel &voxel) const
-        {
-            return ((size_t)voxel.x ^ ((size_t)voxel.y << 1)) ^ (size_t)voxel.z;
-        }
-    };
-
-    struct VoxelEqual 
-    {
-        bool operator()(const Voxel &left, const Voxel &right) const
-        {
-            return (left.x == right.x) && 
-                (left.y == right.y) && 
-                (left.z == right.z);
-        }
-    };
-    
-    T query(qint8 x, qint8 y, qint8 z)
-    {
-        auto findResult = m_grid.find({x, y, z});
-        if (findResult == m_grid.end())
-            return m_nullValue;
-        return findResult->second;
-    }
-    
-    T add(qint8 x, qint8 y, qint8 z, T value)
-    {
-        auto insertResult = m_grid.insert(std::make_pair(Voxel {x, y, z}, value));
-        if (insertResult.second) {
-            insertResult.first->second = m_nullValue + value;
-            return insertResult.first->second;
-        }
-        insertResult.first->second = insertResult.first->second + value;
-        return insertResult.first->second;
-    }
-    
-    T sub(qint8 x, qint8 y, qint8 z, T value)
-    {
-        auto findResult = m_grid.find({x, y, z});
-        if (findResult == m_grid.end())
-            return m_nullValue;
-        findResult->second = findResult->second - value;
-        if (findResult->second == m_nullValue) {
-            m_grid.erase(findResult);
-            return m_nullValue;
-        }
-        return findResult->second;
-    }
-    
-    void reset(qint8 x, qint8 y, qint8 z)
-    {
-        auto findResult = m_grid.find({x, y, z});
-        if (findResult == m_grid.end())
-            return;
-        m_grid.erase(findResult);
-    }
-    
-    void setNullValue(const T &nullValue)
-    {
-        m_nullValue = nullValue;
-    }
-    
+	openvdb::FloatGrid::Ptr m_grid;
+	openvdb::math::Transform::Ptr m_transform;
+	VoxelGrid();
+	VoxelGrid(const VoxelGrid &other);
+	void makeSphere(const QVector3D &center, float radius);
+	void fromMesh(const std::vector<QVector3D> &vertices,
+		const std::vector<std::vector<size_t>> &faces);
+	void unionWith(const VoxelGrid &other);
+	void diffWith(const VoxelGrid &other);
+	void toMesh(std::vector<QVector3D> *vertices,
+		std::vector<std::vector<size_t>> *faces);
 private:
-    std::unordered_map<Voxel, T, VoxelHash, VoxelEqual> m_grid;
-    T m_nullValue = T();
+	static float m_voxelSize;
+	static bool m_openvdbInitialized;
 };
 
 #endif

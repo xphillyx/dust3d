@@ -136,20 +136,17 @@ include(thirdparty/Qt-Color-Widgets/color_widgets.pri)
 
 INCLUDEPATH += src
 
-SOURCES += src/voxelmesh.cpp
-HEADERS += src/voxelmesh.h
+SOURCES += src/voxelmodelgenerator.cpp
+HEADERS += src/voxelmodelgenerator.h
+
+SOURCES += src/voxelgrid.cpp
+HEADERS += src/voxelgrid.h
 
 SOURCES += src/element.cpp
 HEADERS += src/element.h
 
-SOURCES += src/vertexdisplacementpainter.cpp
-HEADERS += src/vertexdisplacementpainter.h
-
-SOURCES += src/vertexcolorpainter.cpp
-HEADERS += src/vertexcolorpainter.h
-
-SOURCES += src/voxelgrid.cpp
-HEADERS += src/voxelgrid.h
+SOURCES += src/voxelpainter.cpp
+HEADERS += src/voxelpainter.h
 
 SOURCES += src/fixholes.cpp
 HEADERS += src/fixholes.h

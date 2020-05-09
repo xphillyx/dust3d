@@ -1,5 +1,5 @@
-#ifndef DUST3D_VERTEX_DISPLACEMENT_PAINTER_H
-#define DUST3D_VERTEX_DISPLACEMENT_PAINTER_H
+#ifndef VOXEL_PAINTER_H
+#define VOXEL_PAINTER_H
 #include <QObject>
 #include <QVector3D>
 #include <vector>
@@ -7,25 +7,33 @@
 #include <set>
 #include "outcome.h"
 #include "paintmode.h"
-#include "voxelgrid.h"
 #include "model.h"
 
-class VoxelMesh;
+class VoxelGrid;
 
-class VertexDisplacementPainter : public QObject
+class VoxelPainterContext
+{
+public:
+	~VoxelPainterContext();
+	VoxelGrid *sourceVoxelGrid = nullptr;
+	VoxelGrid *positiveVoxelGrid = nullptr;
+    VoxelGrid *negativeVoxelGrid = nullptr;
+};
+
+class VoxelPainter : public QObject
 {
     Q_OBJECT
 public:
-    VertexDisplacementPainter(Outcome *outcome, const QVector3D &mouseRayNear, const QVector3D &mouseRayFar);
+    VoxelPainter(Outcome *outcome, const QVector3D &mouseRayNear, const QVector3D &mouseRayFar);
     void setRadius(float radius);
     void setPaintMode(PaintMode paintMode);
     void setMaskNodeIds(const std::set<QUuid> &nodeIds);
-    void setVoxelGrid(VoxelGrid<QVector3D> *voxelGrid);
-    
-    ~VertexDisplacementPainter();
-    Model *takePaintedModel();
+    void setContext(VoxelPainterContext *context);
+    ~VoxelPainter();
     Outcome *takeOutcome();
     const QVector3D &targetPosition();
+    VoxelPainterContext *takeContext();
+    VoxelGrid *takeResultVoxelGrid();
 signals:
     void finished();
 public slots:
@@ -40,15 +48,11 @@ private:
     QVector3D m_mouseRayNear;
     QVector3D m_mouseRayFar;
     QVector3D m_targetPosition;
-    VoxelGrid<QVector3D> *m_voxelGrid = nullptr;
-    Model *m_model = nullptr;
     bool calculateMouseModelPosition(QVector3D &mouseModelPosition);
     void paintToVoxelGrid();
-    int toVoxelLength(float length);
-    void createPaintedModel();
 public:
-    static const int m_gridSize;
-    static VoxelMesh *m_positiveVoxelMesh;
+    VoxelPainterContext *m_context = nullptr;
+    VoxelGrid *m_resultVoxelGrid = nullptr;
 };
 
 #endif

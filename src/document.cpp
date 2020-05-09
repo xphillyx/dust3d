@@ -1,3 +1,4 @@
+#include "voxelgrid.h"
 #include <QFileDialog>
 #include <QDebug>
 #include <QThread>
@@ -20,8 +21,8 @@
 #include "partdeformmappainter.h"
 #include "imageforever.h"
 #include "contourtopartconverter.h"
-#include "vertexcolorpainter.h"
-#include "vertexdisplacementpainter.h"
+#include "voxelpainter.h"
+#include "voxelmodelgenerator.h"
 
 unsigned long Document::m_maxSnapshot = 1000;
 const float Component::defaultClothStiffness = 0.5f;
@@ -2179,74 +2180,51 @@ void Document::doPickMouseTarget()
     paintVertexDisplacements();
 }
 
-void Document::paintVertexColors()
+void Document::generateVoxelModel()
 {
-    if (nullptr != m_vertexColorPainter) {
-        m_isMouseTargetResultObsolete = true;
-        return;
-    }
-    
-    m_isMouseTargetResultObsolete = false;
-    
-    if (!m_currentOutcome) {
-        qDebug() << "Model is null";
-        return;
-    }
-    
-    //qDebug() << "Mouse picking..";
-
-    QThread *thread = new QThread;
-    m_vertexColorPainter = new VertexColorPainter(*m_currentOutcome, m_mouseRayNear, m_mouseRayFar);
-    m_vertexColorPainter->setBrushColor(brushColor);
-    if (SkeletonDocumentEditMode::Paint == editMode) {
-        if (nullptr == m_vertexColorVoxelGrid) {
-            m_vertexColorVoxelGrid = new VoxelGrid<QColor>();
-        }
-        m_vertexColorPainter->setVoxelGrid(m_vertexColorVoxelGrid);
-        m_vertexColorPainter->setPaintMode(m_paintMode);
-        m_vertexColorPainter->setRadius(m_mousePickRadius);
-        m_vertexColorPainter->setMaskNodeIds(m_mousePickMaskNodeIds);
-    }
-    
-    m_vertexColorPainter->moveToThread(thread);
-    connect(thread, &QThread::started, m_vertexColorPainter, &VertexColorPainter::process);
-    connect(m_vertexColorPainter, &VertexColorPainter::finished, this, &Document::vertexColorsReady);
-    connect(m_vertexColorPainter, &VertexColorPainter::finished, thread, &QThread::quit);
+	if (nullptr != m_voxelModelGenerator) {
+		m_isVoxelModelObsolete = true;
+		return;
+	}
+	
+	m_isVoxelModelObsolete = false;
+	
+	if (nullptr == m_resultVoxelGrid)
+		return;
+		
+	auto resultVoxelGrid = m_resultVoxelGrid;
+	m_resultVoxelGrid = nullptr;
+	
+	QThread *thread = new QThread;
+    m_voxelModelGenerator = new VoxelModelGenerator(resultVoxelGrid);
+    m_voxelModelGenerator->moveToThread(thread);
+    connect(thread, &QThread::started, m_voxelModelGenerator, &VoxelModelGenerator::process);
+    connect(m_voxelModelGenerator, &VoxelModelGenerator::finished, this, &Document::voxelModelReady);
+    connect(m_voxelModelGenerator, &VoxelModelGenerator::finished, thread, &QThread::quit);
     connect(thread, &QThread::finished, thread, &QThread::deleteLater);
     thread->start();
 }
 
-void Document::vertexColorsReady()
+void Document::voxelModelReady()
 {
-    m_mouseTargetPosition = m_vertexColorPainter->targetPosition();
-    
-    Model *model = m_vertexColorPainter->takePaintedModel();
+	Model *model = m_voxelModelGenerator->takeModel();
     if (nullptr != model) {
         delete m_paintedMesh;
         m_paintedMesh = model;
         emit paintedMeshChanged();
     }
     
-    delete m_vertexColorPainter;
-    m_vertexColorPainter = nullptr;
-    
-    if (!m_isMouseTargetResultObsolete && m_saveNextPaintSnapshot) {
-        m_saveNextPaintSnapshot = false;
-        stopPaint();
-    }
-    
-    emit mouseTargetChanged();
-
-    //qDebug() << "Mouse pick done";
+    delete m_voxelModelGenerator;
+    m_voxelModelGenerator = nullptr;
 
     if (m_isMouseTargetResultObsolete) {
-        pickMouseTarget(m_mouseRayNear, m_mouseRayFar);
+        generateVoxelModel();
     }
 }
 
 void Document::paintVertexDisplacements()
 {
-    if (nullptr != m_vertexDisplacementPainter) {
+    if (nullptr != m_voxelPainter) {
         m_isMouseTargetResultObsolete = true;
         return;
     }
@@ -2261,39 +2239,42 @@ void Document::paintVertexDisplacements()
     //qDebug() << "Mouse picking..";
 
     QThread *thread = new QThread;
-    m_vertexDisplacementPainter = new VertexDisplacementPainter(new Outcome(*m_currentOutcome), m_mouseRayNear, m_mouseRayFar);
+    m_voxelPainter = new VoxelPainter(new Outcome(*m_currentOutcome), m_mouseRayNear, m_mouseRayFar);
     if (SkeletonDocumentEditMode::Paint == editMode) {
-        if (nullptr == m_vertexDisplacementVoxelGrid) {
-            m_vertexDisplacementVoxelGrid = new VoxelGrid<QVector3D>();
-        }
-        m_vertexDisplacementPainter->setVoxelGrid(m_vertexDisplacementVoxelGrid);
-        m_vertexDisplacementPainter->setPaintMode(m_paintMode);
-        m_vertexDisplacementPainter->setRadius(m_mousePickRadius);
-        m_vertexDisplacementPainter->setMaskNodeIds(m_mousePickMaskNodeIds);
+		if (nullptr == m_voxelPainterContext) {
+			m_voxelPainterContext = new VoxelPainterContext;
+		}
+		m_voxelPainter->setContext(m_voxelPainterContext);
+		m_voxelPainterContext = nullptr;
+        m_voxelPainter->setPaintMode(m_paintMode);
+        m_voxelPainter->setRadius(m_mousePickRadius);
+        m_voxelPainter->setMaskNodeIds(m_mousePickMaskNodeIds);
     }
-    
-    m_vertexDisplacementPainter->moveToThread(thread);
-    connect(thread, &QThread::started, m_vertexDisplacementPainter, &VertexDisplacementPainter::process);
-    connect(m_vertexDisplacementPainter, &VertexDisplacementPainter::finished, this, &Document::vertexDisplacementsReady);
-    connect(m_vertexDisplacementPainter, &VertexDisplacementPainter::finished, thread, &QThread::quit);
+    m_voxelPainter->moveToThread(thread);
+    connect(thread, &QThread::started, m_voxelPainter, &VoxelPainter::process);
+    connect(m_voxelPainter, &VoxelPainter::finished, this, &Document::vertexDisplacementsReady);
+    connect(m_voxelPainter, &VoxelPainter::finished, thread, &QThread::quit);
     connect(thread, &QThread::finished, thread, &QThread::deleteLater);
     thread->start();
 }
 
 void Document::vertexDisplacementsReady()
 {
-    m_mouseTargetPosition = m_vertexDisplacementPainter->targetPosition();
-    Model *model = m_vertexDisplacementPainter->takePaintedModel();
-    if (nullptr != model) {
-        delete m_paintedMesh;
-        m_paintedMesh = model;
-        emit paintedMeshChanged();
+    m_mouseTargetPosition = m_voxelPainter->targetPosition();
+    
+    delete m_voxelPainterContext;
+    m_voxelPainterContext = m_voxelPainter->takeContext();
+    
+    auto resultVoxelGrid = m_voxelPainter->takeResultVoxelGrid();
+    if (nullptr != resultVoxelGrid) {
+		delete m_resultVoxelGrid;
+		m_resultVoxelGrid = resultVoxelGrid;
+		
+		generateVoxelModel();
     }
-    
-    
-    
-    delete m_vertexDisplacementPainter;
-    m_vertexDisplacementPainter = nullptr;
+
+    delete m_voxelPainter;
+    m_voxelPainter = nullptr;
     
     if (!m_isMouseTargetResultObsolete && m_saveNextPaintSnapshot) {
         m_saveNextPaintSnapshot = false;
@@ -4210,8 +4191,7 @@ void Document::startPaint(void)
 void Document::stopPaint(void)
 {
     if (m_partDeformMapPainter || 
-            m_vertexColorPainter ||
-            m_vertexDisplacementPainter ||
+            m_voxelPainter ||
             m_isMouseTargetResultObsolete) {
         m_saveNextPaintSnapshot = true;
         return;

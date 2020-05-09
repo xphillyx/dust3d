@@ -31,7 +31,6 @@
 #include "proceduralanimation.h"
 #include "componentlayer.h"
 #include "clothforce.h"
-#include "voxelgrid.h"
 #include "element.h"
 
 class MaterialPreviewsGenerator;
@@ -39,7 +38,10 @@ class MotionsGenerator;
 class ScriptRunner;
 class PartDeformMapPainter;
 class VertexColorPainter;
-class VertexDisplacementPainter;
+class VoxelPainter;
+class VoxelModelGenerator;
+class VoxelGrid;
+class VoxelPainterContext;
 
 class HistoryItem
 {
@@ -659,10 +661,10 @@ public slots:
     void doPickMouseTarget();
     void paintPartDeformMaps();
     void partDeformMapsReady();
-    void paintVertexColors();
-    void vertexColorsReady();
     void paintVertexDisplacements();
     void vertexDisplacementsReady();
+    void generateVoxelModel();
+    void voxelModelReady();
     void setPartLockState(QUuid partId, bool locked);
     void setPartVisibleState(QUuid partId, bool visible);
     void setPartSubdivState(QUuid partId, bool subdived);
@@ -823,14 +825,15 @@ private: // need initialize
     ScriptRunner *m_scriptRunner = nullptr;
     bool m_isScriptResultObsolete = false;
     PartDeformMapPainter *m_partDeformMapPainter = nullptr;
-    VertexColorPainter *m_vertexColorPainter = nullptr;
-    VertexDisplacementPainter *m_vertexDisplacementPainter = nullptr;
+    VoxelPainter *m_voxelPainter = nullptr;
     bool m_isMouseTargetResultObsolete = false;
     PaintMode m_paintMode = PaintMode::None;
-    float m_mousePickRadius = 0.2;
+    float m_mousePickRadius = 0.02;
     bool m_saveNextPaintSnapshot = false;
-    VoxelGrid<QColor> *m_vertexColorVoxelGrid = nullptr;
-    VoxelGrid<QVector3D> *m_vertexDisplacementVoxelGrid = nullptr;
+    VoxelPainterContext *m_voxelPainterContext = nullptr;
+    VoxelModelGenerator *m_voxelModelGenerator = nullptr;
+    bool m_isVoxelModelObsolete = false;
+    VoxelGrid *m_resultVoxelGrid = nullptr;
 private:
     static unsigned long m_maxSnapshot;
     std::deque<HistoryItem> m_undoItems;
