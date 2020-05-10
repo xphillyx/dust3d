@@ -26,8 +26,6 @@ public:
 public:
 	static float m_defaultVoxelSize;
 	float m_voxelSize = m_defaultVoxelSize;
-private:
-	static bool m_openvdbInitialized;
 };
 
 #endif

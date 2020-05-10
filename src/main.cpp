@@ -1,3 +1,4 @@
+#include <openvdb/openvdb.h>
 #include <QApplication>
 #include <QDesktopWidget>
 #include <QStyleFactory>
@@ -17,6 +18,8 @@ int main(int argc, char ** argv)
     QtSingleApplication app(argc, argv);
     if (app.sendMessage("activateFromAnotherInstance"))
         return 0;
+        
+	openvdb::initialize();
     
     QTranslator translator;
     if (translator.load(QLocale(), QLatin1String("dust3d"), QLatin1String("_"), QLatin1String(":/languages")))

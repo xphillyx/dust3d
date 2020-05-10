@@ -6,16 +6,11 @@
 #include <QElapsedTimer>
 #include "util.h"
 
-float VoxelGrid::m_defaultVoxelSize = 0.0025;
-bool VoxelGrid::m_openvdbInitialized = false;
+float VoxelGrid::m_defaultVoxelSize = 0.0033;
 
 VoxelGrid::VoxelGrid(float voxelSize) :
 	m_voxelSize(voxelSize)
 {
-	if (!m_openvdbInitialized) {
-		m_openvdbInitialized = true;
-		openvdb::initialize();
-	}
 	m_transform = openvdb::math::Transform::createLinearTransform(m_voxelSize);
 	m_grid = openvdb::FloatGrid::create(m_voxelSize);
 	m_grid->setTransform(m_transform);
@@ -30,6 +25,8 @@ VoxelGrid::VoxelGrid(const VoxelGrid &other)
 bool VoxelGrid::intersects(const QVector3D &near, const QVector3D &far,
 	QVector3D *intersection)
 {
+	if (m_grid->empty())
+		return false;
 	QVector3D direction = (far - near).normalized();
 	openvdb::math::Ray<double> ray(openvdb::math::Vec3<double>(near.x(), near.y(), near.z()),
 		openvdb::math::Vec3<double>(direction.x(), direction.y(), direction.z()));
