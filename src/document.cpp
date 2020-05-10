@@ -2241,6 +2241,7 @@ void Document::paintVertexDisplacements()
 
     QThread *thread = new QThread;
     m_voxelPainter = new VoxelPainter(new Outcome(*m_currentOutcome), m_mouseRayNear, m_mouseRayFar);
+    m_voxelPainter->setStrokeId(m_voxelPaintStrokeId);
     if (SkeletonDocumentEditMode::Paint == editMode) {
 		if (nullptr == m_voxelPainterContext) {
 			m_voxelPainterContext = new VoxelPainterContext;
@@ -4188,6 +4189,7 @@ const QString &Document::scriptConsoleLog() const
 
 void Document::startPaint(void)
 {
+	++m_voxelPaintStrokeId;
 }
 
 void Document::stopPaint(void)

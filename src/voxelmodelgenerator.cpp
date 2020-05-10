@@ -5,6 +5,7 @@
 #include "voxelmodelgenerator.h"
 #include "model.h"
 #include "util.h"
+#include "theme.h"
 
 VoxelModelGenerator::VoxelModelGenerator(VoxelGrid *voxelGrid) :
 	m_voxelGrid(voxelGrid)
@@ -58,15 +59,18 @@ void VoxelModelGenerator::generate()
     int triangleVertexCount = voxelTriangles.size() * 3;
     ShaderVertex *triangleVertices = new ShaderVertex[triangleVertexCount];
     int destIndex = 0;
+    auto clayR = Theme::clayColor.redF();
+    auto clayG = Theme::clayColor.greenF();
+    auto clayB = Theme::clayColor.blueF();
     for (size_t i = 0; i < voxelTriangles.size(); ++i) {
         const auto &srcNormal = &voxelTriangleNormals[i];
         for (auto j = 0; j < 3; j++) {
             int vertexIndex = voxelTriangles[i][j];
             const QVector3D *srcVert = &voxelVertices[vertexIndex];
             ShaderVertex *dest = &triangleVertices[destIndex];
-            dest->colorR = 1.0;
-            dest->colorG = 1.0;
-            dest->colorB = 1.0;
+            dest->colorR = clayR;
+            dest->colorG = clayG;
+            dest->colorB = clayB;
             dest->alpha = 1.0;
             dest->posX = srcVert->x();
             dest->posY = srcVert->y();
@@ -77,7 +81,7 @@ void VoxelModelGenerator::generate()
             dest->normY = srcNormal->y();
             dest->normZ = srcNormal->z();
             dest->metalness = Model::m_defaultMetalness;
-            dest->roughness = Model::m_defaultRoughness;
+            dest->roughness = Theme::clayRoughness;
             dest->tangentX = 0;
             dest->tangentY = 0;
             dest->tangentZ = 0;

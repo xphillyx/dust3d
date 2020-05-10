@@ -6,10 +6,11 @@
 #include <QElapsedTimer>
 #include "util.h"
 
-float VoxelGrid::m_voxelSize = 0.005; //0.0025;
+float VoxelGrid::m_defaultVoxelSize = 0.0025;
 bool VoxelGrid::m_openvdbInitialized = false;
 
-VoxelGrid::VoxelGrid()
+VoxelGrid::VoxelGrid(float voxelSize) :
+	m_voxelSize(voxelSize)
 {
 	if (!m_openvdbInitialized) {
 		m_openvdbInitialized = true;
@@ -34,8 +35,12 @@ bool VoxelGrid::intersects(const QVector3D &near, const QVector3D &far,
 		openvdb::math::Vec3<double>(direction.x(), direction.y(), direction.z()));
 	openvdb::tools::LevelSetRayIntersector<openvdb::FloatGrid> rayIntersector(*m_grid);
 	openvdb::math::Vec3<double> intersectsAt;
-	if (!rayIntersector.intersectsWS(ray, intersectsAt))
+	openvdb::math::Vec3<double> normal;
+	if (!rayIntersector.intersectsWS(ray, intersectsAt, normal))
 		return false;
+	if (QVector3D::dotProduct(QVector3D(normal.x(), normal.y(), normal.z()), direction) >= 0) {
+		return false;
+	}
 	if (nullptr != intersection) {
 		intersection->setX(intersectsAt.x());
 		intersection->setY(intersectsAt.y());

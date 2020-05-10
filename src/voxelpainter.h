@@ -15,6 +15,7 @@ class VoxelPainterContext
 {
 public:
 	quint64 meshId = 0;
+	quint64 strokeId = 0;
 	~VoxelPainterContext();
 	VoxelGrid *sourceVoxelGrid = nullptr;
 	VoxelGrid *positiveVoxelGrid = nullptr;
@@ -27,6 +28,7 @@ class VoxelPainter : public QObject
     Q_OBJECT
 public:
     VoxelPainter(Outcome *outcome, const QVector3D &mouseRayNear, const QVector3D &mouseRayFar);
+    void setStrokeId(quint64 strokeId);
     void setLastPaintPosition(const QVector3D &lastPaintPosition);
     void setRadius(float radius);
     void setPaintMode(PaintMode paintMode);
@@ -54,6 +56,7 @@ private:
     QVector3D m_lastPaintPosition;
     VoxelPainterContext *m_context = nullptr;
     VoxelGrid *m_resultVoxelGrid = nullptr;
+    quint64 m_strokeId = 0;
     bool calculateMouseModelPosition(QVector3D &mouseModelPosition);
     void paintToVoxelGrid();
 };

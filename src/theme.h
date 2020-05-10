@@ -19,6 +19,8 @@ public:
     static QColor dark;
     static QColor altDark;
     static QColor broken;
+    static QColor clayColor;
+    static float clayRoughness;
     static float normalAlpha;
     static float checkedAlpha;
     static float branchAlpha;

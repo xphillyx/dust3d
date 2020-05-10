@@ -12,7 +12,7 @@ class VoxelGrid
 public:
 	openvdb::FloatGrid::Ptr m_grid;
 	openvdb::math::Transform::Ptr m_transform;
-	VoxelGrid();
+	VoxelGrid(float voxelSize=m_defaultVoxelSize);
 	VoxelGrid(const VoxelGrid &other);
 	bool intersects(const QVector3D &near, const QVector3D &far,
 		QVector3D *intersection);
@@ -23,10 +23,11 @@ public:
 	void diffWith(const VoxelGrid &other);
 	void toMesh(std::vector<QVector3D> *vertices,
 		std::vector<std::vector<size_t>> *faces);
+public:
+	static float m_defaultVoxelSize;
+	float m_voxelSize = m_defaultVoxelSize;
 private:
 	static bool m_openvdbInitialized;
-public:
-	static float m_voxelSize;
 };
 
 #endif

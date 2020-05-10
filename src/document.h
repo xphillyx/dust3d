@@ -834,6 +834,7 @@ private: // need initialize
     VoxelModelGenerator *m_voxelModelGenerator = nullptr;
     bool m_isVoxelModelObsolete = false;
     VoxelGrid *m_resultVoxelGrid = nullptr;
+    quint64 m_voxelPaintStrokeId = 0;
 private:
     static unsigned long m_maxSnapshot;
     std::deque<HistoryItem> m_undoItems;

@@ -20,6 +20,11 @@ VoxelPainter::VoxelPainter(Outcome *outcome, const QVector3D &mouseRayNear, cons
 {
 }
 
+void VoxelPainter::setStrokeId(quint64 strokeId)
+{
+	m_strokeId = strokeId;
+}
+
 Outcome *VoxelPainter::takeOutcome()
 {
     Outcome *outcome = m_outcome;
@@ -69,10 +74,6 @@ VoxelPainter::~VoxelPainter()
 
 bool VoxelPainter::calculateMouseModelPosition(QVector3D &mouseModelPosition)
 {
-	//if (nullptr != m_context->lastResultVoxelGrid) {
-	//	return m_context->lastResultVoxelGrid->intersects(m_mouseRayNear, m_mouseRayFar,
-	//		&mouseModelPosition);
-	//}
 	return m_context->sourceVoxelGrid->intersects(m_mouseRayNear, m_mouseRayFar,
 		&mouseModelPosition);
 }
@@ -112,7 +113,7 @@ void VoxelPainter::paintToVoxelGrid()
 			m_context->negativeVoxelGrid->unionWith(sphereGrid);
 			m_context->positiveVoxelGrid->diffWith(sphereGrid);
 		}
-		currentDistance += VoxelGrid::m_voxelSize / 2;
+		currentDistance += m_resultVoxelGrid->m_voxelSize * 0.3;
 	} while (currentDistance <= moveDistance);
 	
 	auto constructSphereConsumedTime = timer.elapsed() - constructSphereStartTime;
@@ -143,6 +144,15 @@ void VoxelPainter::paint()
 		m_context->sourceVoxelGrid = new VoxelGrid;
 		m_context->sourceVoxelGrid->fromMesh(m_outcome->vertices, m_outcome->triangleAndQuads);
 		m_context->meshId = m_outcome->meshId;
+		m_context->strokeId = m_strokeId;
+	}
+	
+	if (m_context->strokeId != m_strokeId) {
+		if (nullptr != m_context->lastResultVoxelGrid) {
+			delete m_context->sourceVoxelGrid;
+			m_context->sourceVoxelGrid = new VoxelGrid(*m_context->lastResultVoxelGrid);
+			m_context->strokeId = m_strokeId;
+		}
 	}
 	
     if (!calculateMouseModelPosition(m_targetPosition))
