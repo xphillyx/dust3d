@@ -80,7 +80,7 @@ bool VoxelPainter::calculateMouseModelPosition(QVector3D &mouseModelPosition)
 
 void VoxelPainter::paintToVoxelGrid()
 {
-	if (nullptr == m_context)
+	if (nullptr == m_context || m_radius <= 0)
 		return;
 
 	QElapsedTimer timer;
@@ -102,19 +102,28 @@ void VoxelPainter::paintToVoxelGrid()
 	QVector3D moveDirection = (endPosition - beginPosition).normalized();
 	float moveDistance = (endPosition - beginPosition).length();
 	float currentDistance = 0;
+	
+	VoxelGrid *strokeGrid = new VoxelGrid;
 	do
 	{
-		auto sphereCenter = beginPosition + moveDirection * currentDistance;
-		VoxelGrid sphereGrid;
-		sphereGrid.makeSphere(sphereCenter, m_radius);
-		if (PaintMode::Pull == m_paintMode) {
-			m_context->positiveVoxelGrid->unionWith(sphereGrid);
-		} else if (PaintMode::Push == m_paintMode) {
-			m_context->negativeVoxelGrid->unionWith(sphereGrid);
-			m_context->positiveVoxelGrid->diffWith(sphereGrid);
-		}
+		auto center = beginPosition + moveDirection * currentDistance;
+		VoxelGrid sphereUnit;
+		sphereUnit.makeSphere(center, m_radius);
+		strokeGrid->unionWith(sphereUnit);
 		currentDistance += m_resultVoxelGrid->m_voxelSize * 0.3;
 	} while (currentDistance <= moveDistance);
+	strokeGrid->intersectWith(*m_context->sourceVoxelGrid);
+	{
+		openvdb::tools::LevelSetFilter<openvdb::FloatGrid> filter(*strokeGrid->m_grid);
+		filter.offset(-VoxelGrid::m_defaultVoxelSize * 0.25);
+	}
+	if (PaintMode::Pull == m_paintMode) {
+		m_context->positiveVoxelGrid->unionWith(*strokeGrid);
+	} else if (PaintMode::Push == m_paintMode) {
+		m_context->negativeVoxelGrid->unionWith(*strokeGrid);
+		m_context->positiveVoxelGrid->diffWith(*strokeGrid);
+	}
+	delete strokeGrid;
 	
 	auto constructSphereConsumedTime = timer.elapsed() - constructSphereStartTime;
 	qDebug() << "VOXEL constructSphere took milliseconds:" << constructSphereConsumedTime;
@@ -129,6 +138,9 @@ void VoxelPainter::paintToVoxelGrid()
 	
 	delete m_context->lastResultVoxelGrid;
 	m_context->lastResultVoxelGrid = new VoxelGrid(*m_resultVoxelGrid);
+	
+	qDebug() << "VOXEL create grid took milliseconds:" << timer.elapsed();
+	qDebug() << "111111111111111111111111111111111111111111111111111111111111";
 }
 
 void VoxelPainter::paint()
@@ -145,6 +157,9 @@ void VoxelPainter::paint()
 		m_context->sourceVoxelGrid->fromMesh(m_outcome->vertices, m_outcome->triangleAndQuads);
 		m_context->meshId = m_outcome->meshId;
 		m_context->strokeId = m_strokeId;
+		
+		//openvdb::tools::LevelSetFilter<openvdb::FloatGrid> filter(*m_context->sourceVoxelGrid->m_grid);
+		//filter.laplacian();
 	}
 	
 	if (m_context->strokeId != m_strokeId) {

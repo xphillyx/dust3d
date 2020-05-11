@@ -96,5 +96,5 @@ void VoxelModelGenerator::generate()
 	
 	auto totalConsumedTime = timer.elapsed();
 	qDebug() << "VOXEL total took milliseconds:" << totalConsumedTime;
-	qDebug() << "VOXEL ==============================";
+	qDebug() << "222222222222222222222222222222222222222222222222222222222222222222";
 }

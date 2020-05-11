@@ -1,6 +1,7 @@
 #include <openvdb/tools/RayIntersector.h>
 #include <openvdb/tools/Composite.h>
 #include <openvdb/tools/LevelSetSphere.h>
+#include <openvdb/tools/LevelSetPlatonic.h>
 #include "voxelgrid.h"
 #include <QDebug>
 #include <QElapsedTimer>
@@ -13,6 +14,7 @@ VoxelGrid::VoxelGrid(float voxelSize) :
 {
 	m_transform = openvdb::math::Transform::createLinearTransform(m_voxelSize);
 	m_grid = openvdb::FloatGrid::create(m_voxelSize);
+	m_grid->setGridClass(openvdb::GRID_LEVEL_SET);
 	m_grid->setTransform(m_transform);
 }
 
@@ -51,6 +53,12 @@ void VoxelGrid::makeSphere(const QVector3D &center, float radius)
 	m_grid = openvdb::tools::createLevelSetSphere<openvdb::FloatGrid>(radius, openvdb::Vec3f(center.x(), center.y(), center.z()), m_voxelSize);
 }
 
+void VoxelGrid::makeCube(const QVector3D &center, float width)
+{
+	m_grid = openvdb::tools::createLevelSetCube<openvdb::FloatGrid>(width,
+		openvdb::Vec3f(center.x(), center.y(), center.z()), m_voxelSize);
+}
+
 void VoxelGrid::fromMesh(const std::vector<QVector3D> &vertices,
 	const std::vector<std::vector<size_t>> &faces)
 {
@@ -72,7 +80,7 @@ void VoxelGrid::fromMesh(const std::vector<QVector3D> &vertices,
 	}
 	
 	m_grid = openvdb::tools::meshToLevelSet<openvdb::FloatGrid>(
-		*m_transform, points, triangles, quads, 1.0);
+		*m_transform, points, triangles, quads, 3.0);
 }
 
 void VoxelGrid::unionWith(const VoxelGrid &other)
@@ -83,6 +91,11 @@ void VoxelGrid::unionWith(const VoxelGrid &other)
 void VoxelGrid::diffWith(const VoxelGrid &other)
 {
 	openvdb::tools::csgDifference(*m_grid, *other.m_grid);
+}
+
+void VoxelGrid::intersectWith(const VoxelGrid &other)
+{
+	openvdb::tools::csgIntersection(*m_grid, *other.m_grid);
 }
 
 void VoxelGrid::toMesh(std::vector<QVector3D> *vertices,

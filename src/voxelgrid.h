@@ -4,6 +4,7 @@
 #include <openvdb/tools/MeshToVolume.h>
 #include <openvdb/tools/VolumeToMesh.h>
 #include <openvdb/tools/LevelSetFilter.h>
+#include <openvdb/tools/Morphology.h>
 #include <vector>
 #include <QVector3D>
 
@@ -17,10 +18,12 @@ public:
 	bool intersects(const QVector3D &near, const QVector3D &far,
 		QVector3D *intersection);
 	void makeSphere(const QVector3D &center, float radius);
+	void makeCube(const QVector3D &center, float width);
 	void fromMesh(const std::vector<QVector3D> &vertices,
 		const std::vector<std::vector<size_t>> &faces);
 	void unionWith(const VoxelGrid &other);
 	void diffWith(const VoxelGrid &other);
+	void intersectWith(const VoxelGrid &other);
 	void toMesh(std::vector<QVector3D> *vertices,
 		std::vector<std::vector<size_t>> *faces);
 public:
