@@ -51,7 +51,7 @@ void PosePreviewManager::poseMeshReady()
 
     qDebug() << "Pose mesh generation done";
     
-    delete m_poseMeshCreator;
+    m_poseMeshCreator->deleteLater();
     m_poseMeshCreator = nullptr;
     
     emit resultPreviewMeshChanged();

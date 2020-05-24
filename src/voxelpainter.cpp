@@ -110,18 +110,22 @@ void VoxelPainter::paintToVoxelGrid()
 		VoxelGrid sphereUnit;
 		sphereUnit.makeSphere(center, m_radius);
 		strokeGrid->unionWith(sphereUnit);
-		currentDistance += m_resultVoxelGrid->m_voxelSize * 0.3;
+		currentDistance += m_resultVoxelGrid->m_voxelSize * 0.25;
 	} while (currentDistance <= moveDistance);
-	strokeGrid->intersectWith(*m_context->sourceVoxelGrid);
-	{
+	if (PaintMode::Pull == m_paintMode) {
+		strokeGrid->intersectWith(*m_context->sourceVoxelGrid);
 		openvdb::tools::LevelSetFilter<openvdb::FloatGrid> filter(*strokeGrid->m_grid);
 		filter.offset(-VoxelGrid::m_defaultVoxelSize * 0.25);
-	}
-	if (PaintMode::Pull == m_paintMode) {
+		filter.laplacian();
 		m_context->positiveVoxelGrid->unionWith(*strokeGrid);
 	} else if (PaintMode::Push == m_paintMode) {
+		strokeGrid->intersectWith(*m_context->sourceVoxelGrid);
 		m_context->negativeVoxelGrid->unionWith(*strokeGrid);
 		m_context->positiveVoxelGrid->diffWith(*strokeGrid);
+		openvdb::tools::LevelSetFilter<openvdb::FloatGrid> filter(*strokeGrid->m_grid);
+		filter.offset(VoxelGrid::m_defaultVoxelSize * 0.25);
+		filter.laplacian();
+		m_context->positiveVoxelGrid->unionWith(*strokeGrid);
 	}
 	delete strokeGrid;
 	

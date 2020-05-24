@@ -735,7 +735,7 @@ void SkeletonGraphicsWidget::turnaroundImageReady()
     } else {
         qDebug() << "Fit turnaround failed";
     }
-    delete m_turnaroundLoader;
+    m_turnaroundLoader->deleteLater();
     m_turnaroundLoader = nullptr;
 
     if (m_turnaroundChanged) {
@@ -2939,8 +2939,7 @@ void SkeletonGraphicsWidget::ikMoveReady()
         emit batchChangeEnd();
         emit groupOperationAdded();
     }
-    
-    delete m_ikMover;
+    m_ikMover->deleteLater();
     m_ikMover = nullptr;
     
     if (movedUpdateVersion != m_ikMoveUpdateVersion &&

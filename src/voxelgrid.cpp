@@ -50,7 +50,7 @@ bool VoxelGrid::intersects(const QVector3D &near, const QVector3D &far,
 
 void VoxelGrid::makeSphere(const QVector3D &center, float radius)
 {
-	m_grid = openvdb::tools::createLevelSetSphere<openvdb::FloatGrid>(radius, openvdb::Vec3f(center.x(), center.y(), center.z()), m_voxelSize);
+	m_grid = openvdb::tools::createLevelSetSphere<openvdb::FloatGrid>(radius, openvdb::Vec3f(center.x(), center.y(), center.z()), m_voxelSize, 1.0);
 }
 
 void VoxelGrid::makeCube(const QVector3D &center, float width)
@@ -80,7 +80,7 @@ void VoxelGrid::fromMesh(const std::vector<QVector3D> &vertices,
 	}
 	
 	m_grid = openvdb::tools::meshToLevelSet<openvdb::FloatGrid>(
-		*m_transform, points, triangles, quads, 3.0);
+		*m_transform, points, triangles, quads, 1.0);
 }
 
 void VoxelGrid::unionWith(const VoxelGrid &other)

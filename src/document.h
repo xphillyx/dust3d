@@ -597,6 +597,7 @@ public:
     bool hasPastableMaterialsInClipboard() const;
     bool hasPastablePosesInClipboard() const;
     bool hasPastableMotionsInClipboard() const;
+    const Outcome *getCurrentOutcome() const;
     const Outcome &currentPostProcessedOutcome() const;
     bool isExportReady() const;
     bool isPostProcessResultObsolete() const;
@@ -657,7 +658,7 @@ public slots:
     void materialPreviewsReady();
     void generateMotions();
     void motionsReady();
-    void pickMouseTarget(const QVector3D &nearPosition, const QVector3D &farPosition);
+    //void pickMouseTarget(const QVector3D &nearPosition, const QVector3D &farPosition);
     void doPickMouseTarget();
     void paintPartDeformMaps();
     void partDeformMapsReady();
@@ -766,9 +767,11 @@ public slots:
     void scriptResultReady();
     void updateVariable(const QString &name, const std::map<QString, QString> &value);
     void updateVariableValue(const QString &name, const QString &value);
-    void startPaint(void);
-    void stopPaint(void);
+    void startPaint();
+    void stopPaint();
     void setMousePickMaskNodeIds(const std::set<QUuid> &nodeIds);
+    void setMouseTargetPosition(const QVector3D &targetPosition);
+    void clearMouseTargetPosition();
 private:
     void splitPartByNode(std::vector<std::vector<QUuid>> *groups, QUuid nodeId);
     void joinNodeAndNeiborsToGroup(std::vector<QUuid> *group, QUuid nodeId, std::set<QUuid> *visitMap, QUuid noUseEdgeId=QUuid());

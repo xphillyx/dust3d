@@ -56,7 +56,7 @@ void AutoSaver::documentChanged()
 
 void AutoSaver::autoSaveDone()
 {
-    delete m_documentSaver;
+	m_documentSaver->deleteLater();
     m_documentSaver = nullptr;
     
     qDebug() << "Auto saving done";

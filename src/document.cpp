@@ -320,7 +320,7 @@ void Document::addPartByPolygons(const QPolygonF &mainProfile, const QPolygonF &
             addFromSnapshot(snapshot, SnapshotSource::Paste);
             saveSnapshot();
         }
-        delete contourToPartConverter;
+        contourToPartConverter->deleteLater();
     });
     connect(contourToPartConverter, &ContourToPartConverter::finished, thread, &QThread::quit);
     connect(thread, &QThread::finished, thread, &QThread::deleteLater);
@@ -1929,7 +1929,7 @@ void Document::meshReady()
         qDebug() << "Result mesh is null";
     }
     
-    delete m_meshGenerator;
+    m_meshGenerator->deleteLater();
     m_meshGenerator = nullptr;
     
     qDebug() << "Mesh generation done";
@@ -2110,7 +2110,7 @@ void Document::textureReady()
     
     m_textureImageUpdateVersion++;
     
-    delete m_textureGenerator;
+    m_textureGenerator->deleteLater();
     m_textureGenerator = nullptr;
     
     qDebug() << "Texture guide generation done";
@@ -2156,7 +2156,7 @@ void Document::postProcessedMeshResultReady()
     delete m_postProcessedOutcome;
     m_postProcessedOutcome = m_postProcessor->takePostProcessedOutcome();
 
-    delete m_postProcessor;
+	m_postProcessor->deleteLater();
     m_postProcessor = nullptr;
 
     qDebug() << "Post process done";
@@ -2168,13 +2168,13 @@ void Document::postProcessedMeshResultReady()
     }
 }
 
-void Document::pickMouseTarget(const QVector3D &nearPosition, const QVector3D &farPosition)
-{
-    m_mouseRayNear = nearPosition;
-    m_mouseRayFar = farPosition;
-    
-    doPickMouseTarget();
-}
+//void Document::pickMouseTarget(const QVector3D &nearPosition, const QVector3D &farPosition)
+//{
+//    m_mouseRayNear = nearPosition;
+//    m_mouseRayFar = farPosition;
+//
+//    doPickMouseTarget();
+//}
 
 void Document::doPickMouseTarget()
 {
@@ -2215,7 +2215,7 @@ void Document::voxelModelReady()
         emit paintedMeshChanged();
     }
     
-    delete m_voxelModelGenerator;
+    m_voxelModelGenerator->deleteLater();
     m_voxelModelGenerator = nullptr;
 
     if (m_isMouseTargetResultObsolete) {
@@ -2275,8 +2275,8 @@ void Document::vertexDisplacementsReady()
 		
 		generateVoxelModel();
     }
-
-    delete m_voxelPainter;
+	
+	m_voxelPainter->deleteLater();
     m_voxelPainter = nullptr;
     
     if (!m_isMouseTargetResultObsolete && m_saveNextPaintSnapshot) {
@@ -2289,8 +2289,20 @@ void Document::vertexDisplacementsReady()
     //qDebug() << "Mouse pick done";
 
     if (m_isMouseTargetResultObsolete) {
-        pickMouseTarget(m_mouseRayNear, m_mouseRayFar);
+        //pickMouseTarget(m_mouseRayNear, m_mouseRayFar);
     }
+}
+
+void Document::setMouseTargetPosition(const QVector3D &targetPosition)
+{
+	m_mouseTargetPosition = targetPosition;
+	emit mouseTargetChanged();
+}
+
+void Document::clearMouseTargetPosition()
+{
+	m_mouseTargetPosition = QVector3D();
+	emit mouseTargetChanged();
 }
 
 void Document::paintPartDeformMaps()
@@ -2345,7 +2357,7 @@ void Document::partDeformMapsReady()
         setPartDeformMapImageId(partId, imageId);
     }
     
-    delete m_partDeformMapPainter;
+    m_partDeformMapPainter->deleteLater();
     m_partDeformMapPainter = nullptr;
     
     if (!m_isMouseTargetResultObsolete && m_saveNextPaintSnapshot) {
@@ -2358,7 +2370,7 @@ void Document::partDeformMapsReady()
     //qDebug() << "Mouse pick done";
 
     if (m_isMouseTargetResultObsolete) {
-        pickMouseTarget(m_mouseRayNear, m_mouseRayFar);
+        //pickMouseTarget(m_mouseRayNear, m_mouseRayFar);
     }
 }
 
@@ -2381,6 +2393,11 @@ void Document::setMousePickRadius(float radius)
 const Outcome &Document::currentPostProcessedOutcome() const
 {
     return *m_postProcessedOutcome;
+}
+
+const Outcome *Document::getCurrentOutcome() const
+{
+	return m_currentOutcome;
 }
 
 void Document::setPartLockState(QUuid partId, bool locked)
@@ -3652,7 +3669,7 @@ void Document::rigReady()
     if (nullptr == m_riggedOutcome)
         m_riggedOutcome = new Outcome;
     
-    delete m_rigGenerator;
+    m_rigGenerator->deleteLater();
     m_rigGenerator = nullptr;
     
     qDebug() << "Rig generation done";
@@ -3781,7 +3798,7 @@ void Document::motionsReady()
         }
     }
     
-    delete m_motionsGenerator;
+    m_motionsGenerator->deleteLater();
     m_motionsGenerator = nullptr;
     
     qDebug() << "Motions generation done";
@@ -3844,8 +3861,8 @@ void Document::posePreviewsReady()
             emit posePreviewChanged(poseIdAndFrame.first);
         }
     }
-
-    delete m_posePreviewsGenerator;
+	
+	m_posePreviewsGenerator->deleteLater();
     m_posePreviewsGenerator = nullptr;
     
     qDebug() << "Pose previews generation done";
@@ -3964,8 +3981,8 @@ void Document::materialPreviewsReady()
             emit materialPreviewChanged(materialId);
         }
     }
-
-    delete m_materialPreviewsGenerator;
+	
+	m_materialPreviewsGenerator->deleteLater();
     m_materialPreviewsGenerator = nullptr;
     
     qDebug() << "Material previews generation done";
@@ -4150,8 +4167,8 @@ void Document::scriptResultReady()
         mergedVariablesChanged = updateDefaultVariables(*defaultVariables);
         delete defaultVariables;
     }
-
-    delete m_scriptRunner;
+	
+	m_scriptRunner->deleteLater();
     m_scriptRunner = nullptr;
     
     if (errorChanged)
@@ -4187,12 +4204,12 @@ const QString &Document::scriptConsoleLog() const
     return m_scriptConsoleLog;
 }
 
-void Document::startPaint(void)
+void Document::startPaint()
 {
 	++m_voxelPaintStrokeId;
 }
 
-void Document::stopPaint(void)
+void Document::stopPaint()
 {
     if (m_partDeformMapPainter || 
             m_voxelPainter ||

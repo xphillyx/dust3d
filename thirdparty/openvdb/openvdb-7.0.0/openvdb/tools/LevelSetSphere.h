@@ -124,13 +124,13 @@ private:
     void rasterSphere(ValueT dx, ValueT w, bool threaded)
     {
         if (!(dx>0.0f)) OPENVDB_THROW(ValueError, "voxel size must be positive");
-        if (!(w>1)) OPENVDB_THROW(ValueError, "half-width must be larger than one");
+        //if (!(w>1)) OPENVDB_THROW(ValueError, "half-width must be larger than one");
 
         // Define radius of sphere and narrow-band in voxel units
         const ValueT r0 = mRadius/dx, rmax = r0 + w;
 
         // Radius below the Nyquist frequency
-        if (r0 < 1.5f)  return;
+        //if (r0 < 1.5f)  return;
 
         // Define center of sphere in voxel units
         const Vec3T c(mCenter[0]/dx, mCenter[1]/dx, mCenter[2]/dx);

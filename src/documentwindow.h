@@ -10,6 +10,7 @@
 #include <map>
 #include <QStringList>
 #include <QLabel>
+#include <deque>
 #include "document.h"
 #include "modelwidget.h"
 #include "exportpreviewwidget.h"
@@ -23,6 +24,8 @@
 #include "QtColorWidgets/ColorWheel"
 
 class SkeletonGraphicsWidget;
+class MousePickerContext;
+class MousePicker;
 
 class DocumentWindow : public QMainWindow
 {
@@ -95,11 +98,14 @@ public slots:
     void autoRecover();
     void import();
     void importPath(const QString &filename);
+    void mousePick(const QVector3D &nearPosition, const QVector3D &farPosition);
+    void mousePickFinished();
 private:
     void initLockButton(QPushButton *button);
     void setCurrentFilename(const QString &filename);
     void updateTitle();
     void createPartSnapshotForFillMesh(const QUuid &fillMeshFileId, Snapshot *snapshot);
+    void processMousePickingQueue();
 private:
     Document *m_document = nullptr;
     bool m_firstShow = true;
@@ -221,6 +227,10 @@ private:
     bool m_isNormalAndDepthMapsObsolete = false;
     
     AutoSaver *m_autoSaver = nullptr;
+    
+    MousePicker *m_mousePicker = nullptr;
+    MousePickerContext *m_mousePickerContext = nullptr;
+    std::deque<std::pair<QVector3D, QVector3D>> m_mouseRayQueue;
 public:
     static int m_autoRecovered;
 };

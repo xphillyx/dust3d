@@ -293,7 +293,7 @@ void MotionEditWidget::previewsReady()
     auto resultPreviewMeshs = m_previewsGenerator->takeResultPreviewMeshs(QUuid());
     m_clipPlayer->updateFrameMeshes(resultPreviewMeshs);
 
-    delete m_previewsGenerator;
+	m_previewsGenerator->deleteLater();
     m_previewsGenerator = nullptr;
     
     if (m_closed) {

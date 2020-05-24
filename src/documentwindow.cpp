@@ -48,6 +48,7 @@
 #include "modeloffscreenrender.h"
 #include "fileforever.h"
 #include "documentsaver.h"
+#include "mousepicker.h"
 
 int DocumentWindow::m_autoRecovered = false;
 
@@ -327,13 +328,14 @@ DocumentWindow::DocumentWindow()
     connect(containerWidget, &GraphicsContainerWidget::containerSizeChanged,
         m_modelRenderWidget, &ModelWidget::canvasResized);
     
-    connect(m_modelRenderWidget, &ModelWidget::mouseRayChanged, m_document,
-            [=](const QVector3D &nearPosition, const QVector3D &farPosition) {
-        std::set<QUuid> nodeIdSet;
-        graphicsWidget->readSkeletonNodeAndEdgeIdSetFromRangeSelection(&nodeIdSet);
-        m_document->setMousePickMaskNodeIds(nodeIdSet);
-        m_document->pickMouseTarget(nearPosition, farPosition);
-    });
+    connect(m_modelRenderWidget, &ModelWidget::mouseRayChanged, this, &DocumentWindow::mousePick);
+    //connect(m_modelRenderWidget, &ModelWidget::mouseRayChanged, m_document,
+    //        [=](const QVector3D &nearPosition, const QVector3D &farPosition) {
+        //std::set<QUuid> nodeIdSet;
+        //graphicsWidget->readSkeletonNodeAndEdgeIdSetFromRangeSelection(&nodeIdSet);
+        //m_document->setMousePickMaskNodeIds(nodeIdSet);
+        //m_document->pickMouseTarget(nearPosition, farPosition);
+    //});
     connect(m_modelRenderWidget, &ModelWidget::mousePressed, m_document, [=]() {
         m_document->startPaint();
         if (QGuiApplication::queryKeyboardModifiers().testFlag(Qt::ShiftModifier))
@@ -2115,8 +2117,8 @@ void DocumentWindow::normalAndDepthMapsReady()
     QImage *depthMap = m_normalAndDepthMapsGenerator->takeDepthMap();
 
     m_modelRenderWidget->updateToonNormalAndDepthMaps(normalMap, depthMap);
-
-    delete m_normalAndDepthMapsGenerator;
+	
+	m_normalAndDepthMapsGenerator->deleteLater();
     m_normalAndDepthMapsGenerator = nullptr;
     
     qDebug() << "Normal and depth maps generation done";
@@ -2203,4 +2205,63 @@ void DocumentWindow::import()
     if (fileName.isEmpty())
         return;
     importPath(fileName);
+}
+
+void DocumentWindow::processMousePickingQueue()
+{
+	if (nullptr != m_mousePicker)
+		return;
+	if (m_mouseRayQueue.empty())
+		return;
+		
+	const Outcome *currentOutcome = m_document->getCurrentOutcome();
+	if (nullptr == currentOutcome) {
+		m_mouseRayQueue.clear();
+		return;
+	}
+	
+	auto mouseRay = m_mouseRayQueue.front();
+	m_mouseRayQueue.pop_front();
+	
+	QThread *thread = new QThread;
+	
+	MousePickerContext *context = m_mousePickerContext;
+	m_mousePickerContext = nullptr;
+	m_mousePicker = new MousePicker(context,
+		currentOutcome->vertices,
+		currentOutcome->triangleAndQuads,
+		currentOutcome->meshId);
+	m_mousePicker->setMouseRay(mouseRay.first, mouseRay.second);
+	
+	m_mousePicker->moveToThread(thread);
+    connect(thread, &QThread::started, m_mousePicker, &MousePicker::process);
+    connect(m_mousePicker, &MousePicker::finished, this, &DocumentWindow::mousePickFinished);
+    connect(m_mousePicker, &MousePicker::finished, thread, &QThread::quit);
+    connect(thread, &QThread::finished, thread, &QThread::deleteLater);
+    thread->start();
+}
+
+void DocumentWindow::mousePickFinished()
+{
+	QVector3D pickedPosition;
+	if (m_mousePicker->takePickedPosition(&pickedPosition))
+		m_document->setMouseTargetPosition(pickedPosition);
+	else
+		m_document->clearMouseTargetPosition();
+	
+	MousePicker::releaseContext(m_mousePickerContext);
+	m_mousePickerContext = m_mousePicker->takeContext();
+	
+	m_mousePicker->deleteLater();
+	m_mousePicker = nullptr;
+	
+	processMousePickingQueue();
+}
+
+void DocumentWindow::mousePick(const QVector3D &nearPosition, const QVector3D &farPosition)
+{
+	if (qFuzzyCompare(nearPosition, farPosition))
+		return;
+	m_mouseRayQueue.push_back({nearPosition, farPosition});
+	processMousePickingQueue();
 }

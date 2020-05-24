@@ -248,8 +248,8 @@ void MaterialEditWidget::updatePreview()
 void MaterialEditWidget::previewReady()
 {
     m_previewWidget->updateMesh(m_materialPreviewsGenerator->takePreview(QUuid()));
-
-    delete m_materialPreviewsGenerator;
+	
+	m_materialPreviewsGenerator->deleteLater();
     m_materialPreviewsGenerator = nullptr;
 
     qDebug() << "Material preview generation done";
