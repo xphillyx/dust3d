@@ -98,7 +98,7 @@ public slots:
     void autoRecover();
     void import();
     void importPath(const QString &filename);
-    void mousePick(const QVector3D &nearPosition, const QVector3D &farPosition);
+    void mousePick(const QVector3D &nearPosition, const QVector3D &farPosition, PaintMode paintMode);
     void mousePickFinished();
 private:
     void initLockButton(QPushButton *button);
@@ -230,7 +230,10 @@ private:
     
     MousePicker *m_mousePicker = nullptr;
     MousePickerContext *m_mousePickerContext = nullptr;
-    std::deque<std::pair<QVector3D, QVector3D>> m_mouseRayQueue;
+    std::deque<std::tuple<QVector3D, QVector3D, PaintMode>> m_mouseRayQueue;
+    
+    std::vector<QVector3D> m_paintBrushPoints;
+    PaintMode m_paintMode = PaintMode::None;
 public:
     static int m_autoRecovered;
 };

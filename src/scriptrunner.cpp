@@ -2,6 +2,7 @@
 #include <QElapsedTimer>
 #include <QUuid>
 #include <QFile>
+#include <QGuiApplication>
 #include "scriptrunner.h"
 #include "util.h"
 
@@ -849,6 +850,7 @@ int ScriptRunner::createSelectInput(const QString &name, int defaultSelectedInde
 void ScriptRunner::process()
 {
     run();
+    this->moveToThread(QGuiApplication::instance()->thread());
     emit finished();
 }
 

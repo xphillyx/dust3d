@@ -259,11 +259,11 @@ void ModelWidget::resizeGL(int w, int h)
     emit renderParametersChanged();
 }
 
-std::pair<QVector3D, QVector3D> ModelWidget::screenPositionToMouseRay(const QPoint &screenPosition)
+std::pair<QVector3D, QVector3D> ModelWidget::mousePositionToMouseRay(const QPoint &mousePosition)
 {
     auto modelView = m_camera * m_world;
-    float x = qMax(qMin(screenPosition.x(), width() - 1), 0);
-    float y = qMax(qMin(screenPosition.y(), height() - 1), 0);
+    float x = qMax(qMin(mousePosition.x(), width() - 1), 0);
+    float y = qMax(qMin(mousePosition.y(), height() - 1), 0);
     QVector3D nearScreen = QVector3D(x, height() - y, 0.0);
     QVector3D farScreen = QVector3D(x, height() - y, 1.0);
     auto viewPort = QRect(0, 0, width(), height());
@@ -331,8 +331,8 @@ bool ModelWidget::inputMousePressEventFromOtherWidget(QMouseEvent *event)
                 !QGuiApplication::queryKeyboardModifiers().testFlag(Qt::ControlModifier)) {
             shouldStartMove = m_moveEnabled;
         }
-        if (!shouldStartMove && !m_mousePickTargetPositionInModelSpace.isNull())
-            emit mousePressed();
+        if (!shouldStartMove/* && !m_mousePickTargetPositionInModelSpace.isNull()*/)
+            emit mousePressed(event->globalPos());
     } else if (event->button() == Qt::MidButton) {
         shouldStartMove = m_moveEnabled;
     }
@@ -357,7 +357,7 @@ bool ModelWidget::inputMouseReleaseEventFromOtherWidget(QMouseEvent *event)
     }
     if (event->button() == Qt::LeftButton) {
         if (m_mousePickingEnabled)
-            emit mouseReleased();
+            emit mouseReleased(event->globalPos());
     }
     return false;
 }
@@ -372,7 +372,7 @@ bool ModelWidget::inputMouseMoveEventFromOtherWidget(QMouseEvent *event)
     QPoint pos = convertInputPosFromOtherWidget(event);
     
     if (m_mousePickingEnabled) {
-        auto segment = screenPositionToMouseRay(pos);
+        auto segment = mousePositionToMouseRay(pos);
         emit mouseRayChanged(segment.first, segment.second);
     }
 

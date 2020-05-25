@@ -68,6 +68,8 @@ void MousePicker::pick()
 		m_context->voxelGrid = new VoxelGrid;
 		m_context->voxelGrid->fromMesh(m_context->meshVertices, m_context->meshFaces);
 	}
+	if (qFuzzyCompare(m_mouseRayNear, m_mouseRayFar))
+		return;
     m_picked = m_context->voxelGrid->intersects(m_mouseRayNear, m_mouseRayFar,
 		&m_pickedPosition);
 }
@@ -82,4 +84,14 @@ void MousePicker::process()
 void MousePicker::releaseContext(MousePickerContext *context)
 {
 	delete context;
+}
+
+void MousePicker::setPaintMode(PaintMode paintMode)
+{
+	m_paintMode = paintMode;
+}
+
+PaintMode MousePicker::takePaintMode()
+{
+	return m_paintMode;
 }

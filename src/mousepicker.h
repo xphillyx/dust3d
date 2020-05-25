@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QVector3D>
 #include <vector>
+#include "paintmode.h"
 
 class MousePickerContext;
 
@@ -15,6 +16,8 @@ public:
         const std::vector<std::vector<size_t>> &meshFaces,
         quint64 meshId);
 	~MousePicker();
+	void setPaintMode(PaintMode paintMode);
+	PaintMode takePaintMode();
     bool takePickedPosition(QVector3D *position);
     MousePickerContext *takeContext();
     void setMouseRay(const QVector3D &mouseRayNear, 
@@ -30,6 +33,7 @@ private:
     QVector3D m_pickedPosition;
     QVector3D m_mouseRayNear;
     QVector3D m_mouseRayFar;
+    PaintMode m_paintMode = PaintMode::None;
     bool m_picked = false;
 };
 

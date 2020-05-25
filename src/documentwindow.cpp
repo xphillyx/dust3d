@@ -328,7 +328,10 @@ DocumentWindow::DocumentWindow()
     connect(containerWidget, &GraphicsContainerWidget::containerSizeChanged,
         m_modelRenderWidget, &ModelWidget::canvasResized);
     
-    connect(m_modelRenderWidget, &ModelWidget::mouseRayChanged, this, &DocumentWindow::mousePick);
+    connect(m_modelRenderWidget, &ModelWidget::mouseRayChanged, [=](const QVector3D &nearPosition,
+			const QVector3D &farPosition) {
+		mousePick(nearPosition, farPosition, m_paintMode);
+	});
     //connect(m_modelRenderWidget, &ModelWidget::mouseRayChanged, m_document,
     //        [=](const QVector3D &nearPosition, const QVector3D &farPosition) {
         //std::set<QUuid> nodeIdSet;
@@ -336,16 +339,27 @@ DocumentWindow::DocumentWindow()
         //m_document->setMousePickMaskNodeIds(nodeIdSet);
         //m_document->pickMouseTarget(nearPosition, farPosition);
     //});
-    connect(m_modelRenderWidget, &ModelWidget::mousePressed, m_document, [=]() {
-        m_document->startPaint();
-        if (QGuiApplication::queryKeyboardModifiers().testFlag(Qt::ShiftModifier))
-            m_document->setPaintMode(PaintMode::Push);
-        else
-            m_document->setPaintMode(PaintMode::Pull);
+    connect(m_modelRenderWidget, &ModelWidget::mousePressed, m_document, [=](QPoint globalPos) {
+		if (SkeletonDocumentEditMode::Paint != m_document->editMode)
+			return;
+		auto mouseRay = m_modelRenderWidget->mousePositionToMouseRay(m_modelRenderWidget->mapFromGlobal(globalPos));
+		m_paintBrushPoints.clear();
+        //m_document->startPaint();
+        //if (QGuiApplication::queryKeyboardModifiers().testFlag(Qt::ShiftModifier))
+        //    m_document->setPaintMode(PaintMode::Push);
+        //else
+        //    m_document->setPaintMode(PaintMode::Pull);
+        m_paintMode = PaintMode::Push;
+        mousePick(mouseRay.first, mouseRay.second, m_paintMode);
     });
-    connect(m_modelRenderWidget, &ModelWidget::mouseReleased, m_document, [=]() {
-        m_document->setPaintMode(PaintMode::None);
-        m_document->stopPaint();
+    connect(m_modelRenderWidget, &ModelWidget::mouseReleased, m_document, [=](QPoint globalPos) {
+		if (SkeletonDocumentEditMode::Paint != m_document->editMode)
+			return;
+		auto mouseRay = m_modelRenderWidget->mousePositionToMouseRay(m_modelRenderWidget->mapFromGlobal(globalPos));
+		m_paintMode = PaintMode::None;
+        //m_document->setPaintMode(PaintMode::None);
+        //m_document->stopPaint();
+        mousePick(mouseRay.first, mouseRay.second, m_paintMode);
     });
     connect(m_modelRenderWidget, &ModelWidget::addMouseRadius, m_document, [=](float radius) {
         m_document->setMousePickRadius(m_document->mousePickRadius() + radius);
@@ -2231,7 +2245,9 @@ void DocumentWindow::processMousePickingQueue()
 		currentOutcome->vertices,
 		currentOutcome->triangleAndQuads,
 		currentOutcome->meshId);
-	m_mousePicker->setMouseRay(mouseRay.first, mouseRay.second);
+	m_mousePicker->setMouseRay(std::get<0>(mouseRay),
+		std::get<1>(mouseRay));
+	m_mousePicker->setPaintMode(std::get<2>(mouseRay));
 	
 	m_mousePicker->moveToThread(thread);
     connect(thread, &QThread::started, m_mousePicker, &MousePicker::process);
@@ -2243,11 +2259,14 @@ void DocumentWindow::processMousePickingQueue()
 
 void DocumentWindow::mousePickFinished()
 {
+	PaintMode paintMode = m_mousePicker->takePaintMode();
+	
 	QVector3D pickedPosition;
-	if (m_mousePicker->takePickedPosition(&pickedPosition))
+	if (m_mousePicker->takePickedPosition(&pickedPosition)) {
 		m_document->setMouseTargetPosition(pickedPosition);
-	else
+	} else {
 		m_document->clearMouseTargetPosition();
+	}
 	
 	MousePicker::releaseContext(m_mousePickerContext);
 	m_mousePickerContext = m_mousePicker->takeContext();
@@ -2258,10 +2277,8 @@ void DocumentWindow::mousePickFinished()
 	processMousePickingQueue();
 }
 
-void DocumentWindow::mousePick(const QVector3D &nearPosition, const QVector3D &farPosition)
+void DocumentWindow::mousePick(const QVector3D &nearPosition, const QVector3D &farPosition, PaintMode paintMode)
 {
-	if (qFuzzyCompare(nearPosition, farPosition))
-		return;
-	m_mouseRayQueue.push_back({nearPosition, farPosition});
+	m_mouseRayQueue.push_back({nearPosition, farPosition, paintMode});
 	processMousePickingQueue();
 }

@@ -20,8 +20,8 @@ class ModelWidget : public QOpenGLWidget, protected QOpenGLFunctions
     Q_OBJECT
 signals:
     void mouseRayChanged(const QVector3D &near, const QVector3D &far);
-    void mousePressed();
-    void mouseReleased();
+    void mousePressed(QPoint globalPos);
+    void mouseReleased(QPoint globalPos);
     void addMouseRadius(float radius);
     void renderParametersChanged();
     void xRotationChanged(int angle);
@@ -89,6 +89,7 @@ public:
     int zRot();
     const QVector3D &eyePosition();
     const QVector3D &moveToPosition();
+    std::pair<QVector3D, QVector3D> mousePositionToMouseRay(const QPoint &mousePosition);
 private:
     int m_xRot;
     int m_yRot;
@@ -119,7 +120,6 @@ private:
     QVector3D m_moveToPosition;
     bool m_moveAndZoomByWindow = true;
     bool m_enableCullFace = true;
-    std::pair<QVector3D, QVector3D> screenPositionToMouseRay(const QPoint &screenPosition);
     void updateProjectionMatrix();
 public:
     static int m_defaultXRotation;
