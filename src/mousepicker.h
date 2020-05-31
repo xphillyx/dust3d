@@ -18,7 +18,7 @@ public:
 	~MousePicker();
 	void setPaintMode(PaintMode paintMode);
 	PaintMode takePaintMode();
-    bool takePickedPosition(QVector3D *position);
+    bool takePickedPosition(QVector3D *position=nullptr, QVector3D *normal=nullptr);
     MousePickerContext *takeContext();
     void setMouseRay(const QVector3D &mouseRayNear, 
         const QVector3D &mouseRayFar);
@@ -31,6 +31,7 @@ public slots:
 private:
     MousePickerContext *m_context = nullptr;
     QVector3D m_pickedPosition;
+    QVector3D m_pickedNormal;
     QVector3D m_mouseRayNear;
     QVector3D m_mouseRayFar;
     PaintMode m_paintMode = PaintMode::None;

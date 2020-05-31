@@ -136,6 +136,9 @@ include(thirdparty/Qt-Color-Widgets/color_widgets.pri)
 
 INCLUDEPATH += src
 
+SOURCES += src/meshsculptor.cpp
+HEADERS += src/meshsculptor.h
+
 SOURCES += src/mousepicker.cpp
 HEADERS += src/mousepicker.h
 

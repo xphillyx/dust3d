@@ -5,7 +5,8 @@ enum class PaintMode
 {
     None = 0,
     Pull,
-    Push
+    Push,
+    End
 };
 
 #endif

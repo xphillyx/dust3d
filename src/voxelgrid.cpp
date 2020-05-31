@@ -25,7 +25,7 @@ VoxelGrid::VoxelGrid(const VoxelGrid &other)
 }
 
 bool VoxelGrid::intersects(const QVector3D &near, const QVector3D &far,
-	QVector3D *intersection)
+	QVector3D *intersection, QVector3D *intersectedNormal)
 {
 	if (m_grid->empty())
 		return false;
@@ -44,6 +44,11 @@ bool VoxelGrid::intersects(const QVector3D &near, const QVector3D &far,
 		intersection->setX(intersectsAt.x());
 		intersection->setY(intersectsAt.y());
 		intersection->setZ(intersectsAt.z());
+	}
+	if (nullptr != intersectedNormal) {
+		intersectedNormal->setX(normal.x());
+		intersectedNormal->setY(normal.y());
+		intersectedNormal->setZ(normal.z());
 	}
 	return true;
 }

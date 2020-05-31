@@ -16,7 +16,7 @@ public:
 	VoxelGrid(float voxelSize=m_defaultVoxelSize);
 	VoxelGrid(const VoxelGrid &other);
 	bool intersects(const QVector3D &near, const QVector3D &far,
-		QVector3D *intersection);
+		QVector3D *intersection=nullptr, QVector3D *intersectedNormal=nullptr);
 	void makeSphere(const QVector3D &center, float radius);
 	void makeCube(const QVector3D &center, float width);
 	void fromMesh(const std::vector<QVector3D> &vertices,

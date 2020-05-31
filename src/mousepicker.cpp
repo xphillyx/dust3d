@@ -46,12 +46,14 @@ MousePickerContext *MousePicker::takeContext()
     return context;
 }
 
-bool MousePicker::takePickedPosition(QVector3D *position)
+bool MousePicker::takePickedPosition(QVector3D *position, QVector3D *normal)
 {
     if (!m_picked)
         return false;
     if (nullptr != position)
         *position = m_pickedPosition;
+	if (nullptr != normal)
+		*normal = m_pickedNormal;
     return true;
 }
 
@@ -71,7 +73,7 @@ void MousePicker::pick()
 	if (qFuzzyCompare(m_mouseRayNear, m_mouseRayFar))
 		return;
     m_picked = m_context->voxelGrid->intersects(m_mouseRayNear, m_mouseRayFar,
-		&m_pickedPosition);
+		&m_pickedPosition, &m_pickedNormal);
 }
 
 void MousePicker::process()

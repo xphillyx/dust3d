@@ -45,16 +45,16 @@ void VoxelModelGenerator::generate()
 	std::vector<std::vector<size_t>> voxelTriangles;
 	m_voxelGrid->toMesh(&voxelVertices, &voxelTriangles);
 	
-	auto calculateNormalStartTime = timer.elapsed();
+	//auto calculateNormalStartTime = timer.elapsed();
 	
 	std::vector<QVector3D> voxelTriangleNormals(voxelTriangles.size());
 	for (size_t i = 0; i < voxelTriangles.size(); ++i)
 		voxelTriangleNormals[i] = polygonNormal(voxelVertices, voxelTriangles[i]);
 		
-	auto calculateNormalConsumedTime = timer.elapsed() - calculateNormalStartTime;
-	qDebug() << "VOXEL calculateNormal took milliseconds:" << calculateNormalConsumedTime;
+	//auto calculateNormalConsumedTime = timer.elapsed() - calculateNormalStartTime;
+	//qDebug() << "VOXEL calculateNormal took milliseconds:" << calculateNormalConsumedTime;
     
-    auto createMeshStartTime = timer.elapsed();
+    //auto createMeshStartTime = timer.elapsed();
     
     int triangleVertexCount = voxelTriangles.size() * 3;
     ShaderVertex *triangleVertices = new ShaderVertex[triangleVertexCount];
@@ -91,10 +91,9 @@ void VoxelModelGenerator::generate()
 
     m_model = new Model(triangleVertices, triangleVertexCount, 0, 0);
     
-    auto createMeshConsumedTime = timer.elapsed() - createMeshStartTime;
-	qDebug() << "VOXEL createMesh took milliseconds:" << createMeshConsumedTime;
+    //auto createMeshConsumedTime = timer.elapsed() - createMeshStartTime;
+	//qDebug() << "VOXEL createMesh took milliseconds:" << createMeshConsumedTime;
 	
-	auto totalConsumedTime = timer.elapsed();
-	qDebug() << "VOXEL total took milliseconds:" << totalConsumedTime;
-	qDebug() << "222222222222222222222222222222222222222222222222222222222222222222";
+	//auto totalConsumedTime = timer.elapsed();
+	//qDebug() << "VOXEL total took milliseconds:" << totalConsumedTime;
 }

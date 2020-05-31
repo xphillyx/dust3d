@@ -22,10 +22,13 @@
 #include "normalanddepthmapsgenerator.h"
 #include "autosaver.h"
 #include "QtColorWidgets/ColorWheel"
+#include "meshsculptor.h"
 
 class SkeletonGraphicsWidget;
 class MousePickerContext;
 class MousePicker;
+class MeshSculptorContext;
+class MeshSculptor;
 
 class DocumentWindow : public QMainWindow
 {
@@ -100,12 +103,14 @@ public slots:
     void importPath(const QString &filename);
     void mousePick(const QVector3D &nearPosition, const QVector3D &farPosition, PaintMode paintMode);
     void mousePickFinished();
+    void meshSculptFinished();
 private:
     void initLockButton(QPushButton *button);
     void setCurrentFilename(const QString &filename);
     void updateTitle();
     void createPartSnapshotForFillMesh(const QUuid &fillMeshFileId, Snapshot *snapshot);
     void processMousePickingQueue();
+    void processPaintStrokeQueue();
 private:
     Document *m_document = nullptr;
     bool m_firstShow = true;
@@ -232,8 +237,13 @@ private:
     MousePickerContext *m_mousePickerContext = nullptr;
     std::deque<std::tuple<QVector3D, QVector3D, PaintMode>> m_mouseRayQueue;
     
-    std::vector<QVector3D> m_paintBrushPoints;
+    std::vector<MeshSculptorStrokePoint> m_paintStrokePoints;
     PaintMode m_paintMode = PaintMode::None;
+    std::deque<std::vector<MeshSculptorStrokePoint>> m_paintStrokeQueue;
+    MeshSculptor *m_meshSculptor = nullptr;
+    quint64 m_paintStrokeId = 0;
+    quint64 m_sculptedStrokeId = 0;
+    MeshSculptorContext *m_meshSculptorContext = nullptr;
 public:
     static int m_autoRecovered;
 };
