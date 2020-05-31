@@ -2248,6 +2248,10 @@ void DocumentWindow::processMousePickingQueue()
 		m_mousePickerContext = new MeshVoxelContext(currentOutcome->vertices,
 			currentOutcome->triangleAndQuads,
 			currentOutcome->meshId);
+	} else {
+		m_mousePickerContext->updateMesh(currentOutcome->vertices,
+			currentOutcome->triangleAndQuads,
+			currentOutcome->meshId);
 	}
 	
 	MeshVoxelContext *context = m_mousePickerContext;
@@ -2347,6 +2351,10 @@ void DocumentWindow::processPaintStrokeQueue()
 	
 	if (nullptr == m_meshSculptorContext) {
 		m_meshSculptorContext = new MeshVoxelContext(currentOutcome->vertices,
+			currentOutcome->triangleAndQuads,
+			currentOutcome->meshId);
+	} else {
+		m_meshSculptorContext->updateMesh(currentOutcome->vertices,
 			currentOutcome->triangleAndQuads,
 			currentOutcome->meshId);
 	}

@@ -15,14 +15,19 @@ public:
         quint64 meshId);
     void voxelize();
     VoxelGrid *voxelGrid();
+    VoxelGrid *baseVoxelGrid();
     quint64 meshId();
     void updateVoxelGrid(VoxelGrid *voxelGrid);
+    void updateMesh(const std::vector<QVector3D> &meshVertices,
+        const std::vector<std::vector<size_t>> &meshFaces,
+        quint64 meshId);
 	~MeshVoxelContext();
 private:
     std::vector<QVector3D> m_meshVertices;
     std::vector<std::vector<size_t>> m_meshFaces;
     quint64 m_meshId = 0;
     quint64 m_targetMeshId = 0;
+    VoxelGrid *m_baseVoxelGrid = nullptr;
     VoxelGrid *m_voxelGrid = nullptr;
 };
 
