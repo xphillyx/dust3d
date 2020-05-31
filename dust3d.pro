@@ -136,6 +136,9 @@ include(thirdparty/Qt-Color-Widgets/color_widgets.pri)
 
 INCLUDEPATH += src
 
+SOURCES += src/meshvoxelcontext.cpp
+HEADERS += src/meshvoxelcontext.h
+
 SOURCES += src/meshsculptor.cpp
 HEADERS += src/meshsculptor.h
 

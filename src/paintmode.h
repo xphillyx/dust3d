@@ -6,7 +6,7 @@ enum class PaintMode
     None = 0,
     Pull,
     Push,
-    End
+    Smooth
 };
 
 #endif

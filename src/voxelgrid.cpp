@@ -22,6 +22,7 @@ VoxelGrid::VoxelGrid(const VoxelGrid &other)
 {
 	m_transform = openvdb::math::Transform::Ptr(new openvdb::math::Transform(*other.m_transform));
 	m_grid = other.m_grid->deepCopy();
+	m_grid->setTransform(m_transform);
 }
 
 bool VoxelGrid::intersects(const QVector3D &near, const QVector3D &far,
@@ -81,6 +82,18 @@ void VoxelGrid::fromMesh(const std::vector<QVector3D> &vertices,
 			triangles.push_back(openvdb::Vec3I(face[0], face[1], face[2]));
 		} else if (4 == face.size()) {
 			quads.push_back(openvdb::Vec4I(face[0], face[1], face[2], face[3]));
+		} else if (face.size() > 4) {
+			QVector3D center;
+			for (const auto &vertexIndex: face) {
+				center += vertices[vertexIndex];
+			}
+			center /= face.size();
+			size_t centerIndex = points.size();
+			points.push_back(openvdb::Vec3s(center.x(), center.y(), center.z()));
+			for (size_t j = 0; j < face.size(); ++j) {
+				size_t k = (j + 1) % face.size();
+				triangles.push_back(openvdb::Vec3I(face[j], face[k], centerIndex));
+			}
 		}
 	}
 	
@@ -108,7 +121,7 @@ void VoxelGrid::toMesh(std::vector<QVector3D> *vertices,
 {
 	double isovalue = 0.0;
 	double adaptivity = 0.0;
-	bool relaxDisorientedTriangles = true;
+	bool relaxDisorientedTriangles = false;
 	
 	QElapsedTimer timer;
 	timer.start();

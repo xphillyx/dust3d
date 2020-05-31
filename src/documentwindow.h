@@ -23,9 +23,9 @@
 #include "autosaver.h"
 #include "QtColorWidgets/ColorWheel"
 #include "meshsculptor.h"
+#include "meshvoxelcontext.h"
 
 class SkeletonGraphicsWidget;
-class MousePickerContext;
 class MousePicker;
 class MeshSculptorContext;
 class MeshSculptor;
@@ -101,7 +101,7 @@ public slots:
     void autoRecover();
     void import();
     void importPath(const QString &filename);
-    void mousePick(const QVector3D &nearPosition, const QVector3D &farPosition, PaintMode paintMode);
+    void mousePick(const QVector3D &nearPosition, const QVector3D &farPosition, float radius, PaintMode paintMode, bool isEndOfStroke);
     void mousePickFinished();
     void meshSculptFinished();
 private:
@@ -234,16 +234,17 @@ private:
     AutoSaver *m_autoSaver = nullptr;
     
     MousePicker *m_mousePicker = nullptr;
-    MousePickerContext *m_mousePickerContext = nullptr;
-    std::deque<std::tuple<QVector3D, QVector3D, PaintMode>> m_mouseRayQueue;
+    MeshVoxelContext *m_mousePickerContext = nullptr;
+    std::deque<std::tuple<QVector3D, QVector3D, float, PaintMode, bool>> m_mouseRayQueue;
     
     std::vector<MeshSculptorStrokePoint> m_paintStrokePoints;
+    PaintMode m_paintStrokeStartMode = PaintMode::None;
     PaintMode m_paintMode = PaintMode::None;
-    std::deque<std::vector<MeshSculptorStrokePoint>> m_paintStrokeQueue;
+    std::deque<std::pair<std::vector<MeshSculptorStrokePoint>, PaintMode>> m_paintStrokeQueue;
     MeshSculptor *m_meshSculptor = nullptr;
     quint64 m_paintStrokeId = 0;
     quint64 m_sculptedStrokeId = 0;
-    MeshSculptorContext *m_meshSculptorContext = nullptr;
+    MeshVoxelContext *m_meshSculptorContext = nullptr;
 public:
     static int m_autoRecovered;
 };

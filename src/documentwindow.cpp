@@ -331,7 +331,7 @@ DocumentWindow::DocumentWindow()
     
     connect(m_modelRenderWidget, &ModelWidget::mouseRayChanged, [=](const QVector3D &nearPosition,
 			const QVector3D &farPosition) {
-		mousePick(nearPosition, farPosition, m_paintMode);
+		mousePick(nearPosition, farPosition, m_document->mousePickRadius(), m_paintMode, false);
 	});
     //connect(m_modelRenderWidget, &ModelWidget::mouseRayChanged, m_document,
     //        [=](const QVector3D &nearPosition, const QVector3D &farPosition) {
@@ -349,8 +349,13 @@ DocumentWindow::DocumentWindow()
         //    m_document->setPaintMode(PaintMode::Push);
         //else
         //    m_document->setPaintMode(PaintMode::Pull);
-        m_paintMode = PaintMode::Push;
-        mousePick(mouseRay.first, mouseRay.second, PaintMode::Push);
+        if (QGuiApplication::queryKeyboardModifiers().testFlag(Qt::ShiftModifier))
+			m_paintMode = PaintMode::Smooth;
+		else if (QGuiApplication::queryKeyboardModifiers().testFlag(Qt::ControlModifier))
+			m_paintMode = PaintMode::Push;
+        else
+			m_paintMode = PaintMode::Pull;
+        mousePick(mouseRay.first, mouseRay.second, m_document->mousePickRadius(), m_paintMode, false);
     });
     connect(m_modelRenderWidget, &ModelWidget::mouseReleased, m_document, [=](QPoint globalPos) {
 		if (SkeletonDocumentEditMode::Paint != m_document->editMode)
@@ -359,7 +364,7 @@ DocumentWindow::DocumentWindow()
 		m_paintMode = PaintMode::None;
         //m_document->setPaintMode(PaintMode::None);
         //m_document->stopPaint();
-        mousePick(mouseRay.first, mouseRay.second, PaintMode::End);
+        mousePick(mouseRay.first, mouseRay.second, m_document->mousePickRadius(), m_paintMode, true);
     });
     connect(m_modelRenderWidget, &ModelWidget::addMouseRadius, m_document, [=](float radius) {
         m_document->setMousePickRadius(m_document->mousePickRadius() + radius);
@@ -2239,15 +2244,20 @@ void DocumentWindow::processMousePickingQueue()
 	
 	QThread *thread = new QThread;
 	
-	MousePickerContext *context = m_mousePickerContext;
+	if (nullptr == m_mousePickerContext) {
+		m_mousePickerContext = new MeshVoxelContext(currentOutcome->vertices,
+			currentOutcome->triangleAndQuads,
+			currentOutcome->meshId);
+	}
+	
+	MeshVoxelContext *context = m_mousePickerContext;
 	m_mousePickerContext = nullptr;
-	m_mousePicker = new MousePicker(context,
-		currentOutcome->vertices,
-		currentOutcome->triangleAndQuads,
-		currentOutcome->meshId);
+	m_mousePicker = new MousePicker(context);
 	m_mousePicker->setMouseRay(std::get<0>(mouseRay),
 		std::get<1>(mouseRay));
-	m_mousePicker->setPaintMode(std::get<2>(mouseRay));
+	m_mousePicker->setMouseRadius(std::get<2>(mouseRay));
+	m_mousePicker->setPaintMode(std::get<3>(mouseRay));
+	m_mousePicker->setIsEndOfStroke(std::get<4>(mouseRay));
 	
 	m_mousePicker->moveToThread(thread);
     connect(thread, &QThread::started, m_mousePicker, &MousePicker::process);
@@ -2260,10 +2270,15 @@ void DocumentWindow::processMousePickingQueue()
 void DocumentWindow::mousePickFinished()
 {
 	PaintMode paintMode = m_mousePicker->takePaintMode();
+	bool isEndOfStroke = m_mousePicker->takeIsEndOfStroke();
+	float mouseRadius = m_mousePicker->takeMouseRadius();
 	MeshSculptorStrokePoint strokePoint;
+	strokePoint.radius = mouseRadius;
 	if (m_mousePicker->takePickedPosition(&strokePoint.position, &strokePoint.normal)) {
 		m_document->setMouseTargetPosition(strokePoint.position);
 		if (PaintMode::None != paintMode) {
+			if (m_paintStrokePoints.empty())
+				m_paintStrokeStartMode = paintMode;
 			m_paintStrokePoints.push_back(strokePoint);
 			++m_paintStrokeId;
 		}
@@ -2271,15 +2286,18 @@ void DocumentWindow::mousePickFinished()
 		m_document->clearMouseTargetPosition();
 	}
 	
-	MousePicker::releaseContext(m_mousePickerContext);
-	m_mousePickerContext = m_mousePicker->takeContext();
+	if (nullptr == m_mousePickerContext ||
+			nullptr == m_mousePickerContext->voxelGrid()) {
+		delete m_mousePickerContext;
+		m_mousePickerContext = m_mousePicker->takeContext();
+	}
 	
 	m_mousePicker->deleteLater();
 	m_mousePicker = nullptr;
 	
-	if (PaintMode::End == paintMode) {
+	if (isEndOfStroke) {
 		if (!m_paintStrokePoints.empty()) {
-			m_paintStrokeQueue.push_back(m_paintStrokePoints);
+			m_paintStrokeQueue.push_back({m_paintStrokePoints, m_paintStrokeStartMode});
 			m_paintStrokePoints.clear();
 		}
 	}
@@ -2288,9 +2306,9 @@ void DocumentWindow::mousePickFinished()
 	processMousePickingQueue();
 }
 
-void DocumentWindow::mousePick(const QVector3D &nearPosition, const QVector3D &farPosition, PaintMode paintMode)
+void DocumentWindow::mousePick(const QVector3D &nearPosition, const QVector3D &farPosition, float radius, PaintMode paintMode, bool isEndOfStroke)
 {
-	m_mouseRayQueue.push_back({nearPosition, farPosition, paintMode});
+	m_mouseRayQueue.push_back({nearPosition, farPosition, radius, paintMode, isEndOfStroke});
 	processMousePickingQueue();
 }
 
@@ -2306,16 +2324,18 @@ void DocumentWindow::processPaintStrokeQueue()
 	
 	bool hasStroke = false;
 	MeshSculptorStroke stroke;
-	stroke.radius = m_document->mousePickRadius();
 	
 	if (!m_paintStrokeQueue.empty()) {
 		stroke.isProvisional = false;
-		stroke.points = m_paintStrokeQueue.front();
+		const auto &pointsAndMode = m_paintStrokeQueue.front();
+		stroke.points = pointsAndMode.first;
+		stroke.paintMode = pointsAndMode.second;
 		m_paintStrokeQueue.pop_front();
 		hasStroke = true;
 	} else if (!m_paintStrokePoints.empty() && m_paintStrokeId != m_sculptedStrokeId) {
 		stroke.isProvisional = true;
 		stroke.points = m_paintStrokePoints;
+		stroke.paintMode = m_paintStrokeStartMode;
 		m_sculptedStrokeId = m_paintStrokeId;
 		hasStroke = true;
 	}
@@ -2325,13 +2345,15 @@ void DocumentWindow::processPaintStrokeQueue()
 	
 	QThread *thread = new QThread;
 	
-	MeshSculptorContext *context = m_meshSculptorContext;
+	if (nullptr == m_meshSculptorContext) {
+		m_meshSculptorContext = new MeshVoxelContext(currentOutcome->vertices,
+			currentOutcome->triangleAndQuads,
+			currentOutcome->meshId);
+	}
+	
+	MeshVoxelContext *context = m_meshSculptorContext;
 	m_meshSculptorContext = nullptr;
-	m_meshSculptor = new MeshSculptor(context,
-		currentOutcome->vertices,
-		currentOutcome->triangleAndQuads,
-		currentOutcome->meshId,
-		stroke);
+	m_meshSculptor = new MeshSculptor(context, stroke);
 	
 	m_meshSculptor->moveToThread(thread);
     connect(thread, &QThread::started, m_meshSculptor, &MeshSculptor::process);
@@ -2347,8 +2369,11 @@ void DocumentWindow::meshSculptFinished()
 	if (nullptr != model)
 		m_modelRenderWidget->updateMesh(model);
 		
-	MeshSculptor::releaseContext(m_meshSculptorContext);
+	delete m_meshSculptorContext;
 	m_meshSculptorContext = m_meshSculptor->takeContext();
+	
+	delete m_mousePickerContext;
+	m_mousePickerContext = m_meshSculptor->takeMousePickContext();
 
 	m_meshSculptor->deleteLater();
 	m_meshSculptor = nullptr;

@@ -5,6 +5,7 @@
 #include <openvdb/tools/VolumeToMesh.h>
 #include <openvdb/tools/LevelSetFilter.h>
 #include <openvdb/tools/Morphology.h>
+#include <openvdb/tools/Mask.h>
 #include <vector>
 #include <QVector3D>
 

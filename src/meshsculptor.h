@@ -2,8 +2,9 @@
 #define DUST3D_MESH_SCULPTOR_H
 #include <QObject>
 #include <QVector3D>
+#include "paintmode.h"
+#include "meshvoxelcontext.h"
 
-class MeshSculptorContext;
 class VoxelGrid;
 class Model;
 
@@ -11,12 +12,13 @@ struct MeshSculptorStrokePoint
 {
 	QVector3D position;
 	QVector3D normal;
+	float radius = 0.0f;
 };
 
 struct MeshSculptorStroke
 {
 	std::vector<MeshSculptorStrokePoint> points;
-	float radius = 0.0f;
+	PaintMode paintMode = PaintMode::Push;
 	bool isProvisional = true;
 };
 
@@ -24,16 +26,13 @@ class MeshSculptor : public QObject
 {
     Q_OBJECT
 public:
-	MeshSculptor(MeshSculptorContext *context,
-		const std::vector<QVector3D> &meshVertices,
-        const std::vector<std::vector<size_t>> &meshFaces,
-        quint64 meshId,
+	MeshSculptor(MeshVoxelContext *context,
 		const MeshSculptorStroke &stroke);
 	~MeshSculptor();
 	void sculpt();
 	Model *takeModel();
-	MeshSculptorContext *takeContext();
-	static void releaseContext(MeshSculptorContext *context);
+	MeshVoxelContext *takeContext();
+	MeshVoxelContext *takeMousePickContext();
 signals:
 	void finished();
 public slots:
@@ -41,7 +40,8 @@ public slots:
 private:
 	void makeStrokeGrid();
 	void makeModel();
-	MeshSculptorContext *m_context = nullptr;
+	MeshVoxelContext *m_context = nullptr;
+	MeshVoxelContext *m_mousePickContext = nullptr;
 	MeshSculptorStroke m_stroke;
 	VoxelGrid *m_strokeGrid = nullptr;
 	Model *m_model = nullptr;

@@ -9,38 +9,11 @@
 #include "shadervertex.h"
 #include "theme.h"
 
-class MeshSculptorContext
-{
-public:
-	~MeshSculptorContext()
-	{
-		delete voxelGrid;
-	}
-    std::vector<QVector3D> meshVertices;
-    std::vector<std::vector<size_t>> meshFaces;
-    quint64 meshId = 0;
-    VoxelGrid *voxelGrid = nullptr;
-};
-
-MeshSculptor::MeshSculptor(MeshSculptorContext *context,
-		const std::vector<QVector3D> &meshVertices,
-        const std::vector<std::vector<size_t>> &meshFaces,
-        quint64 meshId,
+MeshSculptor::MeshSculptor(MeshVoxelContext *context,
 		const MeshSculptorStroke &stroke) :
     m_context(context),
     m_stroke(stroke)
 {
-	if (nullptr == m_context) {
-        m_context = new MeshSculptorContext;
-    }
-    if (m_context->meshId != meshId) {
-        delete m_context->voxelGrid;
-        m_context->voxelGrid = nullptr;
-
-        m_context->meshVertices = meshVertices;
-        m_context->meshFaces = meshFaces;
-        m_context->meshId = meshId;
-    }
 }
 
 void MeshSculptor::makeStrokeGrid()
@@ -49,11 +22,12 @@ void MeshSculptor::makeStrokeGrid()
 	std::vector<QVector2D> cutTemplate = CutFaceToPoints(CutFace::Quad);
 	std::vector<size_t> nodeIndices;
 	for (const auto &it: m_stroke.points) {
-		nodeIndices.push_back(strokeModifier->addNode(it.position, m_stroke.radius, cutTemplate, 0.0f));
+		nodeIndices.push_back(strokeModifier->addNode(it.position, it.radius, cutTemplate, 0.0f));
 	}
 	for (size_t i = 1; i < nodeIndices.size(); ++i) {
 		strokeModifier->addEdge(nodeIndices[i - 1], nodeIndices[i]);
 	}
+	strokeModifier->subdivide();
 	strokeModifier->subdivide();
 	strokeModifier->finalize();
 	
@@ -76,21 +50,24 @@ void MeshSculptor::makeStrokeGrid()
 	delete strokeModifier;
 }
 
-void MeshSculptor::releaseContext(MeshSculptorContext *context)
+MeshVoxelContext *MeshSculptor::takeContext()
 {
-	delete context;
+	MeshVoxelContext *context = m_context;
+    m_context = nullptr;
+    return context;
 }
 
-MeshSculptorContext *MeshSculptor::takeContext()
+MeshVoxelContext *MeshSculptor::takeMousePickContext()
 {
-	MeshSculptorContext *context = m_context;
-    m_context = nullptr;
+	MeshVoxelContext *context = m_mousePickContext;
+    m_mousePickContext = nullptr;
     return context;
 }
 
 MeshSculptor::~MeshSculptor()
 {
 	delete m_context;
+	delete m_mousePickContext;
 	delete m_strokeGrid;
 	delete m_model;
 	delete m_finalGrid;
@@ -107,20 +84,39 @@ void MeshSculptor::sculpt()
 {
 	makeStrokeGrid();
 	
-	if (nullptr == m_context->voxelGrid) {
-		m_context->voxelGrid = new VoxelGrid;
-		m_context->voxelGrid->fromMesh(m_context->meshVertices, m_context->meshFaces);
+	m_context->voxelize();
+	
+	m_finalGrid = new VoxelGrid(*m_context->voxelGrid());
+	
+	if (PaintMode::Pull == m_stroke.paintMode) {
+		m_finalGrid->unionWith(*m_strokeGrid);
+	} else if (PaintMode::Push == m_stroke.paintMode) {
+		m_finalGrid->diffWith(*m_strokeGrid);
+	} else if (PaintMode::Smooth == m_stroke.paintMode) {
+		auto intersectedGrid = new VoxelGrid(*m_finalGrid);
+		{
+			openvdb::tools::LevelSetFilter<openvdb::FloatGrid> filter(*intersectedGrid->m_grid);
+			filter.gaussian();
+		}
+		m_finalGrid->diffWith(*m_strokeGrid);
+		{
+			openvdb::tools::LevelSetFilter<openvdb::FloatGrid> filter(*m_strokeGrid->m_grid);
+			filter.offset(-m_strokeGrid->m_voxelSize);
+		}
+		intersectedGrid->intersectWith(*m_strokeGrid);
+		m_finalGrid->unionWith(*intersectedGrid);
+		delete intersectedGrid;
 	}
-	
-	m_finalGrid = new VoxelGrid(*m_context->voxelGrid);
-	
-	m_finalGrid->unionWith(*m_strokeGrid);
 	
 	makeModel();
 	
+	if (m_stroke.isProvisional)
+		m_mousePickContext = new MeshVoxelContext(m_context->voxelGrid(), m_context->meshId());
+	else
+		m_mousePickContext = new MeshVoxelContext(m_finalGrid, m_context->meshId());
+	
 	if (!m_stroke.isProvisional) {
-		delete m_context->voxelGrid;
-		m_context->voxelGrid = m_finalGrid;
+		m_context->updateVoxelGrid(m_finalGrid);
 		m_finalGrid = nullptr;
 	}
 	
