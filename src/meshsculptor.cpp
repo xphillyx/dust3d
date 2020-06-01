@@ -101,7 +101,7 @@ void MeshSculptor::sculpt()
 		m_finalGrid->diffWith(*m_strokeGrid);
 		{
 			openvdb::tools::LevelSetFilter<openvdb::FloatGrid> filter(*m_strokeGrid->m_grid);
-			filter.offset(-m_strokeGrid->m_voxelSize);
+			filter.offset(-m_strokeGrid->m_voxelSize * 1.5);
 		}
 		intersectedGrid->intersectWith(*m_strokeGrid);
 		m_finalGrid->unionWith(*intersectedGrid);

@@ -150,7 +150,7 @@ public:
     inline Ray applyInverseMap(const MapType& map) const
     {
         assert(map.isLinear());
-        assert(math::isRelOrApproxEqual(mDir.length(), RealT(1), Tolerance<RealT>::value(), Delta<RealT>::value()));
+        //assert(math::isRelOrApproxEqual(mDir.length(), RealT(1), Tolerance<RealT>::value(), Delta<RealT>::value()));
         const Vec3T eye = map.applyInverseMap(mEye);
         const Vec3T dir = map.applyInverseJacobian(mDir);
         const RealT length = dir.length();

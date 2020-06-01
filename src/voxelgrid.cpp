@@ -20,7 +20,7 @@ VoxelGrid::VoxelGrid(float voxelSize) :
 
 VoxelGrid::VoxelGrid(const VoxelGrid &other)
 {
-	m_transform = openvdb::math::Transform::Ptr(new openvdb::math::Transform(*other.m_transform));
+	m_transform = openvdb::math::Transform::createLinearTransform(m_voxelSize);
 	m_grid = other.m_grid->deepCopy();
 	m_grid->setTransform(m_transform);
 }
@@ -98,7 +98,7 @@ void VoxelGrid::fromMesh(const std::vector<QVector3D> &vertices,
 	}
 	
 	m_grid = openvdb::tools::meshToLevelSet<openvdb::FloatGrid>(
-		*m_transform, points, triangles, quads, 1.0);
+		*m_transform, points, triangles, quads, 1);
 }
 
 void VoxelGrid::unionWith(const VoxelGrid &other)
@@ -147,7 +147,6 @@ void VoxelGrid::toMesh(std::vector<QVector3D> *vertices,
 	}
 	
 	for (const auto &it: quads) {
-		//faces->push_back({it.x(), it.y(), it.z(), it.w()});
 		faces->push_back({it.z(), it.y(), it.x()});
 		faces->push_back({it.x(), it.w(), it.z()});
 	}
