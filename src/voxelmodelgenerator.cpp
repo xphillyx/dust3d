@@ -1,5 +1,4 @@
 #include "voxelgrid.h"
-#include <QGuiApplication>
 #include <QDebug>
 #include <QElapsedTimer>
 #include "voxelmodelgenerator.h"
@@ -21,8 +20,6 @@ VoxelModelGenerator::~VoxelModelGenerator()
 void VoxelModelGenerator::process()
 {
 	generate();
-	
-    this->moveToThread(QGuiApplication::instance()->thread());
     emit finished();
 }
 

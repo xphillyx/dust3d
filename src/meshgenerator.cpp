@@ -1,7 +1,6 @@
 #include <QDebug>
 #include <QElapsedTimer>
 #include <QVector2D>
-#include <QGuiApplication>
 #include <QMatrix4x4>
 #include "strokemeshbuilder.h"
 #include "strokemodifier.h"
@@ -1437,8 +1436,6 @@ void MeshGenerator::setSmoothShadingThresholdAngleDegrees(float degrees)
 void MeshGenerator::process()
 {
     generate();
-    
-    this->moveToThread(QGuiApplication::instance()->thread());
     emit finished();
 }
 

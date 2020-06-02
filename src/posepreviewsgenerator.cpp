@@ -1,4 +1,3 @@
-#include <QGuiApplication>
 #include <QElapsedTimer>
 #include "posepreviewsgenerator.h"
 #include "posemeshcreator.h"
@@ -68,6 +67,5 @@ void PosePreviewsGenerator::process()
     
     qDebug() << "The pose previews generation took" << countTimeConsumed.elapsed() << "milliseconds";
     
-    this->moveToThread(QGuiApplication::instance()->thread());
     emit finished();
 }

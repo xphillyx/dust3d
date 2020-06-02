@@ -1,6 +1,5 @@
 #include "voxelgrid.h"
 #include <QDebug>
-#include <QGuiApplication>
 #include <QElapsedTimer>
 #include "voxelpainter.h"
 #include "util.h"
@@ -186,7 +185,6 @@ void VoxelPainter::paint()
 void VoxelPainter::process()
 {
     paint();
-    this->moveToThread(QGuiApplication::instance()->thread());
     emit finished();
 }
 

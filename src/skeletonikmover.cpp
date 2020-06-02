@@ -1,4 +1,3 @@
-#include <QGuiApplication>
 #include "skeletonikmover.h"
 #include "ccdikresolver.h"
 
@@ -42,8 +41,6 @@ const std::vector<SkeletonIkNode> &SkeletonIkMover::ikNodes()
 void SkeletonIkMover::process()
 {
     resolve();
-    
-    this->moveToThread(QGuiApplication::instance()->thread());
     emit finished();
 }
 

@@ -1,4 +1,3 @@
-#include <QGuiApplication>
 #include "posemeshcreator.h"
 #include "skinnedmeshcreator.h"
 
@@ -41,7 +40,5 @@ void PoseMeshCreator::createMesh()
 void PoseMeshCreator::process()
 {
     createMesh();
-    
-    this->moveToThread(QGuiApplication::instance()->thread());
     emit finished();
 }

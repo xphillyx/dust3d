@@ -4,7 +4,6 @@
 #include <QUuid>
 #include <cmath>
 #include <QTransform>
-#include <QGuiApplication>
 #include "contourtopartconverter.h"
 #include "imageskeletonextractor.h"
 #include "util.h"
@@ -24,7 +23,6 @@ ContourToPartConverter::ContourToPartConverter(const QPolygonF &mainProfile,
 void ContourToPartConverter::process()
 {
     convert();
-    this->moveToThread(QGuiApplication::instance()->thread());
     emit finished();
 }
 

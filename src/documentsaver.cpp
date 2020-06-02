@@ -1,6 +1,5 @@
 #include <QXmlStreamWriter>
 #include <set>
-#include <QGuiApplication>
 #include "documentsaver.h"
 #include "imageforever.h"
 #include "ds3file.h"
@@ -36,7 +35,6 @@ void DocumentSaver::process()
         m_turnaroundPngByteArray,
         m_script,
         m_variables);
-    this->moveToThread(QGuiApplication::instance()->thread());
     emit finished();
 }
 

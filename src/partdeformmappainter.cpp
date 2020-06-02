@@ -3,7 +3,6 @@
 #include <QRadialGradient>
 #include <QBrush>
 #include <QPainter>
-#include <QGuiApplication>
 #include "partdeformmappainter.h"
 #include "util.h"
 #include "imageforever.h"
@@ -94,7 +93,6 @@ void PartDeformMapPainter::paint()
 void PartDeformMapPainter::process()
 {
     paint();
-    this->moveToThread(QGuiApplication::instance()->thread());
     emit finished();
 }
 

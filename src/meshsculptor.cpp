@@ -1,5 +1,4 @@
 #include "voxelgrid.h"
-#include <QGuiApplication>
 #include "meshsculptor.h"
 #include "strokemeshbuilder.h"
 #include "strokemodifier.h"
@@ -176,7 +175,5 @@ void MeshSculptor::makeModel()
 void MeshSculptor::process()
 {
 	sculpt();
-	
-    this->moveToThread(QGuiApplication::instance()->thread());
     emit finished();
 }

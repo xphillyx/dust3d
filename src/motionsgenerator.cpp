@@ -1,4 +1,3 @@
-#include <QGuiApplication>
 #include <QElapsedTimer>
 #include <cmath>
 #include "motionsgenerator.h"
@@ -450,6 +449,5 @@ void MotionsGenerator::process()
     
     qDebug() << "The motions generation took" << countTimeConsumed.elapsed() << "milliseconds";
     
-    this->moveToThread(QGuiApplication::instance()->thread());
     emit finished();
 }

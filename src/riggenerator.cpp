@@ -1,6 +1,5 @@
 #include <tbb/parallel_for.h>
 #include <tbb/blocked_range.h>
-#include <QGuiApplication>
 #include <QDebug>
 #include <QElapsedTimer>
 #include <cmath>
@@ -1144,6 +1143,5 @@ void RigGenerator::process()
     
     qDebug() << "The rig generation took" << countTimeConsumed.elapsed() << "milliseconds";
     
-    this->moveToThread(QGuiApplication::instance()->thread());
     emit finished();
 }

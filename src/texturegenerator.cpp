@@ -1,5 +1,4 @@
 #include <QPainter>
-#include <QGuiApplication>
 #include <QRegion>
 #include <QPolygon>
 #include <QElapsedTimer>
@@ -735,7 +734,5 @@ void TextureGenerator::generate()
 void TextureGenerator::process()
 {
     generate();
-
-    this->moveToThread(QGuiApplication::instance()->thread());
     emit finished();
 }

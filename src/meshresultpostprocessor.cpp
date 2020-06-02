@@ -1,4 +1,3 @@
-#include <QGuiApplication>
 #include "meshresultpostprocessor.h"
 #include "uvunwrap.h"
 #include "triangletangentresolve.h"
@@ -47,7 +46,5 @@ void MeshResultPostProcessor::poseProcess()
 void MeshResultPostProcessor::process()
 {
     poseProcess();
-
-    this->moveToThread(QGuiApplication::instance()->thread());
     emit finished();
 }

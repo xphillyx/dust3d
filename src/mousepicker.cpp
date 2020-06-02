@@ -1,5 +1,4 @@
 #include "voxelgrid.h"
-#include <QGuiApplication>
 #include "mousepicker.h"
 
 MousePicker::MousePicker(MeshVoxelContext *context) :
@@ -69,7 +68,6 @@ void MousePicker::pick()
 void MousePicker::process()
 {
     pick();
-    this->moveToThread(QGuiApplication::instance()->thread());
     emit finished();
 }
 
