@@ -21,7 +21,7 @@ void MeshSculptor::makeStrokeGrid()
 	std::vector<QVector2D> cutTemplate = CutFaceToPoints(CutFace::Quad);
 	std::vector<size_t> nodeIndices;
 	for (const auto &it: m_stroke.points) {
-		nodeIndices.push_back(strokeModifier->addNode(it.position, it.radius, cutTemplate, 0.0f));
+		nodeIndices.push_back(strokeModifier->addNode(it.position, std::max(it.radius, VoxelGrid::m_defaultVoxelSize * 0.5f), cutTemplate, 0.0f));
 	}
 	for (size_t i = 1; i < nodeIndices.size(); ++i) {
 		strokeModifier->addEdge(nodeIndices[i - 1], nodeIndices[i]);
@@ -68,15 +68,7 @@ MeshSculptor::~MeshSculptor()
 	delete m_context;
 	delete m_mousePickContext;
 	delete m_strokeGrid;
-	delete m_model;
 	delete m_finalGrid;
-}
-
-Model *MeshSculptor::takeModel()
-{
-    Model *model = m_model;
-    m_model = nullptr;
-    return model;
 }
 
 void MeshSculptor::sculpt()
@@ -107,69 +99,24 @@ void MeshSculptor::sculpt()
 		delete intersectedGrid;
 	}
 	
-	makeModel();
-	
 	if (m_stroke.isProvisional)
 		m_mousePickContext = new MeshVoxelContext(m_context->voxelGrid(), m_context->meshId());
 	else
 		m_mousePickContext = new MeshVoxelContext(m_finalGrid, m_context->meshId());
 	
 	if (!m_stroke.isProvisional) {
-		m_context->updateVoxelGrid(m_finalGrid);
-		m_finalGrid = nullptr;
+		m_context->updateVoxelGrid(new VoxelGrid(*m_finalGrid));
 	}
 	
 	delete m_strokeGrid;
 	m_strokeGrid = nullptr;
-	
-	delete m_finalGrid;
-	m_finalGrid = nullptr;
 }
 
-void MeshSculptor::makeModel()
+VoxelGrid *MeshSculptor::takeFinalVoxelGrid()
 {
-	std::vector<QVector3D> voxelVertices;
-	std::vector<std::vector<size_t>> voxelTriangles;
-	m_finalGrid->toMesh(&voxelVertices, &voxelTriangles);
-	
-	std::vector<QVector3D> voxelTriangleNormals(voxelTriangles.size());
-	for (size_t i = 0; i < voxelTriangles.size(); ++i)
-		voxelTriangleNormals[i] = polygonNormal(voxelVertices, voxelTriangles[i]);
-    
-    int triangleVertexCount = voxelTriangles.size() * 3;
-    ShaderVertex *triangleVertices = new ShaderVertex[triangleVertexCount];
-    int destIndex = 0;
-    auto clayR = Theme::clayColor.redF();
-    auto clayG = Theme::clayColor.greenF();
-    auto clayB = Theme::clayColor.blueF();
-    for (size_t i = 0; i < voxelTriangles.size(); ++i) {
-        const auto &srcNormal = &voxelTriangleNormals[i];
-        for (auto j = 0; j < 3; j++) {
-            int vertexIndex = voxelTriangles[i][j];
-            const QVector3D *srcVert = &voxelVertices[vertexIndex];
-            ShaderVertex *dest = &triangleVertices[destIndex];
-            dest->colorR = clayR;
-            dest->colorG = clayG;
-            dest->colorB = clayB;
-            dest->alpha = 1.0;
-            dest->posX = srcVert->x();
-            dest->posY = srcVert->y();
-            dest->posZ = srcVert->z();
-            dest->texU = 0;
-            dest->texV = 0;
-            dest->normX = srcNormal->x();
-            dest->normY = srcNormal->y();
-            dest->normZ = srcNormal->z();
-            dest->metalness = Model::m_defaultMetalness;
-            dest->roughness = Theme::clayRoughness;
-            dest->tangentX = 0;
-            dest->tangentY = 0;
-            dest->tangentZ = 0;
-            destIndex++;
-        }
-    }
-
-    m_model = new Model(triangleVertices, triangleVertexCount, 0, 0);
+	VoxelGrid *finalVoxelGrid = m_finalGrid;
+	m_finalGrid = nullptr;
+	return finalVoxelGrid;
 }
 
 void MeshSculptor::process()

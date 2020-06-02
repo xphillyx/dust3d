@@ -1,3 +1,4 @@
+#include "voxelgrid.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -2373,9 +2374,11 @@ void DocumentWindow::processPaintStrokeQueue()
 
 void DocumentWindow::meshSculptFinished()
 {
-	Model *model = m_meshSculptor->takeModel();
-	if (nullptr != model)
-		m_modelRenderWidget->updateMesh(model);
+	//Model *model = m_meshSculptor->takeModel();
+	//if (nullptr != model)
+	//	m_modelRenderWidget->updateMesh(model);
+	delete m_resultVoxelGrid;
+	m_resultVoxelGrid = m_meshSculptor->takeFinalVoxelGrid();
 		
 	delete m_meshSculptorContext;
 	m_meshSculptorContext = m_meshSculptor->takeContext();
@@ -2387,4 +2390,44 @@ void DocumentWindow::meshSculptFinished()
 	m_meshSculptor = nullptr;
 	
 	processPaintStrokeQueue();
+	generateVoxelModel();
+}
+
+void DocumentWindow::generateVoxelModel()
+{
+	if (nullptr != m_voxelModelGenerator) {
+		m_isVoxelModelObsolete = true;
+		return;
+	}
+	
+	m_isVoxelModelObsolete = false;
+	
+	if (nullptr == m_resultVoxelGrid)
+		return;
+		
+	auto resultVoxelGrid = m_resultVoxelGrid;
+	m_resultVoxelGrid = nullptr;
+	
+	QThread *thread = new QThread;
+    m_voxelModelGenerator = new VoxelModelGenerator(resultVoxelGrid);
+    m_voxelModelGenerator->moveToThread(thread);
+    connect(thread, &QThread::started, m_voxelModelGenerator, &VoxelModelGenerator::process);
+    connect(m_voxelModelGenerator, &VoxelModelGenerator::finished, this, &DocumentWindow::voxelModelReady);
+    connect(m_voxelModelGenerator, &VoxelModelGenerator::finished, thread, &QThread::quit);
+    connect(thread, &QThread::finished, thread, &QThread::deleteLater);
+    thread->start();
+}
+
+void DocumentWindow::voxelModelReady()
+{
+	Model *model = m_voxelModelGenerator->takeModel();
+    if (nullptr != model)
+		m_modelRenderWidget->updateMesh(model);
+    
+    m_voxelModelGenerator->deleteLater();
+    m_voxelModelGenerator = nullptr;
+
+    if (m_isVoxelModelObsolete) {
+        generateVoxelModel();
+    }
 }

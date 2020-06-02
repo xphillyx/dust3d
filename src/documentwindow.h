@@ -24,6 +24,7 @@
 #include "QtColorWidgets/ColorWheel"
 #include "meshsculptor.h"
 #include "meshvoxelcontext.h"
+#include "voxelmodelgenerator.h"
 
 class SkeletonGraphicsWidget;
 class MousePicker;
@@ -104,6 +105,8 @@ public slots:
     void mousePick(const QVector3D &nearPosition, const QVector3D &farPosition, float radius, PaintMode paintMode, bool isEndOfStroke);
     void mousePickFinished();
     void meshSculptFinished();
+    void generateVoxelModel();
+    void voxelModelReady();
 private:
     void initLockButton(QPushButton *button);
     void setCurrentFilename(const QString &filename);
@@ -245,6 +248,9 @@ private:
     quint64 m_paintStrokeId = 0;
     quint64 m_sculptedStrokeId = 0;
     MeshVoxelContext *m_meshSculptorContext = nullptr;
+    VoxelModelGenerator *m_voxelModelGenerator = nullptr;
+    bool m_isVoxelModelObsolete = false;
+    VoxelGrid *m_resultVoxelGrid = nullptr;
 public:
     static int m_autoRecovered;
 };

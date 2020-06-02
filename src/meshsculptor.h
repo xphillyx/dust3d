@@ -6,7 +6,6 @@
 #include "meshvoxelcontext.h"
 
 class VoxelGrid;
-class Model;
 
 struct MeshSculptorStrokePoint
 {
@@ -30,21 +29,19 @@ public:
 		const MeshSculptorStroke &stroke);
 	~MeshSculptor();
 	void sculpt();
-	Model *takeModel();
 	MeshVoxelContext *takeContext();
 	MeshVoxelContext *takeMousePickContext();
+	VoxelGrid *takeFinalVoxelGrid();
 signals:
 	void finished();
 public slots:
 	void process();
 private:
 	void makeStrokeGrid();
-	void makeModel();
 	MeshVoxelContext *m_context = nullptr;
 	MeshVoxelContext *m_mousePickContext = nullptr;
 	MeshSculptorStroke m_stroke;
 	VoxelGrid *m_strokeGrid = nullptr;
-	Model *m_model = nullptr;
 	VoxelGrid *m_finalGrid = nullptr;
 };
 
