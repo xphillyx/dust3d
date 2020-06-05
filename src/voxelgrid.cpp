@@ -7,7 +7,7 @@
 #include <QElapsedTimer>
 #include "util.h"
 
-float VoxelGrid::m_defaultVoxelSize = 0.0033;
+float VoxelGrid::m_defaultVoxelSize = 0.003; //0.0033;
 
 VoxelGrid::VoxelGrid(float voxelSize) :
 	m_voxelSize(voxelSize)
@@ -121,7 +121,7 @@ void VoxelGrid::toMesh(std::vector<QVector3D> *vertices,
 {
 	double isovalue = 0.0;
 	double adaptivity = 0.0;
-	bool relaxDisorientedTriangles = false;
+	bool relaxDisorientedTriangles = true;
 	
 	QElapsedTimer timer;
 	timer.start();

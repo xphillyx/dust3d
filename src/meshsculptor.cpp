@@ -1,4 +1,5 @@
 #include "voxelgrid.h"
+#include <QDebug>
 #include "meshsculptor.h"
 #include "strokemeshbuilder.h"
 #include "strokemodifier.h"
@@ -20,6 +21,18 @@ void MeshSculptor::makeStrokeGrid()
 	StrokeModifier *strokeModifier = new StrokeModifier;
 	std::vector<QVector2D> cutTemplate = CutFaceToPoints(CutFace::Quad);
 	std::vector<size_t> nodeIndices;
+    /*
+	if (!m_stroke.points.empty()) {
+		float endRadius = VoxelGrid::m_defaultVoxelSize * 0.5f;
+		float beginRadius = std::max(m_stroke.points[0].radius, endRadius);
+		for (size_t i = 0; i < m_stroke.points.size(); ++i) {
+			const auto &it = m_stroke.points[i];
+			float rate = (float)(i + 1) / m_stroke.points.size();
+			float radius = (1.0 - rate) * beginRadius + rate * endRadius;
+			nodeIndices.push_back(strokeModifier->addNode(it.position, radius, cutTemplate, 0.0f));
+		}
+	}
+    */
 	for (const auto &it: m_stroke.points) {
 		nodeIndices.push_back(strokeModifier->addNode(it.position, std::max(it.radius, VoxelGrid::m_defaultVoxelSize * 0.5f), cutTemplate, 0.0f));
 	}
