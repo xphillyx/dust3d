@@ -567,6 +567,12 @@ unix {
 	LIBS += -Lthirdparty/zlib/zlib-1.2.11/build -lz
 	LIBS += -Lthirdparty/blosc/c-blosc-1.18.1/build/blosc -lblosc
 }
+win32 {
+	LIBS += -Lthirdparty/openvdb/openvdb-7.0.0/build/openvdb/Release -lopenvdb
+	LIBS += -Lthirdparty/openexr/openexr-2.4.1/build/IlmBase/Half/Release -lHalf-2_4
+	#LIBS += -Lthirdparty/zlib/zlib-1.2.11/build/Release -lzlib
+	#LIBS += -Lthirdparty/blosc/c-blosc-1.18.1/build/blosc/Release -llibblosc
+}
 
 INCLUDEPATH += thirdparty/FastMassSpring/ClothApp
 SOURCES += thirdparty/FastMassSpring/ClothApp/MassSpringSolver.cpp

@@ -1,8 +1,8 @@
+#include "voxelgrid.h"
 #include <openvdb/tools/RayIntersector.h>
 #include <openvdb/tools/Composite.h>
 #include <openvdb/tools/LevelSetSphere.h>
 #include <openvdb/tools/LevelSetPlatonic.h>
-#include "voxelgrid.h"
 #include <QDebug>
 #include <QElapsedTimer>
 #include "util.h"
@@ -25,13 +25,13 @@ VoxelGrid::VoxelGrid(const VoxelGrid &other)
 	m_grid->setTransform(m_transform);
 }
 
-bool VoxelGrid::intersects(const QVector3D &near, const QVector3D &far,
+bool VoxelGrid::intersects(const QVector3D &nearPosition, const QVector3D &farPosition,
 	QVector3D *intersection, QVector3D *intersectedNormal)
 {
 	if (m_grid->empty())
 		return false;
-	QVector3D direction = (far - near).normalized();
-	openvdb::math::Ray<double> ray(openvdb::math::Vec3<double>(near.x(), near.y(), near.z()),
+	QVector3D direction = (farPosition - nearPosition).normalized();
+	openvdb::math::Ray<double> ray(openvdb::math::Vec3<double>(nearPosition.x(), nearPosition.y(), nearPosition.z()),
 		openvdb::math::Vec3<double>(direction.x(), direction.y(), direction.z()));
 	openvdb::tools::LevelSetRayIntersector<openvdb::FloatGrid> rayIntersector(*m_grid);
 	openvdb::math::Vec3<double> intersectsAt;

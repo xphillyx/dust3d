@@ -1,5 +1,10 @@
 #ifndef DUST3D_VOXEL_GRID_H
 #define DUST3D_VOXEL_GRID_H
+#ifdef _WIN32
+#include <windows.h>
+#undef min
+#undef max
+#endif
 #include <openvdb/openvdb.h>
 #include <openvdb/tools/MeshToVolume.h>
 #include <openvdb/tools/VolumeToMesh.h>
@@ -16,7 +21,7 @@ public:
 	openvdb::math::Transform::Ptr m_transform;
 	VoxelGrid(float voxelSize=m_defaultVoxelSize);
 	VoxelGrid(const VoxelGrid &other);
-	bool intersects(const QVector3D &near, const QVector3D &far,
+	bool intersects(const QVector3D &nearPosition, const QVector3D &farPosition,
 		QVector3D *intersection=nullptr, QVector3D *intersectedNormal=nullptr);
 	void makeSphere(const QVector3D &center, float radius);
 	void makeCube(const QVector3D &center, float width);
