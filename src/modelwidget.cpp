@@ -395,14 +395,14 @@ bool ModelWidget::inputMouseMoveEventFromOtherWidget(QMouseEvent *event)
                 } else {
                     m_moveToPosition.setX(m_moveToPosition.x() + (float)2 * dx / width());
                     m_moveToPosition.setY(m_moveToPosition.y() + (float)2 * -dy / height());
-                    if (m_moveToPosition.x() < -1.0)
-                        m_moveToPosition.setX(-1.0);
-                    if (m_moveToPosition.x() > 1.0)
-                        m_moveToPosition.setX(1.0);
-                    if (m_moveToPosition.y() < -1.0)
-                        m_moveToPosition.setY(-1.0);
-                    if (m_moveToPosition.y() > 1.0)
-                        m_moveToPosition.setY(1.0);
+                    if (m_moveToPosition.x() < -1.5)
+                        m_moveToPosition.setX(-1.5);
+                    if (m_moveToPosition.x() > 1.5)
+                        m_moveToPosition.setX(1.5);
+                    if (m_moveToPosition.y() < -1.5)
+                        m_moveToPosition.setY(-1.5);
+                    if (m_moveToPosition.y() > 1.5)
+                        m_moveToPosition.setY(1.5);
                     updateProjectionMatrix();
                     emit moveToPositionChanged(m_moveToPosition);
                     emit renderParametersChanged();
