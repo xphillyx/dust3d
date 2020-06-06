@@ -17,6 +17,8 @@ public:
         int farOriginNodeIndex = -1;
         int originNodeIndex = 0;
         float averageCutTemplateLength;
+        
+        QVector3D baseNormal;
     };
     
     struct Edge
@@ -26,6 +28,7 @@ public:
     };
     
     size_t addNode(const QVector3D &position, float radius, const std::vector<QVector2D> &cutTemplate, float cutRotation);
+    void setNodeBaseNormal(size_t nodeIndex, const QVector3D &baseNormal);
     size_t addEdge(size_t firstNodeIndex, size_t secondNodeIndex);
     void subdivide();
     void roundEnd();

@@ -30,21 +30,21 @@ public:
         float cutRotation;
         int nearOriginNodeIndex = -1;
         int farOriginNodeIndex = -1;
-        
         size_t index;
         std::vector<size_t> neighbors;
         size_t next;
+        size_t nextOrNeighborOtherThan(size_t neighborIndex) const;
+        
         QVector3D cutNormal;
         QVector3D traverseDirection;
         QVector3D baseNormal;
         size_t traverseOrder;
-        
-        size_t nextOrNeighborOtherThan(size_t neighborIndex) const;
     };
     
     size_t addNode(const QVector3D &position, float radius, const std::vector<QVector2D> &cutTemplate, float cutRotation);
     void addEdge(size_t firstNodeIndex, size_t secondNodeIndex);
     void setNodeOriginInfo(size_t nodeIndex, int nearOriginNodeIndex, int farOriginNodeIndex);
+    void setNodeBaseNormal(size_t nodeIndex, const QVector3D &baseNormal);
     void setDeformThickness(float thickness);
     void setDeformWidth(float width);
     void setDeformMapImage(const QImage *image);
@@ -54,8 +54,10 @@ public:
     void enableBaseNormalOnY(bool enabled);
     void enableBaseNormalOnZ(bool enabled);
     void enableBaseNormalAverage(bool enabled);
+    void setUseInputBaseNormals(bool useInputBaseNormals);
     bool buildBaseNormalsOnly();
     const std::vector<Node> &nodes() const;
+    std::vector<Node> &nodes();
     const std::vector<size_t> &nodeIndices() const;
     const QVector3D &nodeTraverseDirection(size_t nodeIndex) const;
     const QVector3D &nodeBaseNormal(size_t nodeIndex) const;
@@ -85,6 +87,7 @@ private:
     const QImage *m_deformMapImage = nullptr;
     float m_deformMapScale = 0.0f;
     float m_hollowThickness = 0.0f;
+    bool m_useInputBaseNormals = false;
     
     bool m_isRing = false;
     std::vector<size_t> m_nodeIndices;

@@ -24,6 +24,12 @@ size_t StrokeModifier::addNode(const QVector3D &position, float radius, const st
     return nodeIndex;
 }
 
+void StrokeModifier::setNodeBaseNormal(size_t nodeIndex, const QVector3D &baseNormal)
+{
+    auto &node = m_nodes[nodeIndex];
+    node.baseNormal = baseNormal;
+}
+
 size_t StrokeModifier::addEdge(size_t firstNodeIndex, size_t secondNodeIndex)
 {
     size_t edgeIndex = m_edges.size();

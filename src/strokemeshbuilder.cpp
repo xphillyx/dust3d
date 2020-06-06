@@ -69,6 +69,12 @@ void StrokeMeshBuilder::setNodeOriginInfo(size_t nodeIndex, int nearOriginNodeIn
     node.farOriginNodeIndex = farOriginNodeIndex;
 }
 
+void StrokeMeshBuilder::setNodeBaseNormal(size_t nodeIndex, const QVector3D &baseNormal)
+{
+    auto &node = m_nodes[nodeIndex];
+    node.baseNormal = baseNormal;
+}
+
 const std::vector<QVector3D> &StrokeMeshBuilder::generatedVertices()
 {
     return m_generatedVertices;
@@ -85,6 +91,11 @@ const std::vector<size_t> &StrokeMeshBuilder::generatedVerticesSourceNodeIndices
 }
 
 const std::vector<StrokeMeshBuilder::Node> &StrokeMeshBuilder::nodes() const
+{
+    return m_nodes;
+}
+
+std::vector<StrokeMeshBuilder::Node> &StrokeMeshBuilder::nodes()
 {
     return m_nodes;
 }
@@ -403,6 +414,31 @@ bool StrokeMeshBuilder::prepare()
         return true;
     }
     
+    if (m_useInputBaseNormals) {
+        if (m_nodes.size() < 2)
+            return false;
+        for (size_t i = 0; i < m_nodes.size(); ++i) {
+            auto &node = m_nodes[i];
+            node.traverseOrder = i;
+            m_nodeIndices.push_back(i);
+        }
+        for (size_t i = 1; i < m_nodes.size(); ++i) {
+            size_t h = i - 1;
+            const auto &nextNode = m_nodes[i];
+            auto &node = m_nodes[h];
+            node.traverseDirection = (nextNode.position - node.position).normalized();
+        }
+        m_nodes[m_nodes.size() - 1].traverseDirection = m_nodes[m_nodes.size() - 2].traverseDirection;
+        m_nodes[0].cutNormal = -m_nodes[0].traverseDirection;
+        m_nodes[m_nodes.size() - 1].cutNormal = -m_nodes[m_nodes.size() - 1].traverseDirection;
+        for (size_t i = 1; i < m_nodes.size() - 1; ++i) {
+            size_t h = i - 1;
+            size_t j = i + 1;
+            m_nodes[i].cutNormal = (m_nodes[h].cutNormal + m_nodes[j].cutNormal).normalized();
+        }
+        return true;
+    }
+    
     m_nodeIndices = sortedNodeIndices(&m_isRing);
     
     if (m_nodeIndices.empty())
@@ -695,6 +731,11 @@ void StrokeMeshBuilder::applyDeform()
         if (count > 0)
             position = sum / count;
     }
+}
+
+void StrokeMeshBuilder::setUseInputBaseNormals(bool useInputBaseNormals)
+{
+    m_useInputBaseNormals = useInputBaseNormals;
 }
 
 bool StrokeMeshBuilder::buildBaseNormalsOnly()

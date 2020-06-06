@@ -34,23 +34,28 @@ void MeshSculptor::makeStrokeGrid()
 	}
     */
 	for (const auto &it: m_stroke.points) {
-		nodeIndices.push_back(strokeModifier->addNode(it.position, std::max(it.radius, VoxelGrid::m_defaultVoxelSize * 0.5f), cutTemplate, 0.0f));
+        auto nodeIndex = strokeModifier->addNode(it.position, std::max(it.radius, VoxelGrid::m_defaultVoxelSize * 0.5f), cutTemplate, 0.0f);
+        strokeModifier->setNodeBaseNormal(nodeIndex, it.normal);
+		nodeIndices.push_back(nodeIndex);
 	}
 	for (size_t i = 1; i < nodeIndices.size(); ++i) {
 		strokeModifier->addEdge(nodeIndices[i - 1], nodeIndices[i]);
 	}
-	strokeModifier->subdivide();
-	strokeModifier->subdivide();
+	//strokeModifier->subdivide();
+	//strokeModifier->subdivide();
 	strokeModifier->finalize();
 	
 	StrokeMeshBuilder *strokeMeshBuilder = new StrokeMeshBuilder;
 	for (const auto &node: strokeModifier->nodes()) {
         auto nodeIndex = strokeMeshBuilder->addNode(node.position, node.radius, node.cutTemplate, node.cutRotation);
         strokeMeshBuilder->setNodeOriginInfo(nodeIndex, node.nearOriginNodeIndex, node.farOriginNodeIndex);
+        strokeMeshBuilder->setNodeBaseNormal(nodeIndex, node.baseNormal);
     }
     for (const auto &edge: strokeModifier->edges())
         strokeMeshBuilder->addEdge(edge.firstNodeIndex, edge.secondNodeIndex);
-	strokeMeshBuilder->enableBaseNormalAverage(true);
+	//strokeMeshBuilder->enableBaseNormalAverage(true);
+    strokeMeshBuilder->setUseInputBaseNormals(true);
+    strokeMeshBuilder->setDeformThickness(0.25);
 	if (strokeMeshBuilder->build()) {
 		delete m_strokeGrid;
 		m_strokeGrid = new VoxelGrid;
