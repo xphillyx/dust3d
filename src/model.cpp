@@ -73,12 +73,17 @@ void Model::removeColor()
     }
 }
 
-Model::Model(ShaderVertex *triangleVertices, int vertexNum, ShaderVertex *edgeVertices, int edgeVertexCount) :
+Model::Model(ShaderVertex *triangleVertices, int vertexNum, ShaderVertex *edgeVertices, int edgeVertexCount,
+        std::vector<QVector3D> *vertices, std::vector<std::vector<size_t>> *faces) :
     m_triangleVertices(triangleVertices),
     m_triangleVertexCount(vertexNum),
     m_edgeVertices(edgeVertices),
     m_edgeVertexCount(edgeVertexCount)
 {
+    if (nullptr != vertices)
+        m_vertices = *vertices;
+    if (nullptr != faces)
+        m_faces = *faces;
 }
 
 Model::Model(const std::vector<QVector3D> &vertices, const std::vector<std::vector<size_t>> &triangles,

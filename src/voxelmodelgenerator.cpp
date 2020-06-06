@@ -89,7 +89,8 @@ void VoxelModelGenerator::generate()
         }
     }
 
-    m_model = new Model(triangleVertices, triangleVertexCount, 0, 0);
+    m_model = new Model(triangleVertices, triangleVertexCount, 0, 0,
+        &voxelVertices, &voxelTriangles);
     
     //auto createMeshConsumedTime = timer.elapsed() - createMeshStartTime;
 	//qDebug() << "VOXEL createMesh took milliseconds:" << createMeshConsumedTime;

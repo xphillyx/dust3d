@@ -1807,7 +1807,8 @@ void DocumentWindow::exportObjResult()
 void DocumentWindow::exportObjToFilename(const QString &filename)
 {
     QApplication::setOverrideCursor(Qt::WaitCursor);
-    Model *resultMesh = m_document->takeResultMesh();
+    Model *resultMesh = SkeletonDocumentEditMode::Paint == m_document->editMode ?
+        m_modelRenderWidget->fetchCurrentMesh() : m_document->takeResultMesh();
     if (nullptr != resultMesh) {
         resultMesh->exportAsObj(filename);
         delete resultMesh;

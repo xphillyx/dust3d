@@ -16,7 +16,8 @@ public:
         const std::vector<std::vector<QVector3D>> &triangleVertexNormals,
         const QColor &color=Qt::white);
     Model(Outcome &outcome);
-    Model(ShaderVertex *triangleVertices, int vertexNum, ShaderVertex *edgeVertices=nullptr, int edgeVertexCount=0);
+    Model(ShaderVertex *triangleVertices, int vertexNum, ShaderVertex *edgeVertices=nullptr, int edgeVertexCount=0,
+        std::vector<QVector3D> *vertices=nullptr, std::vector<std::vector<size_t>> *faces=nullptr);
     Model(const Model &mesh);
     Model();
     ~Model();
