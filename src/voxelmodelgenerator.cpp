@@ -47,7 +47,7 @@ void VoxelModelGenerator::generate()
 	std::vector<QVector3D> voxelTriangleNormals(voxelTriangles.size());
 	for (size_t i = 0; i < voxelTriangles.size(); ++i) {
 	    const auto &facePoints = voxelTriangles[i];
-	    voxelTriangleNormals[i] = QVector3D::normal(voxelVertices[facePoints[0]],
+	    voxelTriangleNormals[i] = normalOfThreePointsHighPrecision(voxelVertices[facePoints[0]],
 			voxelVertices[facePoints[1]],
 			voxelVertices[facePoints[2]]);
 	}

@@ -1,5 +1,6 @@
 #include "voxelgrid.h"
 #include <QDebug>
+#include <QElapsedTimer>
 #include "meshsculptor.h"
 #include "strokemeshbuilder.h"
 #include "strokemodifier.h"
@@ -91,12 +92,18 @@ MeshSculptor::~MeshSculptor()
 
 void MeshSculptor::sculpt()
 {
+    QElapsedTimer timer;
+    timer.start();
+    
+    auto makeStrokeBeginTime = timer.elapsed();
 	makeStrokeGrid();
+    auto makeStrokeEndTime = timer.elapsed();
 	
 	m_context->voxelize();
 	
 	m_finalGrid = new VoxelGrid(*m_context->voxelGrid());
-	
+    
+    auto booleanBeginTime = timer.elapsed();
 	if (PaintMode::Pull == m_stroke.paintMode) {
 		m_finalGrid->unionWith(*m_strokeGrid);
 	} else if (PaintMode::Push == m_stroke.paintMode) {
@@ -116,6 +123,7 @@ void MeshSculptor::sculpt()
 		m_finalGrid->unionWith(*intersectedGrid);
 		delete intersectedGrid;
 	}
+    auto booleanEndTime = timer.elapsed();
 	
 	if (m_stroke.isProvisional)
 		m_mousePickContext = new MeshVoxelContext(m_context->voxelGrid(), m_context->meshId());
@@ -128,6 +136,8 @@ void MeshSculptor::sculpt()
 	
 	delete m_strokeGrid;
 	m_strokeGrid = nullptr;
+    
+    qDebug() << "Sculptor took" << timer.elapsed() << "milliseconds(makeStrokeGrid:" << (makeStrokeEndTime - makeStrokeBeginTime) << " boolean:" << (booleanEndTime - booleanBeginTime) << ")";
 }
 
 VoxelGrid *MeshSculptor::takeFinalVoxelGrid()

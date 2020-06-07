@@ -3,6 +3,7 @@
 #include <QVector3D>
 #include <QDebug>
 #include "cutface.h"
+#include "util.h"
 
 IMPL_CutFaceFromString
 IMPL_CutFaceToString
@@ -17,7 +18,7 @@ static void correctFlippedNormal(std::vector<QVector2D> *points)
         QVector3D((float)1.0, (float)-1.0, (float)0.0),
         QVector3D((float)1.0,  (float)1.0, (float)0.0)
     };
-    QVector3D referenceNormal = QVector3D::normal(referenceFacePoints[0],
+    QVector3D referenceNormal = normalOfThreePointsHighPrecision(referenceFacePoints[0],
         referenceFacePoints[1], referenceFacePoints[2]);
     QVector3D normal;
     for (size_t i = 0; i < points->size(); ++i) {
@@ -28,10 +29,10 @@ static void correctFlippedNormal(std::vector<QVector2D> *points)
             QVector3D(((*points)[j]).x(), ((*points)[j]).y(), (float)0.0),
             QVector3D(((*points)[k]).x(), ((*points)[k]).y(), (float)0.0)
         };
-        normal += QVector3D::normal(facePoints[0],
+        normal += normalOfThreePointsHighPrecision(facePoints[0],
             facePoints[1], facePoints[2]);
     }
-    normal.normalize();
+    normal = normalHighPrecision(normal);
     if (QVector3D::dotProduct(referenceNormal, normal) > 0)
         return;
     std::reverse(points->begin() + 1, points->end());

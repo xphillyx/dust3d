@@ -149,7 +149,7 @@ float MeshWrapper::angleOfBaseFaceAndPoint(size_t itemIndex, size_t vertexIndex)
     if (v1.sourcePlane == v2.sourcePlane && v1.sourcePlane == vp.sourcePlane)
         return 0.0;
     auto vd1 = calculateFaceVector(item.p1, item.p2, item.baseNormal);
-    auto normal = QVector3D::normal(v2.position, v1.position, vp.position);
+    auto normal = normalOfThreePointsHighPrecision(v2.position, v1.position, vp.position);
     auto vd2 = calculateFaceVector(item.p1, item.p2, normal);
     return degreesBetweenVectors(vd2, vd1);
 }

@@ -31,6 +31,8 @@ void quaternionToEulerAngles(const QQuaternion &q, double *pitch, double *yaw, d
 void quaternionToEulerAnglesXYZ(const QQuaternion &q, double *pitch, double *yaw, double *roll);
 bool pointInTriangle(const QVector3D &a, const QVector3D &b, const QVector3D &c, const QVector3D &p);
 QVector3D polygonNormal(const std::vector<QVector3D> &vertices, const std::vector<size_t> &polygon);
+QVector3D normalOfThreePointsHighPrecision(const QVector3D &a, const QVector3D &b, const QVector3D &c);
+QVector3D normalHighPrecision(const QVector3D &v);
 void angleSmooth(const std::vector<QVector3D> &vertices,
     const std::vector<std::vector<size_t>> &triangles,
     const std::vector<QVector3D> &triangleNormals,

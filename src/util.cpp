@@ -126,7 +126,7 @@ QVector3D polygonNormal(const std::vector<QVector3D> &vertices, const std::vecto
         const auto &enter = vertices[polygon[i]];
         const auto &cone = vertices[polygon[j]];
         const auto &leave = vertices[polygon[k]];
-        normal += QVector3D::normal(enter, cone, leave);
+        normal += normalOfThreePointsHighPrecision(enter, cone, leave);
     }
     return normal.normalized();
 }
@@ -545,7 +545,7 @@ bool intersectSegmentAndTriangle(const QVector3D &segmentPoint0, const QVector3D
     std::vector<QVector3D> normals;
     for (size_t i = 0; i < 3; ++i) {
         size_t j = (i + 1) % 3;
-        normals.push_back(QVector3D::normal(possibleIntersection, triangle[i], triangle[j]));
+        normals.push_back(normalOfThreePointsHighPrecision(possibleIntersection, triangle[i], triangle[j]));
     }
     if (QVector3D::dotProduct(normals[0], ray) <= 0)
         return false;
@@ -646,4 +646,38 @@ bool intersectRayAndPolyhedron(const QVector3D &rayNear,
 		}
 	}
 	return foundPosition;
+}
+
+QVector3D normalHighPrecision(const QVector3D &v)
+{
+    double length2 = v.x() * v.x() + v.y() * v.y() + v.z() * v.z();
+    
+    double length = std::sqrt(length2);
+    if (qFuzzyIsNull(length))
+        return QVector3D();
+    
+    return QVector3D(v.x() / length, v.y() / length, v.z() / length);
+}
+
+QVector3D normalOfThreePointsHighPrecision(const QVector3D &a, const QVector3D &b, const QVector3D &c)
+{
+    double baX = b.x() - a.x();
+    double baY = b.y() - a.y();
+    double baZ = b.z() - a.z();
+    
+    double caX = c.x() - a.x();
+    double caY = c.y() - a.y();
+    double caZ = c.z() - a.z();
+    
+    double crossX = baY * caZ - baZ * caY;
+    double crossY = baZ * caX - baX * caZ;
+    double crossZ = baX * caY - baY * caX;
+    
+    double length2 = crossX * crossX + crossY * crossY + crossZ * crossZ;
+    
+    double length = std::sqrt(length2);
+    if (qFuzzyIsNull(length))
+        return QVector3D();
+    
+    return QVector3D(crossX / length, crossY / length, crossZ / length);
 }
