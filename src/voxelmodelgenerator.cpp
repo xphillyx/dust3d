@@ -7,6 +7,7 @@
 #include "model.h"
 #include "util.h"
 #include "theme.h"
+#include "meshsimplify.h"
 
 VoxelModelGenerator::VoxelModelGenerator(VoxelGrid *voxelGrid) :
 	m_voxelGrid(voxelGrid)
@@ -34,33 +35,31 @@ Model *VoxelModelGenerator::takeModel()
 
 struct MeshToModel
 {
-    MeshToModel(std::vector<QVector3D> *vertices, std::vector<std::vector<size_t>> *quads, ShaderVertex *target):
-        voxelVertices(vertices),
-        voxelQuads(quads),
-        triangleVertices(target)
+    MeshToModel(std::vector<QVector3D> *vertices, std::vector<std::vector<size_t>> *quads, ShaderVertex *target, bool isFromQuads=true):
+        m_voxelVertices(vertices),
+        m_voxelQuads(quads),
+        m_triangleVertices(target),
+        m_isFromQuads(isFromQuads)
     {
     }
     
-    float clayR = Theme::clayColor.redF();
-    float clayG = Theme::clayColor.greenF();
-    float clayB = Theme::clayColor.blueF();
+    float m_clayR = Theme::clayColor.redF();
+    float m_clayG = Theme::clayColor.greenF();
+    float m_clayB = Theme::clayColor.blueF();
     
-    int facePointIndices[2][3] = {
-        {0, 1, 2},
-        {2, 3, 0}
-    };
+    bool m_isFromQuads = true;
     
-    std::vector<QVector3D> *voxelVertices = nullptr;
-    std::vector<std::vector<size_t>> *voxelQuads = nullptr;
-    ShaderVertex *triangleVertices = nullptr;
+    std::vector<QVector3D> *m_voxelVertices = nullptr;
+    std::vector<std::vector<size_t>> *m_voxelQuads = nullptr;
+    ShaderVertex *m_triangleVertices = nullptr;
     
     inline void addTriangleVertex(int vertexIndex, const QVector3D &srcNormal, int destTriangleIndex) const
     {
-        const QVector3D *srcVert = &(*voxelVertices)[vertexIndex];
-        ShaderVertex *dest = &triangleVertices[destTriangleIndex];
-        dest->colorR = clayR;
-        dest->colorG = clayG;
-        dest->colorB = clayB;
+        const QVector3D *srcVert = &(*m_voxelVertices)[vertexIndex];
+        ShaderVertex *dest = &m_triangleVertices[destTriangleIndex];
+        dest->colorR = m_clayR;
+        dest->colorG = m_clayG;
+        dest->colorB = m_clayB;
         dest->alpha = 1.0;
         dest->posX = srcVert->x();
         dest->posY = srcVert->y();
@@ -79,20 +78,34 @@ struct MeshToModel
     
     void operator()(const tbb::blocked_range<size_t> &range) const 
     {
-        for (size_t i = range.begin(); i != range.end(); ++i) {
-            const auto &facePoints = (*voxelQuads)[i];
-            const auto srcNormal = normalOfThreePointsHighPrecision((*voxelVertices)[facePoints[0]],
-                (*voxelVertices)[facePoints[1]],
-                (*voxelVertices)[facePoints[2]]);
-            int destTriangleIndex = i * 6;
-            
-            addTriangleVertex(facePoints[0], srcNormal, destTriangleIndex++);
-            addTriangleVertex(facePoints[1], srcNormal, destTriangleIndex++);
-            addTriangleVertex(facePoints[2], srcNormal, destTriangleIndex++);
-            
-            addTriangleVertex(facePoints[2], srcNormal, destTriangleIndex++);
-            addTriangleVertex(facePoints[3], srcNormal, destTriangleIndex++);
-            addTriangleVertex(facePoints[0], srcNormal, destTriangleIndex++);
+        if (m_isFromQuads) {
+            for (size_t i = range.begin(); i != range.end(); ++i) {
+                const auto &facePoints = (*m_voxelQuads)[i];
+                const auto srcNormal = normalOfThreePointsHighPrecision((*m_voxelVertices)[facePoints[0]],
+                    (*m_voxelVertices)[facePoints[1]],
+                    (*m_voxelVertices)[facePoints[2]]);
+                int destTriangleIndex = i * 6;
+                
+                addTriangleVertex(facePoints[0], srcNormal, destTriangleIndex++);
+                addTriangleVertex(facePoints[1], srcNormal, destTriangleIndex++);
+                addTriangleVertex(facePoints[2], srcNormal, destTriangleIndex++);
+                
+                addTriangleVertex(facePoints[2], srcNormal, destTriangleIndex++);
+                addTriangleVertex(facePoints[3], srcNormal, destTriangleIndex++);
+                addTriangleVertex(facePoints[0], srcNormal, destTriangleIndex++);
+            }
+        } else {
+            for (size_t i = range.begin(); i != range.end(); ++i) {
+                const auto &facePoints = (*m_voxelQuads)[i];
+                const auto srcNormal = normalOfThreePointsHighPrecision((*m_voxelVertices)[facePoints[0]],
+                    (*m_voxelVertices)[facePoints[1]],
+                    (*m_voxelVertices)[facePoints[2]]);
+                int destTriangleIndex = i * 3;
+                
+                addTriangleVertex(facePoints[0], srcNormal, destTriangleIndex++);
+                addTriangleVertex(facePoints[1], srcNormal, destTriangleIndex++);
+                addTriangleVertex(facePoints[2], srcNormal, destTriangleIndex++);
+            }
         }
     }
 };
@@ -134,12 +147,18 @@ void VoxelModelGenerator::generate()
 		voxelQuads[i] = std::vector<size_t> {src.x(), src.w(), src.z(), src.y()};
 	}
     
+    meshSimplifyFromQuads(voxelVertices, voxelQuads,
+        &voxelVertices, &voxelQuads);
+    
     auto createMeshStartTime = timer.elapsed();
 
-    int triangleVertexCount = voxelQuads.size() * 3 * 2;
+    //int triangleVertexCount = voxelQuads.size() * 3 * 2;
+    //bool isQuads = true;
+    int triangleVertexCount = voxelQuads.size() * 3;
+    bool isQuads = false;
     ShaderVertex *triangleVertices = new ShaderVertex[triangleVertexCount];
     tbb::parallel_for(tbb::blocked_range<size_t>(0, voxelQuads.size()),
-        MeshToModel(&voxelVertices, &voxelQuads, triangleVertices));
+        MeshToModel(&voxelVertices, &voxelQuads, triangleVertices, isQuads));
     
     m_model = new Model(triangleVertices, triangleVertexCount, 0, 0,
         &voxelVertices, &voxelQuads);
@@ -149,5 +168,5 @@ void VoxelModelGenerator::generate()
 	
 	auto totalConsumedTime = timer.elapsed();
 	qDebug() << "VOXEL TOTAL generation took milliseconds:" << totalConsumedTime <<
-		"vertices:" << voxelVertices.size() << "quads:" << voxelQuads.size() << "triangles:" << (voxelQuads.size() * 2) << ")";
+		"vertices:" << voxelVertices.size() << "quads:" << voxelQuads.size() << ")";
 }

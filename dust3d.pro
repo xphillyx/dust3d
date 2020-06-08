@@ -136,6 +136,9 @@ include(thirdparty/Qt-Color-Widgets/color_widgets.pri)
 
 INCLUDEPATH += src
 
+SOURCES += src/meshsimplify.cpp
+HEADERS += src/meshsimplify.h
+
 SOURCES += src/meshvoxelcontext.cpp
 HEADERS += src/meshvoxelcontext.h
 
@@ -558,6 +561,9 @@ HEADERS += src/fileforever.h
 SOURCES += src/main.cpp
 
 HEADERS += src/version.h
+
+INCLUDEPATH += thirdparty/Fast-Quadric-Mesh-Simplification
+HEADERS += thirdparty/Fast-Quadric-Mesh-Simplification/Fast-Quadric-Mesh-Simplification/Simplify.h
 
 INCLUDEPATH += thirdparty/openvdb/openvdb-7.0.0
 INCLUDEPATH += thirdparty/openexr/openexr-2.4.1
