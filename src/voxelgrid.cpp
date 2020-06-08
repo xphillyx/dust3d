@@ -121,7 +121,7 @@ void VoxelGrid::toMesh(std::vector<QVector3D> *vertices,
 {
 	double isovalue = 0.0;
 	double adaptivity = 0.0;
-	bool relaxDisorientedTriangles = true;
+	bool relaxDisorientedTriangles = false;
 	
 	QElapsedTimer timer;
 	timer.start();
