@@ -147,15 +147,15 @@ void VoxelModelGenerator::generate()
 		voxelQuads[i] = std::vector<size_t> {src.x(), src.w(), src.z(), src.y()};
 	}
     
-    meshSimplifyFromQuads(voxelVertices, voxelQuads,
-        &voxelVertices, &voxelQuads);
+    //meshSimplifyFromQuads(voxelVertices, voxelQuads,
+    //    &voxelVertices, &voxelQuads);
     
     auto createMeshStartTime = timer.elapsed();
 
-    //int triangleVertexCount = voxelQuads.size() * 3 * 2;
-    //bool isQuads = true;
-    int triangleVertexCount = voxelQuads.size() * 3;
-    bool isQuads = false;
+    int triangleVertexCount = voxelQuads.size() * 3 * 2;
+    bool isQuads = true;
+    //int triangleVertexCount = voxelQuads.size() * 3;
+    //bool isQuads = false;
     ShaderVertex *triangleVertices = new ShaderVertex[triangleVertexCount];
     tbb::parallel_for(tbb::blocked_range<size_t>(0, voxelQuads.size()),
         MeshToModel(&voxelVertices, &voxelQuads, triangleVertices, isQuads));
