@@ -115,6 +115,10 @@ void VoxelModelGenerator::generate()
     double isovalue = 0.0;
 	double adaptivity = 0.0;
 	bool relaxDisorientedTriangles = false;
+    {
+        openvdb::tools::LevelSetFilter<openvdb::FloatGrid> filter(*m_voxelGrid->m_grid);
+        filter.laplacian();
+    }
 	openvdb::tools::volumeToMesh<openvdb::FloatGrid>(*m_voxelGrid->m_grid, points, triangles, quads,
 		isovalue, adaptivity, relaxDisorientedTriangles);
         
