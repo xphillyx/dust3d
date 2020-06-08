@@ -144,5 +144,6 @@ void VoxelModelGenerator::generate()
 	qDebug() << "VOXEL createMesh took milliseconds:" << createMeshConsumedTime;
 	
 	auto totalConsumedTime = timer.elapsed();
-	qDebug() << "VOXEL TOTAL generation took milliseconds:" << totalConsumedTime;
+	qDebug() << "VOXEL TOTAL generation took milliseconds:" << totalConsumedTime <<
+		"vertices:" << voxelVertices.size() << "quads:" << voxelQuads.size() << "triangles:" << (voxelQuads.size() * 2) << ")";
 }
