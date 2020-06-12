@@ -105,8 +105,10 @@ public slots:
     void mousePick(const QVector3D &nearPosition, const QVector3D &farPosition, float radius, PaintMode paintMode, bool isEndOfStroke);
     void mousePickFinished();
     void meshSculptFinished();
-    void generateVoxelModel();
-    void voxelModelReady();
+    void generateRoughVoxelModel();
+    void roughVoxelModelReady();
+    void generateFinestVoxelModel();
+    void finestVoxelModelReady();
 private:
     void initLockButton(QPushButton *button);
     void setCurrentFilename(const QString &filename);
@@ -248,9 +250,15 @@ private:
     quint64 m_paintStrokeId = 0;
     quint64 m_sculptedStrokeId = 0;
     MeshVoxelContext *m_meshSculptorContext = nullptr;
-    VoxelModelGenerator *m_voxelModelGenerator = nullptr;
-    bool m_isVoxelModelObsolete = false;
-    VoxelGrid *m_resultVoxelGrid = nullptr;
+    
+    VoxelModelGenerator *m_roughVoxelModelGenerator = nullptr;
+    bool m_isRoughVoxelModelObsolete = false;
+    VoxelGrid *m_roughVoxelGrid = nullptr;
+    bool m_isRoughVoxelModelProvisional = true;
+    
+    VoxelModelGenerator *m_finestVoxelModelGenerator = nullptr;
+    bool m_isFinestVoxelModelObsolete = false;
+    VoxelGrid *m_finestVoxelGrid = nullptr;
 public:
     static int m_autoRecovered;
 };

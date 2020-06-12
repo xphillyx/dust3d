@@ -2378,8 +2378,9 @@ void DocumentWindow::meshSculptFinished()
 	//Model *model = m_meshSculptor->takeModel();
 	//if (nullptr != model)
 	//	m_modelRenderWidget->updateMesh(model);
-	delete m_resultVoxelGrid;
-	m_resultVoxelGrid = m_meshSculptor->takeFinalVoxelGrid();
+	delete m_roughVoxelGrid;
+	m_roughVoxelGrid = m_meshSculptor->takeFinalVoxelGrid();
+    m_isRoughVoxelModelProvisional = m_meshSculptor->stroke().isProvisional;
 		
 	delete m_meshSculptorContext;
 	m_meshSculptorContext = m_meshSculptor->takeContext();
@@ -2391,44 +2392,97 @@ void DocumentWindow::meshSculptFinished()
 	m_meshSculptor = nullptr;
 	
 	processPaintStrokeQueue();
-	generateVoxelModel();
+	generateRoughVoxelModel();
 }
 
-void DocumentWindow::generateVoxelModel()
+void DocumentWindow::generateRoughVoxelModel()
 {
-	if (nullptr != m_voxelModelGenerator) {
-		m_isVoxelModelObsolete = true;
+	if (nullptr != m_roughVoxelModelGenerator) {
+		m_isRoughVoxelModelObsolete = true;
 		return;
 	}
 	
-	m_isVoxelModelObsolete = false;
+	m_isRoughVoxelModelObsolete = false;
 	
-	if (nullptr == m_resultVoxelGrid)
+	if (nullptr == m_roughVoxelGrid)
 		return;
 		
-	auto resultVoxelGrid = m_resultVoxelGrid;
-	m_resultVoxelGrid = nullptr;
+	auto resultVoxelGrid = m_roughVoxelGrid;
+	m_roughVoxelGrid = nullptr;
 	
 	QThread *thread = new QThread;
-    m_voxelModelGenerator = new VoxelModelGenerator(resultVoxelGrid);
-    m_voxelModelGenerator->moveToThread(thread);
-    connect(thread, &QThread::started, m_voxelModelGenerator, &VoxelModelGenerator::process);
-    connect(m_voxelModelGenerator, &VoxelModelGenerator::finished, this, &DocumentWindow::voxelModelReady);
-    connect(m_voxelModelGenerator, &VoxelModelGenerator::finished, thread, &QThread::quit);
+    m_roughVoxelModelGenerator = new VoxelModelGenerator(resultVoxelGrid);
+    m_roughVoxelModelGenerator->setTargetLevel(1);
+    if (m_isRoughVoxelModelProvisional)
+        m_roughVoxelModelGenerator->markAsProvisional();
+    m_roughVoxelModelGenerator->moveToThread(thread);
+    connect(thread, &QThread::started, m_roughVoxelModelGenerator, &VoxelModelGenerator::process);
+    connect(m_roughVoxelModelGenerator, &VoxelModelGenerator::finished, this, &DocumentWindow::roughVoxelModelReady);
+    connect(m_roughVoxelModelGenerator, &VoxelModelGenerator::finished, thread, &QThread::quit);
     connect(thread, &QThread::finished, thread, &QThread::deleteLater);
     thread->start();
 }
 
-void DocumentWindow::voxelModelReady()
+void DocumentWindow::roughVoxelModelReady()
 {
-	Model *model = m_voxelModelGenerator->takeModel();
+	Model *model = m_roughVoxelModelGenerator->takeModel();
     if (nullptr != model)
 		m_modelRenderWidget->updateMesh(model);
     
-    m_voxelModelGenerator->deleteLater();
-    m_voxelModelGenerator = nullptr;
+    if (!m_roughVoxelModelGenerator->isProvisional()) {
+        delete m_finestVoxelGrid;
+        m_finestVoxelGrid = m_roughVoxelModelGenerator->takeVoxelGrid();
+    }
+    
+    m_roughVoxelModelGenerator->deleteLater();
+    m_roughVoxelModelGenerator = nullptr;
 
-    if (m_isVoxelModelObsolete) {
-        generateVoxelModel();
+    if (m_isRoughVoxelModelObsolete) {
+        generateRoughVoxelModel();
+    }
+    
+    generateFinestVoxelModel();
+}
+
+void DocumentWindow::generateFinestVoxelModel()
+{
+	if (nullptr != m_finestVoxelModelGenerator) {
+		m_isFinestVoxelModelObsolete = true;
+		return;
+	}
+	
+	m_isFinestVoxelModelObsolete = false;
+	
+	if (nullptr == m_finestVoxelGrid)
+		return;
+		
+	auto resultVoxelGrid = m_finestVoxelGrid;
+	m_finestVoxelGrid = nullptr;
+	
+	QThread *thread = new QThread;
+    m_finestVoxelModelGenerator = new VoxelModelGenerator(resultVoxelGrid);
+    m_finestVoxelModelGenerator->moveToThread(thread);
+    connect(thread, &QThread::started, m_finestVoxelModelGenerator, &VoxelModelGenerator::process);
+    connect(m_finestVoxelModelGenerator, &VoxelModelGenerator::finished, this, &DocumentWindow::finestVoxelModelReady);
+    connect(m_finestVoxelModelGenerator, &VoxelModelGenerator::finished, thread, &QThread::quit);
+    connect(thread, &QThread::finished, thread, &QThread::deleteLater);
+    thread->start();
+}
+
+void DocumentWindow::finestVoxelModelReady()
+{
+	Model *model = m_finestVoxelModelGenerator->takeModel();
+    if (nullptr != model) {
+        if (nullptr == m_roughVoxelModelGenerator)
+            m_modelRenderWidget->updateMesh(model);
+        else
+            delete model;
+    }
+    
+    m_finestVoxelModelGenerator->deleteLater();
+    m_finestVoxelModelGenerator = nullptr;
+
+    if (m_isFinestVoxelModelObsolete) {
+        generateFinestVoxelModel();
     }
 }

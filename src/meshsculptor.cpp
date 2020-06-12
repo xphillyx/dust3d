@@ -147,6 +147,11 @@ VoxelGrid *MeshSculptor::takeFinalVoxelGrid()
 	return finalVoxelGrid;
 }
 
+const MeshSculptorStroke &MeshSculptor::stroke()
+{
+    return m_stroke;
+}
+
 void MeshSculptor::process()
 {
 	sculpt();

@@ -12,6 +12,11 @@ public:
 	VoxelModelGenerator(VoxelGrid *voxelGrid);
 	~VoxelModelGenerator();
 	Model *takeModel();
+    VoxelGrid *takeVoxelGrid();
+    void setTargetLevel(int level);
+    void markAsProvisional();
+    int takeTargetLevel();
+    bool isProvisional();
 signals:
 	void finished();
 public slots:
@@ -20,6 +25,8 @@ public slots:
 private:
 	VoxelGrid *m_voxelGrid = nullptr;
 	Model *m_model = nullptr;
+    int m_targetLevel = 0;
+    bool m_isProvisional = false;
 };
 
 #endif

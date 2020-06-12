@@ -110,6 +110,33 @@ struct MeshToModel
     }
 };
 
+VoxelGrid *VoxelModelGenerator::takeVoxelGrid()
+{
+    VoxelGrid *voxelGrid = m_voxelGrid;
+    m_voxelGrid = nullptr;
+    return voxelGrid;
+}
+
+void VoxelModelGenerator::setTargetLevel(int level)
+{
+    m_targetLevel = level;
+}
+
+int VoxelModelGenerator::takeTargetLevel()
+{
+    return m_targetLevel;
+}
+
+void VoxelModelGenerator::markAsProvisional()
+{
+    m_isProvisional = true;
+}
+
+bool VoxelModelGenerator::isProvisional()
+{
+    return m_isProvisional;
+}
+
 void VoxelModelGenerator::generate()
 {
 	if (nullptr == m_voxelGrid)
@@ -144,14 +171,15 @@ void VoxelModelGenerator::generate()
     //}
     //openvdb::math::Transform::Ptr toTransform = openvdb::math::Transform::createLinearTransform(VoxelGrid::m_defaultVoxelSize * 4);
     //auto rebuiltGrid = openvdb::tools::levelSetRebuild<openvdb::FloatGrid>(*m_voxelGrid->m_grid, 0.0f, 1.0f, toTransform.get());
-    openvdb::tools::MultiResGrid<openvdb::FloatTree> multiResGrid(2, *m_voxelGrid->m_grid);
-    auto lo2Grid = multiResGrid.grid(1);
-    //{
-    //    openvdb::tools::LevelSetFilter<openvdb::FloatGrid> filter(*lo2Grid);
-    //    filter.laplacian();
-    //}
-	openvdb::tools::volumeToMesh<openvdb::FloatGrid>(*lo2Grid, points, triangles, quads,
-		isovalue, adaptivity, relaxDisorientedTriangles);
+    if (m_targetLevel > 0) {
+        openvdb::tools::MultiResGrid<openvdb::FloatTree> multiResGrid(m_targetLevel + 1, *m_voxelGrid->m_grid);
+        auto lodGrid = multiResGrid.grid(m_targetLevel);
+        openvdb::tools::volumeToMesh<openvdb::FloatGrid>(*lodGrid, points, triangles, quads,
+            isovalue, adaptivity, relaxDisorientedTriangles);
+    } else {
+        openvdb::tools::volumeToMesh<openvdb::FloatGrid>(*m_voxelGrid->m_grid, points, triangles, quads,
+            isovalue, adaptivity, relaxDisorientedTriangles);
+    }
         
     voxelVertices.resize(points.size());
 	for (size_t i = 0; i < points.size(); ++i) {

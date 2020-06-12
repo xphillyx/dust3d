@@ -32,6 +32,7 @@ public:
 	MeshVoxelContext *takeContext();
 	MeshVoxelContext *takeMousePickContext();
 	VoxelGrid *takeFinalVoxelGrid();
+    const MeshSculptorStroke &stroke();
 signals:
 	void finished();
 public slots:
