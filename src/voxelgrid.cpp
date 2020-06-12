@@ -7,7 +7,7 @@
 #include <QElapsedTimer>
 #include "util.h"
 
-float VoxelGrid::m_defaultVoxelSize = 0.002;
+float VoxelGrid::m_defaultVoxelSize = 0.0015;
 
 VoxelGrid::VoxelGrid(float voxelSize) :
 	m_voxelSize(voxelSize)
