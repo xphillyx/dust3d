@@ -2412,7 +2412,7 @@ void DocumentWindow::generateRoughVoxelModel()
 	
 	QThread *thread = new QThread;
     m_roughVoxelModelGenerator = new VoxelModelGenerator(resultVoxelGrid);
-    m_roughVoxelModelGenerator->setTargetTriangleCount(500000);
+    m_roughVoxelModelGenerator->setTargetTriangleCount(400000);
     if (m_isRoughVoxelModelProvisional)
         m_roughVoxelModelGenerator->markAsProvisional();
     m_roughVoxelModelGenerator->moveToThread(thread);
