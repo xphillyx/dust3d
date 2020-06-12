@@ -128,11 +128,29 @@ void VoxelModelGenerator::generate()
     double isovalue = 0.0;
 	double adaptivity = 0.0;
 	bool relaxDisorientedTriangles = false;
-    {
-        openvdb::tools::LevelSetFilter<openvdb::FloatGrid> filter(*m_voxelGrid->m_grid);
-        filter.laplacian();
-    }
-	openvdb::tools::volumeToMesh<openvdb::FloatGrid>(*m_voxelGrid->m_grid, points, triangles, quads,
+    //const openvdb::math::NonlinearFrustumMap frustum{
+    //    /*position=*/openvdb::Vec3d{0.0, 0.0, -1.0},
+    //    /*direction=*/openvdb::Vec3d{0.0, 0.0, 1.0},
+    //    /*up=*/openvdb::Vec3d{0.0, 1.0, 0.0},
+    //    /*aspect=*/1.0,
+    //    /*near=*/0.01,
+    //    /*depth=*/100,
+    //    /*x_count=*/100,
+    //    /*z_count=*/100};
+    //auto clipped = openvdb::tools::clip(*m_voxelGrid->m_grid, frustum);
+    //{
+    //    openvdb::tools::LevelSetFilter<openvdb::FloatGrid> filter(*clipped);
+    //    filter.laplacian();
+    //}
+    //openvdb::math::Transform::Ptr toTransform = openvdb::math::Transform::createLinearTransform(VoxelGrid::m_defaultVoxelSize * 4);
+    //auto rebuiltGrid = openvdb::tools::levelSetRebuild<openvdb::FloatGrid>(*m_voxelGrid->m_grid, 0.0f, 1.0f, toTransform.get());
+    openvdb::tools::MultiResGrid<openvdb::FloatTree> multiResGrid(2, *m_voxelGrid->m_grid);
+    auto lo2Grid = multiResGrid.grid(1);
+    //{
+    //    openvdb::tools::LevelSetFilter<openvdb::FloatGrid> filter(*lo2Grid);
+    //    filter.laplacian();
+    //}
+	openvdb::tools::volumeToMesh<openvdb::FloatGrid>(*lo2Grid, points, triangles, quads,
 		isovalue, adaptivity, relaxDisorientedTriangles);
         
     voxelVertices.resize(points.size());

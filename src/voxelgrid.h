@@ -11,6 +11,9 @@
 #include <openvdb/tools/LevelSetFilter.h>
 #include <openvdb/tools/Morphology.h>
 #include <openvdb/tools/Mask.h>
+#include <openvdb/tools/Clip.h>
+#include <openvdb/tools/LevelSetRebuild.h>
+#include <openvdb/tools/MultiResGrid.h>
 #include <vector>
 #include <QVector3D>
 
