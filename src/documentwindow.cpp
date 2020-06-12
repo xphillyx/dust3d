@@ -2412,7 +2412,7 @@ void DocumentWindow::generateRoughVoxelModel()
 	
 	QThread *thread = new QThread;
     m_roughVoxelModelGenerator = new VoxelModelGenerator(resultVoxelGrid);
-    m_roughVoxelModelGenerator->setTargetLevel(1);
+    m_roughVoxelModelGenerator->setTargetTriangleCount(500000);
     if (m_isRoughVoxelModelProvisional)
         m_roughVoxelModelGenerator->markAsProvisional();
     m_roughVoxelModelGenerator->moveToThread(thread);
@@ -2429,7 +2429,8 @@ void DocumentWindow::roughVoxelModelReady()
     if (nullptr != model)
 		m_modelRenderWidget->updateMesh(model);
     
-    if (!m_roughVoxelModelGenerator->isProvisional()) {
+    if (!m_roughVoxelModelGenerator->isProvisional() &&
+            m_roughVoxelModelGenerator->takeTargetLevel() > 0) {
         delete m_finestVoxelGrid;
         m_finestVoxelGrid = m_roughVoxelModelGenerator->takeVoxelGrid();
     }

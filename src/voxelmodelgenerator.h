@@ -13,7 +13,7 @@ public:
 	~VoxelModelGenerator();
 	Model *takeModel();
     VoxelGrid *takeVoxelGrid();
-    void setTargetLevel(int level);
+    void setTargetTriangleCount(size_t triangleCount);
     void markAsProvisional();
     int takeTargetLevel();
     bool isProvisional();
@@ -27,6 +27,7 @@ private:
 	Model *m_model = nullptr;
     int m_targetLevel = 0;
     bool m_isProvisional = false;
+    size_t m_targetTriangleCount = 0;
 };
 
 #endif

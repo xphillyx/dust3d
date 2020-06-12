@@ -117,9 +117,9 @@ VoxelGrid *VoxelModelGenerator::takeVoxelGrid()
     return voxelGrid;
 }
 
-void VoxelModelGenerator::setTargetLevel(int level)
+void VoxelModelGenerator::setTargetTriangleCount(size_t triangleCount)
 {
-    m_targetLevel = level;
+    m_targetTriangleCount = triangleCount;
 }
 
 int VoxelModelGenerator::takeTargetLevel()
@@ -155,6 +155,14 @@ void VoxelModelGenerator::generate()
     double isovalue = 0.0;
 	double adaptivity = 0.0;
 	bool relaxDisorientedTriangles = false;
+    auto voxelCount = m_voxelGrid->m_grid->activeVoxelCount();
+    if (m_targetTriangleCount > 0) {
+        auto estimatedTriangleCount = voxelCount * 1.42;
+        while (estimatedTriangleCount > m_targetTriangleCount) {
+            estimatedTriangleCount /= 4;
+            ++m_targetLevel;
+        }
+    }
     if (m_targetLevel > 0) {
         openvdb::tools::MultiResGrid<openvdb::FloatTree> multiResGrid(m_targetLevel + 1, *m_voxelGrid->m_grid);
         auto lodGrid = multiResGrid.grid(m_targetLevel);
@@ -202,5 +210,6 @@ void VoxelModelGenerator::generate()
 	
 	auto totalConsumedTime = timer.elapsed();
 	qDebug() << "VOXEL TOTAL generation took milliseconds:" << totalConsumedTime <<
+        "voxels:" << voxelCount << "level:" << m_targetLevel <<
 		"vertices:" << voxelVertices.size() << "quads:" << voxelQuads.size() << "triangles:" << (voxelQuads.size() * 2) << ")";
 }
