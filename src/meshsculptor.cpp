@@ -111,7 +111,7 @@ void MeshSculptor::sculpt()
 	} else if (PaintMode::Smooth == m_stroke.paintMode) {
         openvdb::tools::sdfToFogVolume(*m_strokeGrid->m_grid);
         openvdb::tools::LevelSetFilter<openvdb::FloatGrid> filter(*m_finalGrid->m_grid);
-        filter.gaussian(1, &(*m_strokeGrid->m_grid));
+        filter.gaussian(3, &(*m_strokeGrid->m_grid));
         
         // If half width of level set is 1, 
         // the direct masked gaussian will cause some artifacts to the voxels which are not included in the mask
