@@ -44,9 +44,12 @@ void MeshVoxelContext::voxelize()
 {
 	if (m_meshId != m_targetMeshId) {
 		VoxelGrid *positiveOldVoxel = nullptr;
+        VoxelGrid *negativeOldVoxel = nullptr;
 		if (nullptr != m_baseVoxelGrid && nullptr != m_voxelGrid) {
 			positiveOldVoxel = new VoxelGrid(*m_voxelGrid);
 			positiveOldVoxel->diffWith(*m_baseVoxelGrid);
+            negativeOldVoxel = new VoxelGrid(*m_baseVoxelGrid);
+            negativeOldVoxel->diffWith(*m_voxelGrid);
 		}
 		delete m_baseVoxelGrid;
 		m_baseVoxelGrid = nullptr;
@@ -55,13 +58,16 @@ void MeshVoxelContext::voxelize()
 		if (!m_meshFaces.empty()) {
 			m_voxelGrid = new VoxelGrid;
 			m_voxelGrid->fromMesh(m_meshVertices, m_meshFaces);
+            m_baseVoxelGrid = new VoxelGrid(*m_voxelGrid);
 			if (nullptr != positiveOldVoxel) {
 				m_voxelGrid->unionWith(*positiveOldVoxel);
-				delete positiveOldVoxel;
 			}
+            if (nullptr != negativeOldVoxel) {
+                m_voxelGrid->diffWith(*negativeOldVoxel);
+            }
 		}
-		if (nullptr != m_voxelGrid)
-			m_baseVoxelGrid = new VoxelGrid(*m_voxelGrid);
+        delete negativeOldVoxel;
+        delete positiveOldVoxel;
 		m_meshId = m_targetMeshId;
 	}
 }
