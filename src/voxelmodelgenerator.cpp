@@ -169,10 +169,10 @@ void VoxelModelGenerator::generate()
         openvdb::tools::volumeToMesh<openvdb::FloatGrid>(*lodGrid, points, triangles, quads,
             isovalue, adaptivity, relaxDisorientedTriangles);
     } else {
-        {
-            openvdb::tools::LevelSetFilter<openvdb::FloatGrid> filter(*m_voxelGrid->m_grid);
-            filter.laplacian();
-        }
+        //{
+        //    openvdb::tools::LevelSetFilter<openvdb::FloatGrid> filter(*m_voxelGrid->m_grid);
+        //    filter.laplacian();
+        //}
         openvdb::tools::volumeToMesh<openvdb::FloatGrid>(*m_voxelGrid->m_grid, points, triangles, quads,
             isovalue, adaptivity, relaxDisorientedTriangles);
     }

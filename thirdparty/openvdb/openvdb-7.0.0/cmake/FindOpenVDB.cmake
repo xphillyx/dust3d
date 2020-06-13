@@ -399,9 +399,8 @@ endif()
 # headers
 
 set(_OPENVDB_VISIBLE_DEPENDENCIES
-  #Boost::iostreams
-  #Boost::system
-  #Boost::boost
+  Boost::iostreams
+  Boost::system
   IlmBase::Half
 )
 
