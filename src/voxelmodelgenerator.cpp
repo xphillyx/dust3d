@@ -157,7 +157,7 @@ void VoxelModelGenerator::generate()
 	bool relaxDisorientedTriangles = false;
     auto voxelCount = m_voxelGrid->m_grid->activeVoxelCount();
     if (m_targetTriangleCount > 0) {
-        auto estimatedTriangleCount = voxelCount * 1.42;
+        auto estimatedTriangleCount = voxelCount * 0.46;
         while (estimatedTriangleCount > m_targetTriangleCount) {
             estimatedTriangleCount /= 4;
             ++m_targetLevel;
