@@ -104,33 +104,35 @@ void MeshSculptor::sculpt()
 	m_finalGrid = new VoxelGrid(*m_context->voxelGrid());
     
     auto booleanBeginTime = timer.elapsed();
-	if (PaintMode::Pull == m_stroke.paintMode) {
-		m_finalGrid->unionWith(*m_strokeGrid);
-	} else if (PaintMode::Push == m_stroke.paintMode) {
-		m_finalGrid->diffWith(*m_strokeGrid);
-	} else if (PaintMode::Smooth == m_stroke.paintMode) {
-        openvdb::tools::sdfToFogVolume(*m_strokeGrid->m_grid);
-        openvdb::tools::LevelSetFilter<openvdb::FloatGrid> filter(*m_finalGrid->m_grid);
-        filter.gaussian(3, &(*m_strokeGrid->m_grid));
-        
-        // If half width of level set is 1, 
-        // the direct masked gaussian will cause some artifacts to the voxels which are not included in the mask
-        // The following section of code is a workaround
-        
-        //auto intersectedGrid = new VoxelGrid(*m_finalGrid);
-        //{
-		//	openvdb::tools::LevelSetFilter<openvdb::FloatGrid> filter(*intersectedGrid->m_grid);
-		//	filter.gaussian();
-		//}
-        //m_finalGrid->diffWith(*m_strokeGrid);
-        //{
-		//	openvdb::tools::LevelSetFilter<openvdb::FloatGrid> filter(*m_strokeGrid->m_grid);
-		//	filter.offset(-m_strokeGrid->m_voxelSize * 1.5);
-		//}
-        //intersectedGrid->intersectWith(*m_strokeGrid);
-		//m_finalGrid->unionWith(*intersectedGrid);
-		//delete intersectedGrid;
-	}
+    if (nullptr != m_strokeGrid) {
+        if (PaintMode::Pull == m_stroke.paintMode) {
+            m_finalGrid->unionWith(*m_strokeGrid);
+        } else if (PaintMode::Push == m_stroke.paintMode) {
+            m_finalGrid->diffWith(*m_strokeGrid);
+        } else if (PaintMode::Smooth == m_stroke.paintMode) {
+            openvdb::tools::sdfToFogVolume(*m_strokeGrid->m_grid);
+            openvdb::tools::LevelSetFilter<openvdb::FloatGrid> filter(*m_finalGrid->m_grid);
+            filter.gaussian(3, &(*m_strokeGrid->m_grid));
+            
+            // If half width of level set is 1, 
+            // the direct masked gaussian will cause some artifacts to the voxels which are not included in the mask
+            // The following section of code is a workaround
+            
+            //auto intersectedGrid = new VoxelGrid(*m_finalGrid);
+            //{
+            //	openvdb::tools::LevelSetFilter<openvdb::FloatGrid> filter(*intersectedGrid->m_grid);
+            //	filter.gaussian();
+            //}
+            //m_finalGrid->diffWith(*m_strokeGrid);
+            //{
+            //	openvdb::tools::LevelSetFilter<openvdb::FloatGrid> filter(*m_strokeGrid->m_grid);
+            //	filter.offset(-m_strokeGrid->m_voxelSize * 1.5);
+            //}
+            //intersectedGrid->intersectWith(*m_strokeGrid);
+            //m_finalGrid->unionWith(*intersectedGrid);
+            //delete intersectedGrid;
+        }
+    }
     auto booleanEndTime = timer.elapsed();
 	
 	if (m_stroke.isProvisional)

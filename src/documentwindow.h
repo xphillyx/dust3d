@@ -109,6 +109,7 @@ public slots:
     void roughVoxelModelReady();
     void generateFinestVoxelModel();
     void finestVoxelModelReady();
+    void addEmptyPaintStroke();
 private:
     void initLockButton(QPushButton *button);
     void setCurrentFilename(const QString &filename);

@@ -991,6 +991,8 @@ DocumentWindow::DocumentWindow()
     
     connect(m_document, &Document::editModeChanged, this, [=]() {
         m_modelRenderWidget->enableMousePicking(SkeletonDocumentEditMode::Paint == m_document->editMode);
+        if (SkeletonDocumentEditMode::Paint == m_document->editMode)
+            addEmptyPaintStroke();
     });
 
     m_partListDockerVisibleSwitchConnection = connect(m_document, &Document::skeletonChanged, [=]() {
@@ -1184,7 +1186,7 @@ DocumentWindow::DocumentWindow()
     connect(m_document, &Document::postProcessedResultChanged, m_document, &Document::generateTexture);
     //connect(m_document, &SkeletonDocument::resultTextureChanged, m_document, &SkeletonDocument::bakeAmbientOcclusionTexture);
     connect(m_document, &Document::resultTextureChanged, [=]() {
-        if (m_document->isMeshGenerating())
+        if (m_document->isMeshGenerating() || SkeletonDocumentEditMode::Paint == m_document->editMode)
             return;
         auto resultTextureMesh = m_document->takeResultTextureMesh();
         if (nullptr != resultTextureMesh) {
@@ -1199,6 +1201,10 @@ DocumentWindow::DocumentWindow()
     });
     
     connect(m_document, &Document::resultMeshChanged, [=]() {
+        if (SkeletonDocumentEditMode::Paint == m_document->editMode) {
+            addEmptyPaintStroke();
+            return;
+        }
         auto resultMesh = m_document->takeResultMesh();
         if (nullptr != resultMesh)
             m_currentUpdatedMeshId = resultMesh->meshId();
@@ -2316,6 +2322,13 @@ void DocumentWindow::mousePick(const QVector3D &nearPosition, const QVector3D &f
 {
 	m_mouseRayQueue.push_back({nearPosition, farPosition, radius, paintMode, isEndOfStroke});
 	processMousePickingQueue();
+}
+
+void DocumentWindow::addEmptyPaintStroke()
+{
+    std::vector<MeshSculptorStrokePoint> paintStrokePoints;
+    m_paintStrokeQueue.push_back({paintStrokePoints, PaintMode::None});
+    processPaintStrokeQueue();
 }
 
 void DocumentWindow::processPaintStrokeQueue()
