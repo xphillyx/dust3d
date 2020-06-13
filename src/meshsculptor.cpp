@@ -109,19 +109,9 @@ void MeshSculptor::sculpt()
 	} else if (PaintMode::Push == m_stroke.paintMode) {
 		m_finalGrid->diffWith(*m_strokeGrid);
 	} else if (PaintMode::Smooth == m_stroke.paintMode) {
-		auto intersectedGrid = new VoxelGrid(*m_finalGrid);
-		{
-			openvdb::tools::LevelSetFilter<openvdb::FloatGrid> filter(*intersectedGrid->m_grid);
-			filter.gaussian();
-		}
-		m_finalGrid->diffWith(*m_strokeGrid);
-		{
-			openvdb::tools::LevelSetFilter<openvdb::FloatGrid> filter(*m_strokeGrid->m_grid);
-			filter.offset(-m_strokeGrid->m_voxelSize * 1.5);
-		}
-		intersectedGrid->intersectWith(*m_strokeGrid);
-		m_finalGrid->unionWith(*intersectedGrid);
-		delete intersectedGrid;
+        openvdb::tools::sdfToFogVolume(*m_strokeGrid->m_grid);
+        openvdb::tools::LevelSetFilter<openvdb::FloatGrid> filter(*m_finalGrid->m_grid);
+        filter.gaussian(1, &(*m_strokeGrid->m_grid));
 	}
     auto booleanEndTime = timer.elapsed();
 	

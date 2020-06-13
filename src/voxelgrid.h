@@ -14,6 +14,8 @@
 #include <openvdb/tools/Clip.h>
 #include <openvdb/tools/LevelSetRebuild.h>
 #include <openvdb/tools/MultiResGrid.h>
+#include <openvdb/tools/Interpolation.h>
+#include <openvdb/tools/LevelSetUtil.h>
 #include <vector>
 #include <QVector3D>
 
