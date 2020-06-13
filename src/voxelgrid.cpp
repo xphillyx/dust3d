@@ -7,7 +7,7 @@
 #include <QElapsedTimer>
 #include "util.h"
 
-float VoxelGrid::m_defaultVoxelSize = 0.0017;
+float VoxelGrid::m_defaultVoxelSize = 0.002;
 
 VoxelGrid::VoxelGrid(float voxelSize) :
 	m_voxelSize(voxelSize)
@@ -98,7 +98,7 @@ void VoxelGrid::fromMesh(const std::vector<QVector3D> &vertices,
 	}
 	
 	m_grid = openvdb::tools::meshToLevelSet<openvdb::FloatGrid>(
-		*m_transform, points, triangles, quads, 1);
+		*m_transform, points, triangles, quads, 3);
 }
 
 void VoxelGrid::unionWith(const VoxelGrid &other)
