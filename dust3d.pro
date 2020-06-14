@@ -136,6 +136,9 @@ include(thirdparty/Qt-Color-Widgets/color_widgets.pri)
 
 INCLUDEPATH += src
 
+SOURCES += src/quadremesh.cpp
+HEADERS += src/quadremesh.h
+
 SOURCES += src/meshsimplify.cpp
 HEADERS += src/meshsimplify.h
 
@@ -561,6 +564,120 @@ HEADERS += src/fileforever.h
 SOURCES += src/main.cpp
 
 HEADERS += src/version.h
+
+INCLUDEPATH += thirdparty/comiso
+INCLUDEPATH += thirdparty/comiso/Solver
+DEFINES += _SCL_SECURE_NO_DEPRECATE     #for comiso\ext\gmm-4.2\include\gmm\gmm_std.h
+DEFINES += INCLUDE_TEMPLATES
+INCLUDEPATH += thirdparty/comiso/CoMISo/ext/gmm-4.2/include
+
+SOURCES += thirdparty/comiso/CoMISo/Solver/EigenLDLTSolver.cc
+HEADERS += thirdparty/comiso/CoMISo/Solver/EigenLDLTSolver.hh
+
+SOURCES += thirdparty/comiso/CoMISo/Solver/MISolver.cc
+HEADERS += thirdparty/comiso/CoMISo/Solver/MISolver.hh
+
+SOURCES += thirdparty/comiso/CoMISo/Solver/ConstrainedSolver.cc
+HEADERS += thirdparty/comiso/CoMISo/Solver/ConstrainedSolver.hh
+
+SOURCES += thirdparty/comiso/CoMISo/Solver/IterativeSolverT.cc
+HEADERS += thirdparty/comiso/CoMISo/Solver/IterativeSolverT.hh
+
+SOURCES += thirdparty/comiso/CoMISo/Solver/GMM_Tools.cc
+HEADERS += thirdparty/comiso/CoMISo/Solver/GMM_Tools.hh
+
+INCLUDEPATH += thirdparty/OpenMesh/OpenMesh-8.1/src
+
+INCLUDEPATH += thirdparty/libQEx/src
+
+INCLUDEPATH += thirdparty/libQEx/interfaces/c
+
+HEADERS += thirdparty/libQEx/src/Algebra.hh
+
+HEADERS += thirdparty/libQEx/src/ExactPredicates.h
+
+HEADERS += thirdparty/libQEx/src/Globals.hh
+
+HEADERS += thirdparty/libQEx/src/MeshDecimatorT.hh
+
+SOURCES += thirdparty/libQEx/src/MeshExtractor.cc
+
+SOURCES += thirdparty/libQEx/src/MeshExtractorT.cc
+HEADERS += thirdparty/libQEx/src/MeshExtractorT.hh
+
+SOURCES += thirdparty/libQEx/src/predicates.c
+
+SOURCES += thirdparty/libQEx/src/QuadExtractorPostprocT.cc
+HEADERS += thirdparty/libQEx/src/QuadExtractorPostprocT.hh
+
+HEADERS += thirdparty/libQEx/src/TransitionFunction.hh
+
+HEADERS += thirdparty/libQEx/src/Vector.hh
+
+SOURCES += thirdparty/libQEx/interfaces/c/qex.cc
+HEADERS += thirdparty/libQEx/interfaces/c/qex.h
+
+win32 {
+	LIBS += -Lthirdparty/OpenMesh/OpenMesh-8.1/build/Build/lib -lOpenMeshCore
+    #contains(QT_ARCH, i386) {
+    #} else {
+    #    LIBS += -Lthirdparty/comiso/CoMISo/ext/OpenBLAS-v0.2.14-Win64-int64/lib -llibopenblas.dll.a
+    #}
+}
+
+INCLUDEPATH += thirdparty/QuadriFlow
+INCLUDEPATH += thirdparty/QuadriFlow/src
+INCLUDEPATH += thirdparty/QuadriFlow/3rd/pcg32
+INCLUDEPATH += thirdparty/QuadriFlow/3rd/pss
+INCLUDEPATH += thirdparty/QuadriFlow/3rd/lemon-1.3.1
+
+SOURCES += thirdparty/QuadriFlow/3rd/lemon-1.3.1/lemon/base.cc
+
+SOURCES += thirdparty/QuadriFlow/src/adjacent-matrix.cpp
+HEADERS += thirdparty/QuadriFlow/src/adjacent-matrix.hpp
+
+HEADERS += thirdparty/QuadriFlow/src/compare-key.hpp
+
+HEADERS += thirdparty/QuadriFlow/src/config.hpp
+
+SOURCES += thirdparty/QuadriFlow/src/dedge.cpp
+HEADERS += thirdparty/QuadriFlow/src/dedge.hpp
+
+HEADERS += thirdparty/QuadriFlow/src/disajoint-tree.hpp
+
+HEADERS += thirdparty/QuadriFlow/src/dset.hpp
+
+HEADERS += thirdparty/QuadriFlow/src/field-math.hpp
+
+HEADERS += thirdparty/QuadriFlow/src/flow.hpp
+
+SOURCES += thirdparty/QuadriFlow/src/hierarchy.cpp
+HEADERS += thirdparty/QuadriFlow/src/hierarchy.hpp
+
+SOURCES += thirdparty/QuadriFlow/src/loader.cpp
+HEADERS += thirdparty/QuadriFlow/src/loader.hpp
+
+SOURCES += thirdparty/QuadriFlow/src/localsat.cpp
+HEADERS += thirdparty/QuadriFlow/src/localsat.hpp
+
+SOURCES += thirdparty/QuadriFlow/src/merge-vertex.cpp
+HEADERS += thirdparty/QuadriFlow/src/merge-vertex.hpp
+
+SOURCES += thirdparty/QuadriFlow/src/optimizer.cpp
+HEADERS += thirdparty/QuadriFlow/src/optimizer.hpp
+
+SOURCES += thirdparty/QuadriFlow/src/parametrizer.cpp
+SOURCES += thirdparty/QuadriFlow/src/parametrizer-flip.cpp
+SOURCES += thirdparty/QuadriFlow/src/parametrizer-int.cpp
+SOURCES += thirdparty/QuadriFlow/src/parametrizer-mesh.cpp
+SOURCES += thirdparty/QuadriFlow/src/parametrizer-scale.cpp
+SOURCES += thirdparty/QuadriFlow/src/parametrizer-sing.cpp
+HEADERS += thirdparty/QuadriFlow/src/parametrizer.hpp
+
+HEADERS += thirdparty/QuadriFlow/src/serialize.hpp
+
+SOURCES += thirdparty/QuadriFlow/src/subdivide.cpp
+HEADERS += thirdparty/QuadriFlow/src/subdivide.hpp
 
 INCLUDEPATH += thirdparty/Fast-Quadric-Mesh-Simplification
 HEADERS += thirdparty/Fast-Quadric-Mesh-Simplification/Fast-Quadric-Mesh-Simplification/Simplify.h
