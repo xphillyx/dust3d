@@ -1,4 +1,5 @@
 #include <QDebug>
+#include <QElapsedTimer>
 #include <stdio.h>
 #include <stdlib.h>
 #include <igl/avg_edge_length.h>
@@ -22,6 +23,9 @@ bool quadRemesh(const std::vector<QVector3D> &inputVertices,
     std::vector<QVector3D> *outputVertices,
     std::vector<std::vector<size_t>> *outputQuads)
 {
+    QElapsedTimer timer;
+    timer.start();
+    
     qDebug() << "quadRemesh begin...";
     
     qex_TriMesh triMesh = {0};
@@ -140,6 +144,7 @@ bool quadRemesh(const std::vector<QVector3D> &inputVertices,
 
     // Global parametrization
     qDebug() << "Global parametrization...";
+    auto parametrizationStartTime = timer.elapsed();
     igl::copyleft::comiso::miq(V,
         F,
         X1_combed,
@@ -155,7 +160,8 @@ bool quadRemesh(const std::vector<QVector3D> &inputVertices,
         iter,
         5,
         true);
-    qDebug() << "Get parametrization result...";
+    auto parametrizationStopTime = timer.elapsed();
+    qDebug() << "Global parametrization took" << (parametrizationStopTime - parametrizationStartTime) << "milliseconds";
     
     qDebug() << "Get parametrization result UV.rows():" << UV.rows();
     qDebug() << "Get parametrization result FUV.rows():" << FUV.rows();
@@ -207,6 +213,8 @@ bool quadRemesh(const std::vector<QVector3D> &inputVertices,
     
     return true;
 }
+
+#if 1
 
 extern "C" {
     // http://www.netlib.org/clapack/
@@ -463,3 +471,5 @@ extern "C" {
 
     } /* dnrm2_ */
 }
+
+#endif

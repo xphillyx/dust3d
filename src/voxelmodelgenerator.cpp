@@ -192,9 +192,10 @@ void VoxelModelGenerator::generate()
     
     //meshSimplifyFromQuads(voxelVertices, voxelQuads,
     //    &voxelVertices, &voxelQuads);
-    std::vector<std::vector<size_t>> voxelTriangles;
-    quadRemesh(voxelVertices, voxelTriangles, voxelQuads,
-        &voxelVertices, &voxelQuads);
+    
+    //std::vector<std::vector<size_t>> voxelTriangles;
+    //quadRemesh(voxelVertices, voxelTriangles, voxelQuads,
+    //    &voxelVertices, &voxelQuads);
     
     auto createMeshStartTime = timer.elapsed();
 

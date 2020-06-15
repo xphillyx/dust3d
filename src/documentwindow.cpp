@@ -2474,6 +2474,7 @@ void DocumentWindow::generateFinestVoxelModel()
 	m_finestVoxelGrid = nullptr;
 	
 	QThread *thread = new QThread;
+    thread->setPriority(QThread::LowPriority);
     m_finestVoxelModelGenerator = new VoxelModelGenerator(resultVoxelGrid);
     m_finestVoxelModelGenerator->moveToThread(thread);
     connect(thread, &QThread::started, m_finestVoxelModelGenerator, &VoxelModelGenerator::process);

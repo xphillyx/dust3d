@@ -619,10 +619,10 @@ HEADERS += thirdparty/libQEx/interfaces/c/qex.h
 
 win32 {
 	LIBS += -Lthirdparty/OpenMesh/OpenMesh-8.1/build/Build/lib -lOpenMeshCore
-    #contains(QT_ARCH, i386) {
-    #} else {
-    #    LIBS += -Lthirdparty/comiso/CoMISo/ext/OpenBLAS-v0.2.14-Win64-int64/lib -llibopenblas.dll.a
-    #}
+    contains(QT_ARCH, i386) {
+    } else {
+        #LIBS += -Lthirdparty/openblas/OpenBLAS-0.3.9/build/lib/Release -lopenblas
+    }
 }
 
 INCLUDEPATH += thirdparty/QuadriFlow
