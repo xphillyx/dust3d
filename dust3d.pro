@@ -133,6 +133,11 @@ win32 {
 include(thirdparty/QtAwesome/QtAwesome/QtAwesome.pri)
 include(thirdparty/qtsingleapplication/src/qtsingleapplication.pri)
 
+win32 {
+    DEFINES += DUST3D_EXPORTING
+}
+
+INCLUDEPATH += include
 INCLUDEPATH += src
 
 SOURCES += src/fixholes.cpp
@@ -534,6 +539,9 @@ SOURCES += src/fileforever.cpp
 HEADERS += src/fileforever.h
 
 SOURCES += src/main.cpp
+
+SOURCES += src/libdust3d.cpp
+HEADERS += include/dust3d.h
 
 HEADERS += src/version.h
 
