@@ -84,6 +84,7 @@ after_test:
     7z a %RELEASE_FILENAME% %APPVEYOR_BUILD_FOLDER%\release\dust3d.pdb
   - 7z a %RELEASE_FILENAME% %APPVEYOR_BUILD_FOLDER%\release\dust3d.exe
   - 7z a %RELEASE_FILENAME% %APPVEYOR_BUILD_FOLDER%\lib\release\libdust3d.dll
+  - 7z a %RELEASE_FILENAME% %APPVEYOR_BUILD_FOLDER%\lib\release\libdust3d.lib
   - if "%TAG%" == "unstable"
     7z a %RELEASE_FILENAME% %APPVEYOR_BUILD_FOLDER%\thirdparty\instant-meshes\build\RelWithDebInfo\instant-meshes.pdb
   - 7z a %RELEASE_FILENAME% %APPVEYOR_BUILD_FOLDER%\thirdparty\instant-meshes\build\RelWithDebInfo\instant-meshes.dll
