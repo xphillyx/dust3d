@@ -2,8 +2,9 @@
 #include <fstream>
 #include <streambuf>
 #include <sstream>
-#include <iostream>
 #include <QVector3D>
+#include <QString>
+#include <QCoreApplication>
 #include "dust3d.h"
 #include "meshgenerator.h"
 #include "snapshot.h"
@@ -21,12 +22,12 @@ struct _dust3d
     std::string obj;
 };
 
-int dust3dError(dust3d *ds3)
+DUST3D_DLL int DUST3D_API dust3dError(dust3d *ds3)
 {
     return ds3->error;
 }
 
-void dust3dClose(dust3d *ds3)
+DUST3D_DLL void DUST3D_API dust3dClose(dust3d *ds3)
 {
     delete ds3->resultMesh;
     ds3->resultMesh = nullptr;
@@ -40,12 +41,13 @@ void dust3dClose(dust3d *ds3)
     delete ds3;
 }
 
-void dust3dInitialize(void)
+DUST3D_DLL void DUST3D_API dust3dInitialize(int argc, char *argv[])
 {
-    // void
+    if (nullptr == QCoreApplication::instance())
+        new QCoreApplication(argc, argv);
 }
 
-dust3d *dust3dOpenFromMemory(const char *documentType, const char *buffer, int size)
+DUST3D_DLL dust3d * DUST3D_API dust3dOpenFromMemory(const char *documentType, const char *buffer, int size)
 {
     dust3d *ds3 = new dust3d;
     
@@ -69,7 +71,7 @@ dust3d *dust3dOpenFromMemory(const char *documentType, const char *buffer, int s
     return ds3;
 }
 
-dust3d *dust3dOpen(const char *fileName)
+DUST3D_DLL dust3d * DUST3D_API dust3dOpen(const char *fileName)
 {
     std::string name = fileName;
     auto dotIndex = name.rfind('.');
@@ -98,22 +100,22 @@ dust3d *dust3dOpen(const char *fileName)
     return ds3;
 }
 
-void dust3dSetUserData(dust3d *ds3, void *userData)
+DUST3D_DLL void DUST3D_API dust3dSetUserData(dust3d *ds3, void *userData)
 {
     ds3->userData = userData;
 }
 
-void *dust3dGetUserData(dust3d *ds3)
+DUST3D_DLL void * DUST3D_API dust3dGetUserData(dust3d *ds3)
 {
     return ds3->userData;
 }
 
-const char *dust3dVersion(void)
+DUST3D_DLL const char * DUST3D_API dust3dVersion(void)
 {
     return APP_NAME " " APP_HUMAN_VER;
 }
 
-int dust3dGenerateMesh(dust3d *ds3)
+DUST3D_DLL int DUST3D_API dust3dGenerateMesh(dust3d *ds3)
 {
     ds3->error = DUST3D_ERROR;
     
@@ -158,7 +160,7 @@ int dust3dGenerateMesh(dust3d *ds3)
     return ds3->error;
 }
 
-const char *dust3dGetMeshAsObj(dust3d *ds3)
+DUST3D_DLL const char * DUST3D_API dust3dGetMeshAsObj(dust3d *ds3)
 {
     return ds3->obj.c_str();
 }
