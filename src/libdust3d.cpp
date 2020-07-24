@@ -18,8 +18,8 @@ struct _dust3d
     GeneratedCacheContext *cacheContext = nullptr;
     Model *resultMesh = nullptr;
     Snapshot *snapshot = nullptr;
+    Outcome *outcome = nullptr;
     int error = DUST3D_ERROR;
-    std::string obj;
 };
 
 DUST3D_DLL int DUST3D_API dust3dError(dust3d *ds3)
@@ -38,6 +38,9 @@ DUST3D_DLL void DUST3D_API dust3dClose(dust3d *ds3)
     delete ds3->snapshot;
     ds3->snapshot = nullptr;
     
+    delete ds3->outcome;
+    ds3->outcome = nullptr;
+    
     delete ds3;
 }
 
@@ -52,6 +55,9 @@ DUST3D_DLL dust3d * DUST3D_API dust3dOpenFromMemory(const char *documentType, co
     dust3d *ds3 = new dust3d;
     
     ds3->error = DUST3D_ERROR;
+    
+    delete ds3->outcome;
+    ds3->outcome = new Outcome;
     
     if (0 == strcmp(documentType, "xml")) {
         QByteArray data(buffer, size);
@@ -119,8 +125,6 @@ DUST3D_DLL int DUST3D_API dust3dGenerateMesh(dust3d *ds3)
 {
     ds3->error = DUST3D_ERROR;
     
-    ds3->obj.clear();
-    
     if (nullptr == ds3->snapshot)
         return ds3->error;
     
@@ -134,23 +138,10 @@ DUST3D_DLL int DUST3D_API dust3dGenerateMesh(dust3d *ds3)
     meshGenerator->setGeneratedCacheContext(ds3->cacheContext);
     meshGenerator->generate();
     
-    delete ds3->resultMesh;
-    ds3->resultMesh = meshGenerator->takeResultMesh();
-    
-    std::stringstream stream;
-    stream << "# " << APP_NAME << " " << APP_HUMAN_VER << endl;
-    stream << "# " << APP_HOMEPAGE_URL << endl;
-    for (std::vector<QVector3D>::const_iterator it = ds3->resultMesh->vertices().begin() ; it != ds3->resultMesh->vertices().end(); ++it) {
-        stream << "v " << (*it).x() << " " << (*it).y() << " " << (*it).z() << endl;
-    }
-    for (std::vector<std::vector<size_t>>::const_iterator it = ds3->resultMesh->faces().begin() ; it != ds3->resultMesh->faces().end(); ++it) {
-        stream << "f";
-        for (std::vector<size_t>::const_iterator subIt = (*it).begin() ; subIt != (*it).end(); ++subIt) {
-            stream << " " << (1 + *subIt);
-        }
-        stream << endl;
-    }
-    ds3->obj = stream.str();
+    delete ds3->outcome;
+    ds3->outcome = meshGenerator->takeOutcome();
+    if (nullptr == ds3->outcome)
+        ds3->outcome = new Outcome;
     
     if (meshGenerator->isSuccessful())
         ds3->error = DUST3D_OK;
@@ -160,9 +151,70 @@ DUST3D_DLL int DUST3D_API dust3dGenerateMesh(dust3d *ds3)
     return ds3->error;
 }
 
-DUST3D_DLL const char * DUST3D_API dust3dGetMeshAsObj(dust3d *ds3)
+DUST3D_DLL int DUST3D_API dust3dGetMeshVertexCount(dust3d *ds3)
 {
-    return ds3->obj.c_str();
+    return (int)ds3->outcome->vertices.size();
 }
 
+DUST3D_DLL int DUST3D_API dust3dGetMeshTriangleCount(dust3d *ds3)
+{
+    return (int)ds3->outcome->triangles.size();
+}
+
+DUST3D_DLL void DUST3D_API dust3dGetMeshTriangleIndices(dust3d *ds3, int *indices)
+{
+    for (const auto &it: ds3->outcome->triangles) {
+        *(indices++) = (int)it[0];
+        *(indices++) = (int)it[1];
+        *(indices++) = (int)it[2];
+    }
+}
+
+DUST3D_DLL void DUST3D_API dust3dGetMeshTriangleColors(dust3d *ds3, unsigned int *colors)
+{
+    for (const auto &it: ds3->outcome->triangleColors) {
+        *(colors++) = ((unsigned int)it.red() << 16) | ((unsigned int)it.green() << 8) | ((unsigned int)it.blue() << 0);
+    }
+}
+
+DUST3D_DLL void DUST3D_API dust3dGetMeshVertexPosition(dust3d *ds3, int vertexIndex, float *x, float *y, float *z)
+{
+    if (vertexIndex >= 0 && vertexIndex < ds3->outcome->vertices.size()) {
+        const auto &v = ds3->outcome->vertices[vertexIndex];
+        *x = v.x();
+        *y = v.y();
+        *z = v.z();
+    }
+}
+
+DUST3D_DLL void DUST3D_API dust3dGetMeshVertexSource(dust3d *ds3, int vertexIndex, unsigned char partId[16], unsigned char nodeId[16])
+{
+    if (vertexIndex >= 0 && vertexIndex < ds3->outcome->vertices.size()) {
+        const auto &source = ds3->outcome->vertexSourceNodes[vertexIndex];
+        
+        auto sourcePartUuid = source.first.toByteArray(QUuid::Id128);
+        memcpy(partId, sourcePartUuid.constData(), sizeof(partId));
+        
+        auto sourceNodeUuid = source.second.toByteArray(QUuid::Id128);
+        memcpy(partId, sourceNodeUuid.constData(), sizeof(nodeId));
+    }
+}
+
+DUST3D_DLL int DUST3D_API dust3dGetMeshTriangleAndQuadCount(dust3d *ds3)
+{
+    return (int)ds3->outcome->triangleAndQuads.size();
+}
+
+DUST3D_DLL void DUST3D_API dust3dGetMeshTriangleAndQuadIndices(dust3d *ds3, int *indices)
+{
+    for (const auto &it: ds3->outcome->triangleAndQuads) {
+        *(indices++) = (int)it[0];
+        *(indices++) = (int)it[1];
+        *(indices++) = (int)it[2];
+        if (it.size() > 3)
+            *(indices++) = (int)it[3];
+        else
+            *(indices++) = (int)-1;
+    }
+}
 

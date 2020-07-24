@@ -29,39 +29,17 @@ DUST3D_DLL dust3d *     DUST3D_API dust3dOpen(const char *fileName);
 DUST3D_DLL void         DUST3D_API dust3dSetUserData(dust3d *ds3, void *userData);
 DUST3D_DLL void *       DUST3D_API dust3dGetUserData(dust3d *ds3);
 DUST3D_DLL int          DUST3D_API dust3dGenerateMesh(dust3d *ds3);
-DUST3D_DLL const char * DUST3D_API dust3dGetMeshAsObj(dust3d *ds3);
+DUST3D_DLL int          DUST3D_API dust3dGetMeshVertexCount(dust3d *ds3);
+DUST3D_DLL int          DUST3D_API dust3dGetMeshTriangleCount(dust3d *ds3);
+DUST3D_DLL void         DUST3D_API dust3dGetMeshTriangleIndices(dust3d *ds3, int *indices);
+DUST3D_DLL void         DUST3D_API dust3dGetMeshTriangleColors(dust3d *ds3, unsigned int *colors);
+DUST3D_DLL void         DUST3D_API dust3dGetMeshVertexPosition(dust3d *ds3, int vertexIndex, float *x, float *y, float *z);
+DUST3D_DLL void         DUST3D_API dust3dGetMeshVertexSource(dust3d *ds3, int vertexIndex, unsigned char partId[16], unsigned char nodeId[16]);
+DUST3D_DLL int          DUST3D_API dust3dGetMeshTriangleAndQuadCount(dust3d *ds3);
+DUST3D_DLL void         DUST3D_API dust3dGetMeshTriangleAndQuadIndices(dust3d *ds3, int *indices);
 DUST3D_DLL void         DUST3D_API dust3dClose(dust3d *ds3);
 DUST3D_DLL int          DUST3D_API dust3dError(dust3d *ds3);
 DUST3D_DLL const char * DUST3D_API dust3dVersion(void);
-
-/*
-
-Example usage:
-
-#include <iostream>
-#include <dust3d.h>
-#include <stdio.h>
-
-int main(int argc, char *argv[])
-{
-	dust3dInitialize(argc, argv);
-
-	printf("dust3d version:%s\n", dust3dVersion());
-
-	dust3d *ds3 = dust3dOpen("test.xml");
-	if (ds3) {
-		int error = dust3dGenerateMesh(ds3);
-		printf("error: %d\n", error);
-		const char *obj = dust3dGetMeshAsObj(ds3);
-		FILE *fp = nullptr;
-		fopen_s(&fp, "test.obj", "wb");
-		fprintf(fp, "%s", obj);
-		fclose(fp);
-		dust3dClose(ds3);
-	}
-}
-
-*/
 
 #ifdef __cplusplus
 }
