@@ -34,6 +34,35 @@ DUST3D_DLL void         DUST3D_API dust3dClose(dust3d *ds3);
 DUST3D_DLL int          DUST3D_API dust3dError(dust3d *ds3);
 DUST3D_DLL const char * DUST3D_API dust3dVersion(void);
 
+/*
+
+Example usage:
+
+#include <iostream>
+#include <dust3d.h>
+#include <stdio.h>
+
+int main(int argc, char *argv[])
+{
+	dust3dInitialize(argc, argv);
+
+	printf("dust3d version:%s\n", dust3dVersion());
+
+	dust3d *ds3 = dust3dOpen("test.xml");
+	if (ds3) {
+		int error = dust3dGenerateMesh(ds3);
+		printf("error: %d\n", error);
+		const char *obj = dust3dGetMeshAsObj(ds3);
+		FILE *fp = nullptr;
+		fopen_s(&fp, "test.obj", "wb");
+		fprintf(fp, "%s", obj);
+		fclose(fp);
+		dust3dClose(ds3);
+	}
+}
+
+*/
+
 #ifdef __cplusplus
 }
 #endif
