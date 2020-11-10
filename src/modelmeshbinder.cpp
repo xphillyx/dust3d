@@ -30,6 +30,7 @@ ModelMeshBinder::~ModelMeshBinder()
     delete m_newToonDepthMap;
     delete m_currentToonNormalMap;
     delete m_currentToonDepthMap;
+    delete m_colorTextureImage;
 }
 
 void ModelMeshBinder::updateMesh(Model *mesh)
@@ -40,6 +41,13 @@ void ModelMeshBinder::updateMesh(Model *mesh)
         m_newMesh = mesh;
         m_newMeshComing = true;
     }
+}
+
+void ModelMeshBinder::updateColorTexture(QImage *colorTextureImage)
+{
+    QMutexLocker lock(&m_colorTextureMutex);
+    delete m_colorTextureImage;
+    m_colorTextureImage = colorTextureImage;
 }
 
 void ModelMeshBinder::reloadMesh()
@@ -296,6 +304,14 @@ void ModelMeshBinder::paint(ModelShaderProgram *program)
         if (m_hasTexture) {
             if (m_texture)
                 m_texture->bind(0);
+            {
+                QMutexLocker lock(&m_colorTextureMutex);
+                if (m_colorTextureImage) {
+                    m_texture->setData(*m_colorTextureImage);
+                    delete m_colorTextureImage;
+                    m_colorTextureImage = nullptr;
+                }
+            }
             program->setUniformValue(program->textureEnabledLoc(), 1);
         } else {
             program->setUniformValue(program->textureEnabledLoc(), 0);

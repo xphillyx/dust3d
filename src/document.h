@@ -28,8 +28,7 @@
 #include "proceduralanimation.h"
 #include "componentlayer.h"
 #include "clothforce.h"
-#include "voxelgrid.h"
-#include "vertexcolorpainter.h"
+#include "texturepainter.h"
 
 class MaterialPreviewsGenerator;
 class MotionsGenerator;
@@ -337,6 +336,7 @@ signals:
     void skeletonChanged();
     //void resultSkeletonChanged();
     void resultTextureChanged();
+    void resultColorTextureChanged();
     //void resultBakedTextureChanged();
     void postProcessedResultChanged();
     void resultRigChanged();
@@ -531,8 +531,8 @@ public slots:
     void generateMotions();
     void motionsReady();
     void pickMouseTarget(const QVector3D &nearPosition, const QVector3D &farPosition);
-    void paintVertexColors();
-    void vertexColorsReady();
+    void paint();
+    void paintReady();
     void setPartLockState(QUuid partId, bool locked);
     void setPartVisibleState(QUuid partId, bool visible);
     void setPartSubdivState(QUuid partId, bool subdived);
@@ -687,12 +687,11 @@ private: // need initialize
     std::map<QString, std::map<QString, QString>> m_mergedVariables;
     ScriptRunner *m_scriptRunner;
     bool m_isScriptResultObsolete;
-    VertexColorPainter *m_vertexColorPainter;
+    TexturePainter *m_texturePainter;
     bool m_isMouseTargetResultObsolete;
     PaintMode m_paintMode;
     float m_mousePickRadius;
     bool m_saveNextPaintSnapshot;
-    VoxelGrid<PaintColor> *m_vertexColorVoxelGrid;
     GeneratedCacheContext *m_generatedCacheContext;
 private:
     static unsigned long m_maxSnapshot;

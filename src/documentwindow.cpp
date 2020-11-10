@@ -202,9 +202,9 @@ DocumentWindow::DocumentWindow() :
     //markerButton->setToolTip(tr("Marker pen"));
     //Theme::initAwesomeButton(markerButton);
     
-    //QPushButton *paintButton = new QPushButton(QChar(fa::paintbrush));
-    //paintButton->setToolTip(tr("Paint brush"));
-    //Theme::initAwesomeButton(paintButton);
+    QPushButton *paintButton = new QPushButton(QChar(fa::paintbrush));
+    paintButton->setToolTip(tr("Paint brush"));
+    Theme::initAwesomeButton(paintButton);
 
     //QPushButton *dragButton = new QPushButton(QChar(fa::handrocko));
     //dragButton->setToolTip(tr("Enter drag mode"));
@@ -292,7 +292,7 @@ DocumentWindow::DocumentWindow() :
     toolButtonLayout->addWidget(addButton);
     toolButtonLayout->addWidget(selectButton);
     //toolButtonLayout->addWidget(markerButton);
-    //toolButtonLayout->addWidget(paintButton);
+    toolButtonLayout->addWidget(paintButton);
     //toolButtonLayout->addWidget(dragButton);
     toolButtonLayout->addWidget(zoomInButton);
     toolButtonLayout->addWidget(zoomOutButton);
@@ -1008,9 +1008,9 @@ DocumentWindow::DocumentWindow() :
     //    m_document->setEditMode(SkeletonDocumentEditMode::Mark);
     //});
     
-    //connect(paintButton, &QPushButton::clicked, [=]() {
-    //    m_document->setEditMode(SkeletonDocumentEditMode::Paint);
-    //});
+    connect(paintButton, &QPushButton::clicked, [=]() {
+        m_document->setEditMode(SkeletonDocumentEditMode::Paint);
+    });
 
     //connect(dragButton, &QPushButton::clicked, [=]() {
     //    m_document->setEditMode(SkeletonDocumentEditMode::Drag);
@@ -1249,6 +1249,10 @@ DocumentWindow::DocumentWindow() :
         if (m_modelRemoveColor && resultTextureMesh)
             resultTextureMesh->removeColor();
         m_modelRenderWidget->updateMesh(resultTextureMesh);
+    });
+    connect(m_document, &Document::resultColorTextureChanged, [=]() {
+        if (nullptr != m_document->textureImage)
+            m_modelRenderWidget->updateColorTexture(new QImage(*m_document->textureImage));
     });
     
     connect(m_document, &Document::resultMeshChanged, [=]() {

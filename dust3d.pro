@@ -397,11 +397,8 @@ HEADERS += src/intnumberwidget.h
 SOURCES += src/imagepreviewwidget.cpp
 HEADERS += src/imagepreviewwidget.h
 
-SOURCES += src/vertexcolorpainter.cpp
-HEADERS += src/vertexcolorpainter.h
-
-SOURCES += src/voxelgrid.cpp
-HEADERS += src/voxelgrid.h
+SOURCES += src/texturepainter.cpp
+HEADERS += src/texturepainter.h
 
 SOURCES += src/paintmode.cpp
 HEADERS += src/paintmode.h

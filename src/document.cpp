@@ -74,12 +74,11 @@ Document::Document() :
     m_nextMeshGenerationId(1),
     m_scriptRunner(nullptr),
     m_isScriptResultObsolete(false),
-    m_vertexColorPainter(nullptr),
+    m_texturePainter(nullptr),
     m_isMouseTargetResultObsolete(false),
     m_paintMode(PaintMode::None),
     m_mousePickRadius(0.05),
     m_saveNextPaintSnapshot(false),
-    m_vertexColorVoxelGrid(nullptr),
     m_generatedCacheContext(nullptr)
 {
     connect(&Preferences::instance(), &Preferences::partColorChanged, this, &Document::applyPreferencePartColorChange);
@@ -944,7 +943,7 @@ void Document::setPaintMode(PaintMode mode)
     m_paintMode = mode;
     emit paintModeChanged();
     
-    paintVertexColors();
+    paint();
 }
 
 void Document::joinNodeAndNeiborsToGroup(std::vector<QUuid> *group, QUuid nodeId, std::set<QUuid> *visitMap, QUuid noUseEdgeId)
@@ -2075,19 +2074,19 @@ void Document::pickMouseTarget(const QVector3D &nearPosition, const QVector3D &f
     m_mouseRayNear = nearPosition;
     m_mouseRayFar = farPosition;
     
-    paintVertexColors();
+    paint();
 }
 
-void Document::paintVertexColors()
+void Document::paint()
 {
-    if (nullptr != m_vertexColorPainter) {
+    if (nullptr != m_texturePainter) {
         m_isMouseTargetResultObsolete = true;
         return;
     }
     
     m_isMouseTargetResultObsolete = false;
     
-    if (!m_currentOutcome) {
+    if (!m_postProcessedOutcome) {
         qDebug() << "Model is null";
         return;
     }
@@ -2095,41 +2094,42 @@ void Document::paintVertexColors()
     //qDebug() << "Mouse picking..";
 
     QThread *thread = new QThread;
-    m_vertexColorPainter = new VertexColorPainter(*m_currentOutcome, m_mouseRayNear, m_mouseRayFar);
-    m_vertexColorPainter->setBrushColor(brushColor);
-    m_vertexColorPainter->setBrushMetalness(brushMetalness);
-    m_vertexColorPainter->setBrushRoughness(brushRoughness);
+    m_texturePainter = new TexturePainter(*m_postProcessedOutcome, m_mouseRayNear, m_mouseRayFar);
+    if (nullptr != textureImage)
+        m_texturePainter->setColorImage(new QImage(*textureImage));
+    m_texturePainter->setBrushColor(brushColor);
+    m_texturePainter->setBrushMetalness(brushMetalness);
+    m_texturePainter->setBrushRoughness(brushRoughness);
     if (SkeletonDocumentEditMode::Paint == editMode) {
-        if (nullptr == m_vertexColorVoxelGrid) {
-            m_vertexColorVoxelGrid = new VoxelGrid<PaintColor>();
-        }
-        m_vertexColorPainter->setVoxelGrid(m_vertexColorVoxelGrid);
-        m_vertexColorPainter->setPaintMode(m_paintMode);
-        m_vertexColorPainter->setRadius(m_mousePickRadius);
-        m_vertexColorPainter->setMaskNodeIds(m_mousePickMaskNodeIds);
+        m_texturePainter->setPaintMode(m_paintMode);
+        m_texturePainter->setRadius(m_mousePickRadius);
+        m_texturePainter->setMaskNodeIds(m_mousePickMaskNodeIds);
     }
-    
-    m_vertexColorPainter->moveToThread(thread);
-    connect(thread, &QThread::started, m_vertexColorPainter, &VertexColorPainter::process);
-    connect(m_vertexColorPainter, &VertexColorPainter::finished, this, &Document::vertexColorsReady);
-    connect(m_vertexColorPainter, &VertexColorPainter::finished, thread, &QThread::quit);
+    m_texturePainter->moveToThread(thread);
+    connect(thread, &QThread::started, m_texturePainter, &TexturePainter::process);
+    connect(m_texturePainter, &TexturePainter::finished, this, &Document::paintReady);
+    connect(m_texturePainter, &TexturePainter::finished, thread, &QThread::quit);
     connect(thread, &QThread::finished, thread, &QThread::deleteLater);
     thread->start();
 }
 
-void Document::vertexColorsReady()
+void Document::paintReady()
 {
-    m_mouseTargetPosition = m_vertexColorPainter->targetPosition();
+    m_mouseTargetPosition = m_texturePainter->targetPosition();
     
-    Model *model = m_vertexColorPainter->takePaintedModel();
-    if (nullptr != model) {
-        delete m_paintedMesh;
-        m_paintedMesh = model;
-        emit paintedMeshChanged();
-    }
+    delete textureImage;
+    textureImage = m_texturePainter->takeColorImage();
+    emit resultColorTextureChanged();
+
+    //Model *model = m_texturePainter->takePaintedModel();
+    //if (nullptr != model) {
+    //    delete m_paintedMesh;
+    //    m_paintedMesh = model;
+    //    emit paintedMeshChanged();
+    //}
     
-    delete m_vertexColorPainter;
-    m_vertexColorPainter = nullptr;
+    delete m_texturePainter;
+    m_texturePainter = nullptr;
     
     if (!m_isMouseTargetResultObsolete && m_saveNextPaintSnapshot) {
         m_saveNextPaintSnapshot = false;
@@ -3929,7 +3929,7 @@ void Document::startPaint()
 
 void Document::stopPaint()
 {
-    if (m_vertexColorPainter || m_isMouseTargetResultObsolete) {
+    if (m_texturePainter || m_isMouseTargetResultObsolete) {
         m_saveNextPaintSnapshot = true;
         return;
     }

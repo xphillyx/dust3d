@@ -504,6 +504,12 @@ void ModelWidget::updateMesh(Model *mesh)
     update();
 }
 
+void ModelWidget::updateColorTexture(QImage *colorTextureImage)
+{
+    m_meshBinder.updateColorTexture(colorTextureImage);
+    update();
+}
+
 void ModelWidget::fetchCurrentToonNormalAndDepthMaps(QImage *normalMap, QImage *depthMap)
 {
     m_meshBinder.fetchCurrentToonNormalAndDepthMaps(normalMap, depthMap);
