@@ -79,7 +79,8 @@ Document::Document() :
     m_paintMode(PaintMode::None),
     m_mousePickRadius(0.05),
     m_saveNextPaintSnapshot(false),
-    m_generatedCacheContext(nullptr)
+    m_generatedCacheContext(nullptr),
+    m_texturePainterContext(nullptr)
 {
     connect(&Preferences::instance(), &Preferences::partColorChanged, this, &Document::applyPreferencePartColorChange);
     connect(&Preferences::instance(), &Preferences::flatShadingChanged, this, &Document::applyPreferenceFlatShadingChange);
@@ -2091,12 +2092,26 @@ void Document::paint()
         return;
     }
     
+    if (nullptr == textureImage)
+        return;
+    
     //qDebug() << "Mouse picking..";
 
     QThread *thread = new QThread;
-    m_texturePainter = new TexturePainter(*m_postProcessedOutcome, m_mouseRayNear, m_mouseRayFar);
-    if (nullptr != textureImage)
-        m_texturePainter->setColorImage(new QImage(*textureImage));
+    m_texturePainter = new TexturePainter(m_mouseRayNear, m_mouseRayFar);
+    if (nullptr == m_texturePainterContext) {
+        m_texturePainterContext = new TexturePainterContext;
+        m_texturePainterContext->outcome = new Outcome(*m_postProcessedOutcome);
+        m_texturePainterContext->colorImage = new QImage(*textureImage);
+    }/* else {
+        if (m_texturePainterContext->outcome->meshId != m_postProcessedOutcome->meshId) {
+            delete m_texturePainterContext->outcome;
+            m_texturePainterContext->outcome = new Outcome(*m_postProcessedOutcome);
+            delete m_texturePainterContext->colorImage;
+            m_texturePainterContext->colorImage = new QImage(*textureImage);
+        }
+    }*/
+    m_texturePainter->setContext(m_texturePainterContext);
     m_texturePainter->setBrushColor(brushColor);
     m_texturePainter->setBrushMetalness(brushMetalness);
     m_texturePainter->setBrushRoughness(brushRoughness);
@@ -2117,16 +2132,12 @@ void Document::paintReady()
 {
     m_mouseTargetPosition = m_texturePainter->targetPosition();
     
-    delete textureImage;
-    textureImage = m_texturePainter->takeColorImage();
-    emit resultColorTextureChanged();
-
-    //Model *model = m_texturePainter->takePaintedModel();
-    //if (nullptr != model) {
-    //    delete m_paintedMesh;
-    //    m_paintedMesh = model;
-    //    emit paintedMeshChanged();
-    //}
+    QImage *paintedTextureImage = m_texturePainter->takeColorImage();
+    if (nullptr != paintedTextureImage) {
+        delete textureImage;
+        textureImage = paintedTextureImage;
+        emit resultColorTextureChanged();
+    }
     
     delete m_texturePainter;
     m_texturePainter = nullptr;
@@ -2137,8 +2148,6 @@ void Document::paintReady()
     }
     
     emit mouseTargetChanged();
-
-    //qDebug() << "Mouse pick done";
 
     if (m_isMouseTargetResultObsolete) {
         pickMouseTarget(m_mouseRayNear, m_mouseRayFar);

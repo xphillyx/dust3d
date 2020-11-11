@@ -693,6 +693,7 @@ private: // need initialize
     float m_mousePickRadius;
     bool m_saveNextPaintSnapshot;
     GeneratedCacheContext *m_generatedCacheContext;
+    TexturePainterContext *m_texturePainterContext;
 private:
     static unsigned long m_maxSnapshot;
     std::deque<HistoryItem> m_undoItems;

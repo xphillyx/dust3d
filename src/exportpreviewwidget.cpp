@@ -175,8 +175,8 @@ void ExportPreviewWidget::checkSpinner()
 
 void ExportPreviewWidget::updateTexturePreview()
 {
-    if (m_document->textureGuideImage)
-        m_colorImage = *m_document->textureGuideImage;
+    if (m_document->textureImage)
+        m_colorImage = *m_document->textureImage;
     else
         m_colorImage = QImage();
     if (m_document->textureNormalImage)
