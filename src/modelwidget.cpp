@@ -437,7 +437,7 @@ bool ModelWidget::inputWheelEventFromOtherWidget(QWheelEvent *event)
     
     if (m_mousePickingEnabled) {
         if (QGuiApplication::queryKeyboardModifiers().testFlag(Qt::ShiftModifier)) {
-            emit addMouseRadius((float)event->delta() / 40 / height());
+            emit addMouseRadius((float)event->delta() / 200 / height());
             return true;
         }
     }

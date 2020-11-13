@@ -302,16 +302,17 @@ void ModelMeshBinder::paint(ModelShaderProgram *program)
         QOpenGLVertexArrayObject::Binder vaoBinder(&m_vaoTriangle);
 		QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();
         if (m_hasTexture) {
-            if (m_texture)
-                m_texture->bind(0);
             {
                 QMutexLocker lock(&m_colorTextureMutex);
                 if (m_colorTextureImage) {
-                    m_texture->setData(*m_colorTextureImage);
+                    delete m_texture;
+                    m_texture = new QOpenGLTexture(*m_colorTextureImage);
                     delete m_colorTextureImage;
                     m_colorTextureImage = nullptr;
                 }
             }
+            if (m_texture)
+                m_texture->bind(0);
             program->setUniformValue(program->textureEnabledLoc(), 1);
         } else {
             program->setUniformValue(program->textureEnabledLoc(), 0);

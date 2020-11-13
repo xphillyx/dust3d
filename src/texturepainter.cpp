@@ -50,26 +50,34 @@ QImage *TexturePainter::takeColorImage()
     return colorImage;
 }
 
-void TexturePainter::setBrushMetalness(float value)
+/*
+void TexturePainter::buildFaceAroundVertexMap()
 {
-    m_brushMetalness = value;
-}
-
-void TexturePainter::setBrushRoughness(float value)
-{
-    m_brushRoughness = value;
-}
-
-void TexturePainter::paint()
-{
-    if (nullptr == m_context) {
-        qDebug() << "TexturePainter paint context is null";
+    if (nullptr != m_context->faceAroundVertexMap)
         return;
-    }
     
+    m_context->faceAroundVertexMap = new std::unordered_map<size_t, std::unordered_set<size_t>>;
+    for (size_t triangleIndex = 0; 
+            triangleIndex < m_context->outcome->triangles.size(); 
+            ++triangleIndex) {
+        for (const auto &it: m_context->outcome->triangles[triangleIndex])
+            (*m_context->faceAroundVertexMap)[it].insert(triangleIndex);
+    }
+}
+
+void TexturePainter::collectNearbyTriangles(size_t triangleIndex, std::unordered_set<size_t> *triangleIndices)
+{
+    for (const auto &vertex: m_context->outcome->triangles[triangleIndex])
+        for (const auto &it: (*m_context->faceAroundVertexMap)[vertex])
+            triangleIndices->insert(it);
+}
+*/
+
+void TexturePainter::paintStroke(QPainter &painter, const TexturePainterStroke &stroke)
+{
     size_t targetTriangleIndex = 0;
-    if (!intersectRayAndPolyhedron(m_mouseRayNear,
-            m_mouseRayFar,
+    if (!intersectRayAndPolyhedron(stroke.mouseRayNear,
+            stroke.mouseRayFar,
             m_context->outcome->vertices,
             m_context->outcome->triangles,
             m_context->outcome->triangleNormals,
@@ -85,7 +93,7 @@ void TexturePainter::paint()
         qDebug() << "TexturePainter paint color image is null";
         return;
     }
-    
+
     const std::vector<std::vector<QVector2D>> *uvs = m_context->outcome->triangleVertexUvs();
     if (nullptr == uvs) {
         qDebug() << "TexturePainter paint uvs is null";
@@ -101,20 +109,27 @@ void TexturePainter::paint()
     const std::map<QUuid, std::vector<QRectF>> *uvRects = m_context->outcome->partUvRects();
     if (nullptr == uvRects)
         return;
-
-    QPainter painter(m_context->colorImage);
-    painter.setPen(Qt::NoPen);
     
     const auto &triangle = m_context->outcome->triangles[targetTriangleIndex];
     QVector3D coordinates = barycentricCoordinates(m_context->outcome->vertices[triangle[0]],
         m_context->outcome->vertices[triangle[1]],
         m_context->outcome->vertices[triangle[2]],
         m_targetPosition);
+        
+    double triangleArea = areaOfTriangle(m_context->outcome->vertices[triangle[0]],
+        m_context->outcome->vertices[triangle[1]],
+        m_context->outcome->vertices[triangle[2]]);
     
     auto &uvCoords = (*uvs)[targetTriangleIndex];
     QVector2D target2d = uvCoords[0] * coordinates[0] +
             uvCoords[1] * coordinates[1] +
             uvCoords[2] * coordinates[2];
+            
+    double uvArea = areaOfTriangle(QVector3D(uvCoords[0].x(), uvCoords[0].y(), 0.0),
+        QVector3D(uvCoords[1].x(), uvCoords[1].y(), 0.0),
+        QVector3D(uvCoords[2].x(), uvCoords[2].y(), 0.0));
+    
+    double radiusFactor = std::sqrt(uvArea) / std::sqrt(triangleArea);
             
     //QPolygon polygon;
     //polygon << QPoint(uvCoords[0].x() * m_context->colorImage->height(), uvCoords[0].y() * m_context->colorImage->height()) << 
@@ -147,7 +162,7 @@ void TexturePainter::paint()
         painter.setClipRegion(clipRegion);
     }
     
-    double radius = m_radius * m_context->colorImage->height();
+    double radius = m_radius * radiusFactor * m_context->colorImage->height();
     QVector2D middlePoint = QVector2D(target2d.x() * m_context->colorImage->height(), 
         target2d.y() * m_context->colorImage->height());
     
@@ -160,6 +175,30 @@ void TexturePainter::paint()
         radius + radius, 
         radius + radius,
         gradient);
+}
+
+void TexturePainter::paint()
+{
+    if (nullptr == m_context) {
+        qDebug() << "TexturePainter paint context is null";
+        return;
+    }
+    
+    QPainter painter(m_context->colorImage);
+    painter.setPen(Qt::NoPen);
+    
+    if (PaintMode::None != m_paintMode) {
+        if (m_context->applyHistories) {
+            m_context->applyHistories = false;
+            qDebug() << "Paint histories:" << m_context->strokes.size();
+            for (const auto &it: m_context->strokes)
+                paintStroke(painter, it);
+        }
+    }
+    
+    TexturePainterStroke stroke = {m_mouseRayNear, m_mouseRayFar};
+    m_context->strokes.push_back(stroke);
+    paintStroke(painter, stroke);
     
     m_colorImage = new QImage(*m_context->colorImage);
 }

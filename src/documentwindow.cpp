@@ -406,59 +406,20 @@ DocumentWindow::DocumentWindow() :
     connect(m_colorWheelWidget, &color_widgets::ColorWheel::colorChanged, this, [=](QColor color) {
         m_document->brushColor = color;
     });
-    
-    FloatNumberWidget *metalnessWidget = new FloatNumberWidget;
-    metalnessWidget->setSliderFixedWidth(Theme::sidebarPreferredWidth * 0.4);
-    metalnessWidget->setItemName(tr("Metallic"));
-    metalnessWidget->setRange(0.0, 1.0);
-    metalnessWidget->setValue(m_document->brushMetalness);
-    
-    connect(metalnessWidget, &FloatNumberWidget::valueChanged, [=](float value) {
-        m_document->brushMetalness = value;
-    });
-    
-    QPushButton *metalnessEraser = new QPushButton(QChar(fa::eraser));
-    Theme::initAwesomeToolButtonWithoutFont(metalnessEraser);
-    
-    connect(metalnessEraser, &QPushButton::clicked, [=]() {
-        metalnessWidget->setValue(Model::m_defaultMetalness);
-    });
-    
-    QHBoxLayout *metalnessLayout = new QHBoxLayout;
-    metalnessLayout->addWidget(metalnessEraser);
-    metalnessLayout->addWidget(metalnessWidget);
-    
-    FloatNumberWidget *roughnessWidget = new FloatNumberWidget;
-    roughnessWidget->setSliderFixedWidth(Theme::sidebarPreferredWidth * 0.35);
-    roughnessWidget->setItemName(tr("Roughness"));
-    roughnessWidget->setRange(0.0, 1.0);
-    roughnessWidget->setValue(m_document->brushRoughness);
-    
-    connect(roughnessWidget, &FloatNumberWidget::valueChanged, [=](float value) {
-        m_document->brushRoughness = value;
-    });
-    
-    QPushButton *roughnessEraser = new QPushButton(QChar(fa::eraser));
-    Theme::initAwesomeToolButtonWithoutFont(roughnessEraser);
-    
-    connect(roughnessEraser, &QPushButton::clicked, [=]() {
-        roughnessWidget->setValue(Model::m_defaultRoughness);
-    });
-    
-    QHBoxLayout *roughnessLayout = new QHBoxLayout;
-    roughnessLayout->addWidget(roughnessEraser);
-    roughnessLayout->addWidget(roughnessWidget);
-    
-    QWidget *metalnessAndRoughnessWidget = new QWidget;
-    QVBoxLayout *metalnessAndRoughnessLayout = new QVBoxLayout;
-    metalnessAndRoughnessLayout->addLayout(metalnessLayout);
-    metalnessAndRoughnessLayout->addLayout(roughnessLayout);
-    metalnessAndRoughnessWidget->setLayout(metalnessAndRoughnessLayout);
-    metalnessAndRoughnessWidget->hide();
+    QPushButton *pickButton = new QPushButton();
+    Theme::initAwesomeToolButtonWithoutFont(pickButton);
+    QPalette palette = pickButton->palette();
+    palette.setColor(QPalette::Window, m_document->brushColor);
+    palette.setColor(QPalette::Button, m_document->brushColor);
+    pickButton->setPalette(palette);
+    QHBoxLayout *colorPickLayout = new QHBoxLayout;
+    colorPickLayout->addSpacing(5);
+    colorPickLayout->addWidget(pickButton);
+    colorPickLayout->addStretch();
     
     connect(m_document, &Document::editModeChanged, this, [=]() {
         m_colorWheelWidget->setVisible(SkeletonDocumentEditMode::Paint == m_document->editMode);
-        metalnessAndRoughnessWidget->setVisible(SkeletonDocumentEditMode::Paint == m_document->editMode);
+        pickButton->setVisible(SkeletonDocumentEditMode::Paint == m_document->editMode);
     });
     
     m_partTreeWidget = new PartTreeWidget(m_document, nullptr);
@@ -466,7 +427,7 @@ DocumentWindow::DocumentWindow() :
     QVBoxLayout *partsLayout = new QVBoxLayout;
     partsLayout->setContentsMargins(0, 0, 0, 0);
     partsLayout->addWidget(m_colorWheelWidget);
-    partsLayout->addWidget(metalnessAndRoughnessWidget);
+    partsLayout->addLayout(colorPickLayout);
     partsLayout->addWidget(m_partTreeWidget);
     partsWidget->setLayout(partsLayout);
     partsDocker->setWidget(partsWidget);

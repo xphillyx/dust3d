@@ -77,7 +77,7 @@ Document::Document() :
     m_texturePainter(nullptr),
     m_isMouseTargetResultObsolete(false),
     m_paintMode(PaintMode::None),
-    m_mousePickRadius(0.05),
+    m_mousePickRadius(0.02),
     m_saveNextPaintSnapshot(false),
     m_generatedCacheContext(nullptr),
     m_texturePainterContext(nullptr)
@@ -2109,12 +2109,11 @@ void Document::paint()
             m_texturePainterContext->outcome = new Outcome(*m_postProcessedOutcome);
             delete m_texturePainterContext->colorImage;
             m_texturePainterContext->colorImage = new QImage(*textureImage);
+            m_texturePainterContext->applyHistories = true;
         }
     }*/
     m_texturePainter->setContext(m_texturePainterContext);
     m_texturePainter->setBrushColor(brushColor);
-    m_texturePainter->setBrushMetalness(brushMetalness);
-    m_texturePainter->setBrushRoughness(brushRoughness);
     if (SkeletonDocumentEditMode::Paint == editMode) {
         m_texturePainter->setPaintMode(m_paintMode);
         m_texturePainter->setRadius(m_mousePickRadius);
