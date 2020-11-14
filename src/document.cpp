@@ -42,6 +42,7 @@ Document::Document() :
     weldEnabled(true),
     polyCount(PolyCount::Original),
     brushColor(Qt::white),
+    meshLocked(false),
     // private
     m_isResultMeshObsolete(false),
     m_meshGenerator(nullptr),
@@ -930,10 +931,34 @@ void Document::setEditMode(SkeletonDocumentEditMode mode)
     if (editMode == mode)
         return;
     
+    if (SkeletonDocumentEditMode::Paint == mode && !meshLocked)
+        return;
+    
     editMode = mode;
     if (editMode != SkeletonDocumentEditMode::Paint)
         m_paintMode = PaintMode::None;
     emit editModeChanged();
+}
+
+void Document::setMeshLockState(bool locked)
+{
+    if (meshLocked == locked)
+        return;
+    
+    meshLocked = locked;
+    if (locked) {
+        if (SkeletonDocumentEditMode::Paint != editMode) {
+            editMode = SkeletonDocumentEditMode::Paint;
+            emit editModeChanged();
+        }
+    } else {
+        if (SkeletonDocumentEditMode::Paint == editMode) {
+            editMode = SkeletonDocumentEditMode::Select;
+            emit editModeChanged();
+        }
+    }
+    emit meshLockStateChanged();
+    emit textureChanged();
 }
 
 void Document::setPaintMode(PaintMode mode)
@@ -1896,6 +1921,9 @@ void Document::batchChangeEnd()
 
 void Document::regenerateMesh()
 {
+    if (meshLocked)
+        return;
+    
     markAllDirty();
     generateMesh();
 }
@@ -2103,15 +2131,12 @@ void Document::paint()
         m_texturePainterContext = new TexturePainterContext;
         m_texturePainterContext->outcome = new Outcome(*m_postProcessedOutcome);
         m_texturePainterContext->colorImage = new QImage(*textureImage);
-    }/* else {
+    } else {
         if (m_texturePainterContext->outcome->meshId != m_postProcessedOutcome->meshId) {
-            delete m_texturePainterContext->outcome;
-            m_texturePainterContext->outcome = new Outcome(*m_postProcessedOutcome);
-            delete m_texturePainterContext->colorImage;
-            m_texturePainterContext->colorImage = new QImage(*textureImage);
-            m_texturePainterContext->applyHistories = true;
+            delete m_texturePainterContext->newOutcome;
+            m_texturePainterContext->newOutcome = new Outcome(*m_postProcessedOutcome);
         }
-    }*/
+    }
     m_texturePainter->setContext(m_texturePainterContext);
     m_texturePainter->setBrushColor(brushColor);
     if (SkeletonDocumentEditMode::Paint == editMode) {

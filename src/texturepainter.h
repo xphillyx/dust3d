@@ -25,8 +25,7 @@ class TexturePainterContext
 public:
     Outcome *outcome = nullptr;
     QImage *colorImage = nullptr;
-    bool applyHistories = false;
-    std::deque<TexturePainterStroke> strokes;
+    Outcome *newOutcome = nullptr;
     //std::unordered_map<size_t, std::unordered_set<size_t>> *faceAroundVertexMap = nullptr;
     
     ~TexturePainterContext()

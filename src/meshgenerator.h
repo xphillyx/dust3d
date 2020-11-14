@@ -34,7 +34,6 @@ public:
     std::vector<std::pair<QVector3D, std::pair<QUuid, QUuid>>> outcomeNodeVertices;
     std::vector<QVector3D> previewVertices;
     std::vector<std::vector<size_t>> previewTriangles;
-    OutcomePaintMap outcomePaintMap;
     bool isSuccessful = false;
     bool joined = true;
 };
@@ -61,7 +60,6 @@ public:
     std::vector<OutcomeNode> outcomeNodes;
     std::vector<std::pair<std::pair<QUuid, QUuid>, std::pair<QUuid, QUuid>>> outcomeEdges;
     std::vector<std::pair<QVector3D, std::pair<QUuid, QUuid>>> outcomeNodeVertices;
-    std::vector<OutcomePaintMap> outcomePaintMaps;
 };
 
 class GeneratedCacheContext

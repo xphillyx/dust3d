@@ -6,6 +6,7 @@
 #include <QPolygon>
 #include "texturepainter.h"
 #include "util.h"
+#include "texturetransfer.h"
 
 TexturePainter::TexturePainter(const QVector3D &mouseRayNear, const QVector3D &mouseRayFar) :
     m_mouseRayNear(mouseRayNear),
@@ -184,20 +185,37 @@ void TexturePainter::paint()
         return;
     }
     
+    if (nullptr != m_context->newOutcome) {
+        QImage *newImage = new QImage(*m_context->colorImage);
+        
+        qDebug() << "Texture transfer started...";
+        
+        TextureTransfer textureTransfer(&m_context->outcome->vertices,
+            &m_context->outcome->triangles,
+            &m_context->outcome->triangleNormals,
+            m_context->outcome->triangleVertexUvs(),
+            m_context->colorImage,
+            &m_context->newOutcome->vertices,
+            &m_context->newOutcome->triangles,
+            &m_context->newOutcome->triangleNormals,
+            m_context->newOutcome->triangleVertexUvs(),
+            newImage);
+        textureTransfer.transfer();
+        
+        qDebug() << "Texture transfer finished";
+        
+        delete m_context->colorImage;
+        m_context->colorImage = newImage;
+        
+        delete m_context->outcome;
+        m_context->outcome = m_context->newOutcome;
+        m_context->newOutcome = nullptr;
+    }
+    
     QPainter painter(m_context->colorImage);
     painter.setPen(Qt::NoPen);
     
-    if (PaintMode::None != m_paintMode) {
-        if (m_context->applyHistories) {
-            m_context->applyHistories = false;
-            qDebug() << "Paint histories:" << m_context->strokes.size();
-            for (const auto &it: m_context->strokes)
-                paintStroke(painter, it);
-        }
-    }
-    
     TexturePainterStroke stroke = {m_mouseRayNear, m_mouseRayFar};
-    m_context->strokes.push_back(stroke);
     paintStroke(painter, stroke);
     
     m_colorImage = new QImage(*m_context->colorImage);

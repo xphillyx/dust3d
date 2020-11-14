@@ -529,6 +529,9 @@ HEADERS += src/motioneditwidget.h
 SOURCES += src/vertebratamotionparameterswidget.cpp
 HEADERS += src/vertebratamotionparameterswidget.h
 
+SOURCES += src/texturetransfer.cpp
+HEADERS += src/texturetransfer.h
+
 SOURCES += src/main.cpp
 
 HEADERS += src/version.h

@@ -204,7 +204,11 @@ DocumentWindow::DocumentWindow() :
     
     QPushButton *paintButton = new QPushButton(QChar(fa::paintbrush));
     paintButton->setToolTip(tr("Paint brush"));
+    paintButton->setVisible(m_document->meshLocked);
     Theme::initAwesomeButton(paintButton);
+    connect(m_document, &Document::meshLockStateChanged, this, [=]() {
+        paintButton->setVisible(m_document->meshLocked);
+    });
 
     //QPushButton *dragButton = new QPushButton(QChar(fa::handrocko));
     //dragButton->setToolTip(tr("Enter drag mode"));
@@ -251,43 +255,24 @@ DocumentWindow::DocumentWindow() :
     //rotateClockwiseButton->setToolTip(tr("Rotate whole model"));
     //Theme::initAwesomeButton(rotateClockwiseButton);
     
-    auto updateRegenerateIconAndTips = [&](SpinnableAwesomeButton *regenerateButton, bool isSuccessful, bool forceUpdate=false) {
-        if (!forceUpdate) {
-            if (m_isLastMeshGenerationSucceed == isSuccessful)
-                return;
-        }
-        m_isLastMeshGenerationSucceed = isSuccessful;
-        regenerateButton->setToolTip(m_isLastMeshGenerationSucceed ? tr("Regenerate") : tr("Mesh generation failed, please undo or adjust recent changed nodes\nTips:\n  - Don't let generated mesh self-intersect\n  - Make multiple parts instead of one single part for whole model"));
-        regenerateButton->setAwesomeIcon(m_isLastMeshGenerationSucceed ? QChar(fa::recycle) : QChar(fa::warning));
-    };
+    m_regenerateButton = new SpinnableAwesomeButton();
+    updateRegenerateIcon();
+    connect(m_regenerateButton->button(), &QPushButton::clicked, m_document, &Document::regenerateMesh);
     
-    SpinnableAwesomeButton *regenerateButton = new SpinnableAwesomeButton();
-    updateRegenerateIconAndTips(regenerateButton, m_isLastMeshGenerationSucceed, true);
-    connect(m_document, &Document::meshGenerating, this, [=]() {
-        regenerateButton->showSpinner(true);
-    });
+    connect(m_document, &Document::meshGenerating, this, &DocumentWindow::updateRegenerateIcon);
     connect(m_document, &Document::resultMeshChanged, this, [=]() {
-        updateRegenerateIconAndTips(regenerateButton, m_document->isMeshGenerationSucceed());
+        m_isLastMeshGenerationSucceed = m_document->isMeshGenerationSucceed();
+        updateRegenerateIcon();
         generatePartPreviewImages();
     });
     connect(m_document, &Document::paintedMeshChanged, [=]() {
         auto paintedMesh = m_document->takePaintedMesh();
         m_modelRenderWidget->updateMesh(paintedMesh);
     });
-    connect(m_document, &Document::postProcessing, this, [=]() {
-        regenerateButton->showSpinner(true);
-    });
-    connect(m_document, &Document::textureGenerating, this, [=]() {
-        regenerateButton->showSpinner(true);
-    });
-    connect(m_document, &Document::resultTextureChanged, this, [=]() {
-        if (!m_document->isMeshGenerating() &&
-                !m_document->isPostProcessing() &&
-                !m_document->isTextureGenerating()) {
-            regenerateButton->showSpinner(false);
-        }
-    });
-    connect(regenerateButton->button(), &QPushButton::clicked, m_document, &Document::regenerateMesh);
+    connect(m_document, &Document::postProcessing, this, &DocumentWindow::updateRegenerateIcon);
+    connect(m_document, &Document::textureGenerating, this, &DocumentWindow::updateRegenerateIcon);
+    connect(m_document, &Document::resultTextureChanged, this, &DocumentWindow::updateRegenerateIcon);
+    connect(m_document, &Document::meshLockStateChanged, this, &DocumentWindow::updateRegenerateIcon);
 
     toolButtonLayout->addWidget(addButton);
     toolButtonLayout->addWidget(selectButton);
@@ -307,7 +292,7 @@ DocumentWindow::DocumentWindow() :
     //toolButtonLayout->addWidget(rotateCounterclockwiseButton);
     //toolButtonLayout->addWidget(rotateClockwiseButton);
     //toolButtonLayout->addSpacing(10);
-    toolButtonLayout->addWidget(regenerateButton);
+    toolButtonLayout->addWidget(m_regenerateButton);
     
 
     QLabel *verticalLogoLabel = new QLabel;
@@ -399,40 +384,10 @@ DocumentWindow::DocumentWindow() :
 
     QDockWidget *partsDocker = new QDockWidget(tr("Parts"), this);
     partsDocker->setAllowedAreas(Qt::RightDockWidgetArea);
-    m_colorWheelWidget = new color_widgets::ColorWheel(nullptr);
-    m_colorWheelWidget->setContentsMargins(0, 5, 0, 5);
-    m_colorWheelWidget->hide();
-    m_document->brushColor = m_colorWheelWidget->color();
-    connect(m_colorWheelWidget, &color_widgets::ColorWheel::colorChanged, this, [=](QColor color) {
-        m_document->brushColor = color;
-    });
-    QPushButton *pickButton = new QPushButton();
-    Theme::initAwesomeToolButtonWithoutFont(pickButton);
-    QPalette palette = pickButton->palette();
-    palette.setColor(QPalette::Window, m_document->brushColor);
-    palette.setColor(QPalette::Button, m_document->brushColor);
-    pickButton->setPalette(palette);
-    QHBoxLayout *colorPickLayout = new QHBoxLayout;
-    colorPickLayout->addSpacing(5);
-    colorPickLayout->addWidget(pickButton);
-    colorPickLayout->addStretch();
-    
-    connect(m_document, &Document::editModeChanged, this, [=]() {
-        m_colorWheelWidget->setVisible(SkeletonDocumentEditMode::Paint == m_document->editMode);
-        pickButton->setVisible(SkeletonDocumentEditMode::Paint == m_document->editMode);
-    });
-    
     m_partTreeWidget = new PartTreeWidget(m_document, nullptr);
-    QWidget *partsWidget = new QWidget(partsDocker);
-    QVBoxLayout *partsLayout = new QVBoxLayout;
-    partsLayout->setContentsMargins(0, 0, 0, 0);
-    partsLayout->addWidget(m_colorWheelWidget);
-    partsLayout->addLayout(colorPickLayout);
-    partsLayout->addWidget(m_partTreeWidget);
-    partsWidget->setLayout(partsLayout);
-    partsDocker->setWidget(partsWidget);
+    partsDocker->setWidget(m_partTreeWidget);
     addDockWidget(Qt::RightDockWidgetArea, partsDocker);
-    
+
     QDockWidget *materialDocker = new QDockWidget(tr("Materials"), this);
     materialDocker->setAllowedAreas(Qt::RightDockWidgetArea);
     MaterialManageWidget *materialManageWidget = new MaterialManageWidget(m_document, materialDocker);
@@ -464,16 +419,63 @@ DocumentWindow::DocumentWindow() :
     connect(motionManageWidget, &MotionManageWidget::unregisterDialog, this, &DocumentWindow::unregisterDialog);
     addDockWidget(Qt::RightDockWidgetArea, motionDocker);
     
+    QDockWidget *paintDocker = new QDockWidget(tr("Paint"), this);
+    paintDocker->setAllowedAreas(Qt::RightDockWidgetArea);
+    QPushButton *lockMeshButton = new QPushButton(Theme::awesome()->icon(fa::lock), tr("Lock Mesh"));
+    QPushButton *unlockMeshButton = new QPushButton(Theme::awesome()->icon(fa::unlock), tr("Unlock Mesh"));
+    connect(lockMeshButton, &QPushButton::clicked, this, [=]() {
+        m_document->setMeshLockState(true);
+    });
+    connect(unlockMeshButton, &QPushButton::clicked, this, [=]() {
+        m_document->setMeshLockState(false);
+    });
+    m_colorWheelWidget = new color_widgets::ColorWheel(nullptr);
+    m_colorWheelWidget->setContentsMargins(0, 5, 0, 5);
+    m_colorWheelWidget->setColor(m_document->brushColor);
+    QWidget *paintWidget = new QWidget(paintDocker);
+    QVBoxLayout *paintLayout = new QVBoxLayout;
+    paintLayout->setContentsMargins(5, 5, 5, 5);
+    paintLayout->addWidget(lockMeshButton);
+    paintLayout->addWidget(unlockMeshButton);
+    paintLayout->addWidget(m_colorWheelWidget);
+    paintLayout->addStretch();
+    paintWidget->setLayout(paintLayout);
+    paintDocker->setWidget(paintWidget);
+    connect(m_colorWheelWidget, &color_widgets::ColorWheel::colorChanged, this, [=](QColor color) {
+        m_document->brushColor = color;
+    });
+    connect(m_document, &Document::editModeChanged, this, [=]() {
+        if (SkeletonDocumentEditMode::Paint == m_document->editMode) {
+            paintDocker->show();
+            paintDocker->raise();
+        }
+    });
+    auto updatePaintWidgets = [=]() {
+        m_colorWheelWidget->setVisible(m_document->meshLocked);
+        lockMeshButton->setVisible(!m_document->meshLocked);
+        unlockMeshButton->setVisible(m_document->meshLocked);
+    };
+    updatePaintWidgets();
+    connect(m_document, &Document::meshLockStateChanged, this, [=]() {
+        updatePaintWidgets();
+    });
+    addDockWidget(Qt::RightDockWidgetArea, paintDocker);
+    
     QDockWidget *scriptDocker = new QDockWidget(tr("Script"), this);
     scriptDocker->setAllowedAreas(Qt::RightDockWidgetArea);
     ScriptWidget *scriptWidget = new ScriptWidget(m_document, scriptDocker);
+    scriptDocker->setVisible(Preferences::instance().scriptEnabled());
+    connect(&Preferences::instance(), &Preferences::scriptEnabledChanged, this, [=]() {
+        scriptDocker->setVisible(Preferences::instance().scriptEnabled());
+    });
     scriptDocker->setWidget(scriptWidget);
     addDockWidget(Qt::RightDockWidgetArea, scriptDocker);
     
     tabifyDockWidget(partsDocker, materialDocker);
     tabifyDockWidget(materialDocker, rigDocker);
     tabifyDockWidget(rigDocker, motionDocker);
-    tabifyDockWidget(motionDocker, scriptDocker);
+    tabifyDockWidget(motionDocker, paintDocker);
+    tabifyDockWidget(paintDocker, scriptDocker);
     
     partsDocker->raise();
     
@@ -875,6 +877,13 @@ DocumentWindow::DocumentWindow() :
         motionDocker->raise();
     });
     m_windowMenu->addAction(m_showMotionsAction);
+    
+    m_showPaintAction = new QAction(tr("Paint"), this);
+    connect(m_showPaintAction, &QAction::triggered, [=]() {
+        paintDocker->show();
+        paintDocker->raise();
+    });
+    m_windowMenu->addAction(m_showPaintAction);
     
     m_showScriptAction = new QAction(tr("Script"), this);
     connect(m_showScriptAction, &QAction::triggered, [=]() {
@@ -1286,6 +1295,24 @@ DocumentWindow::DocumentWindow() :
             graphicsWidget->setFocus();
     });
     timer->start();
+}
+
+void DocumentWindow::updateRegenerateIcon()
+{
+    if (m_document->isMeshGenerating() ||
+            m_document->isPostProcessing() ||
+            m_document->isTextureGenerating()) {
+        m_regenerateButton->showSpinner(true);
+    } else {
+        m_regenerateButton->showSpinner(false);
+        if (m_document->meshLocked) {
+            m_regenerateButton->setToolTip(tr("Mesh locked for painting"));
+            m_regenerateButton->setAwesomeIcon(QChar(fa::lock));
+        } else {
+            m_regenerateButton->setToolTip(m_isLastMeshGenerationSucceed ? tr("Regenerate") : tr("Mesh generation failed, please undo or adjust recent changed nodes\nTips:\n  - Don't let generated mesh self-intersect\n  - Make multiple parts instead of one single part for whole model"));
+            m_regenerateButton->setAwesomeIcon(m_isLastMeshGenerationSucceed ? QChar(fa::recycle) : QChar(fa::warning));
+        }
+    }
 }
 
 void DocumentWindow::toggleRotation()

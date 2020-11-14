@@ -412,6 +412,7 @@ signals:
     void scriptConsoleLogChanged();
     void mouseTargetChanged();
     void mousePickRadiusChanged();
+    void meshLockStateChanged();
 public: // need initialize
     QImage *textureGuideImage;
     QImage *textureImage;
@@ -427,6 +428,7 @@ public: // need initialize
     bool weldEnabled;
     PolyCount polyCount;
     QColor brushColor;
+    bool meshLocked;
     float brushMetalness = Model::m_defaultMetalness;
     float brushRoughness = Model::m_defaultRoughness;
 public:
@@ -512,6 +514,7 @@ public slots:
     void moveOriginBy(float x, float y, float z);
     void addEdge(QUuid fromNodeId, QUuid toNodeId);
     void setEditMode(SkeletonDocumentEditMode mode);
+    void setMeshLockState(bool locked);
     void setPaintMode(PaintMode mode);
     void setMousePickRadius(float radius);
     void createSinglePartFromEdges(const std::vector<QVector3D> &nodes,

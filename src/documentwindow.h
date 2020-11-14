@@ -24,6 +24,7 @@
 
 class SkeletonGraphicsWidget;
 class PartTreeWidget;
+class SpinnableAwesomeButton;
 
 class DocumentWindow : public QMainWindow
 {
@@ -101,6 +102,7 @@ public slots:
     void importPath(const QString &filename);
     void generatePartPreviewImages();
     void partPreviewImagesReady();
+    void updateRegenerateIcon();
 private:
     void initLockButton(QPushButton *button);
     void setCurrentFilename(const QString &filename);
@@ -202,6 +204,7 @@ private:
     QAction *m_showMaterialsAction;
     QAction *m_showRigAction;
     QAction *m_showMotionsAction;
+    QAction *m_showPaintAction;
     QAction *m_showScriptAction;
     
     QMenu *m_helpMenu;
@@ -233,6 +236,8 @@ private:
     bool m_isPartPreviewImagesObsolete = false;
     
     PartTreeWidget *m_partTreeWidget = nullptr;
+    
+    SpinnableAwesomeButton *m_regenerateButton = nullptr;
 public:
     static int m_autoRecovered;
 };
