@@ -1464,7 +1464,7 @@ void MeshGenerator::postprocessObject(Object *object)
     object->triangleNormals = combinedFacesNormals;
     
     std::vector<std::pair<QUuid, QUuid>> sourceNodes;
-    triangleSourceNodeResolve(*object, sourceNodes, &object->vertexSourceNodes);
+    triangleSourceNodeResolve(*object, m_nodeVertices, sourceNodes, &object->vertexSourceNodes);
     object->setTriangleSourceNodes(sourceNodes);
     
     std::map<std::pair<QUuid, QUuid>, QColor> sourceNodeToColorMap;
@@ -1595,7 +1595,7 @@ void MeshGenerator::collectUncombinedComponent(const QString &componentIdString)
         
         m_object->nodes.insert(m_object->nodes.end(), componentCache.objectNodes.begin(), componentCache.objectNodes.end());
         m_object->edges.insert(m_object->edges.end(), componentCache.objectEdges.begin(), componentCache.objectEdges.end());
-        m_object->nodeVertices.insert(m_object->nodeVertices.end(), componentCache.objectNodeVertices.begin(), componentCache.objectNodeVertices.end());
+        m_nodeVertices.insert(m_nodeVertices.end(), componentCache.objectNodeVertices.begin(), componentCache.objectNodeVertices.end());
         
         collectIncombinableMesh(componentCache.mesh, componentCache);
         return;
@@ -1686,7 +1686,7 @@ void MeshGenerator::collectClothComponent(const QString &componentIdString)
         m_object->triangleAndQuads.insert(m_object->triangleAndQuads.end(), clothMesh.faces.begin(), clothMesh.faces.end());
         for (size_t i = 0; i < clothMesh.vertices.size(); ++i) {
             const auto &source = clothMesh.vertexSources[i];
-            m_object->nodeVertices.push_back(std::make_pair(clothMesh.vertices[i], source));
+            m_nodeVertices.push_back(std::make_pair(clothMesh.vertices[i], source));
         }
     }
 }
@@ -1906,7 +1906,7 @@ void MeshGenerator::generate()
     
     m_object->nodes = componentCache.objectNodes;
     m_object->edges = componentCache.objectEdges;
-    m_object->nodeVertices = componentCache.objectNodeVertices;
+    m_nodeVertices = componentCache.objectNodeVertices;
         
     std::vector<QVector3D> combinedVertices;
     std::vector<std::vector<size_t>> combinedFaces;

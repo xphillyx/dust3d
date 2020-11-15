@@ -409,9 +409,6 @@ HEADERS += src/proceduralanimation.h
 SOURCES += src/boundingboxmesh.cpp
 HEADERS += src/boundingboxmesh.h
 
-SOURCES += src/gridmeshbuilder.cpp
-HEADERS += src/gridmeshbuilder.h
-
 SOURCES += src/regionfiller.cpp
 HEADERS += src/regionfiller.h
 
@@ -528,6 +525,9 @@ HEADERS += src/motioneditwidget.h
 
 SOURCES += src/vertebratamotionparameterswidget.cpp
 HEADERS += src/vertebratamotionparameterswidget.h
+
+SOURCES += src/objectxml.cpp
+HEADERS += src/objectxml.h
 
 SOURCES += src/main.cpp
 

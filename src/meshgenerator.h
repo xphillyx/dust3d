@@ -115,6 +115,7 @@ private:
     float m_sideProfileMiddleX = 0;
     float m_mainProfileMiddleY = 0;
     Object *m_object = nullptr;
+    std::vector<std::pair<QVector3D, std::pair<QUuid, QUuid>>> m_nodeVertices;
     std::map<QString, std::set<QString>> m_partNodeIds;
     std::map<QString, std::set<QString>> m_partEdgeIds;
     std::set<QUuid> m_generatedPreviewPartIds;

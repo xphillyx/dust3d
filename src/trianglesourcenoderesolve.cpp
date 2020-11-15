@@ -39,14 +39,16 @@ static void fixRemainVertexSourceNodes(const Object &object, std::vector<std::pa
     }
 }
 
-void triangleSourceNodeResolve(const Object &object, std::vector<std::pair<QUuid, QUuid>> &triangleSourceNodes,
+void triangleSourceNodeResolve(const Object &object, 
+    const std::vector<std::pair<QVector3D, std::pair<QUuid, QUuid>>> &nodeVertices,
+    std::vector<std::pair<QUuid, QUuid>> &triangleSourceNodes,
     std::vector<std::pair<QUuid, QUuid>> *vertexSourceNodes)
 {
     std::map<int, std::pair<QUuid, QUuid>> vertexSourceMap;
     std::map<PositionKey, std::pair<QUuid, QUuid>> positionMap;
     std::map<std::pair<int, int>, HalfColorEdge> halfColorEdgeMap;
     std::set<int> brokenTriangleSet;
-    for (const auto &it: object.nodeVertices) {
+    for (const auto &it: nodeVertices) {
         positionMap.insert({PositionKey(it.first), it.second});
     }
     if (nullptr != vertexSourceNodes)

@@ -26,7 +26,7 @@ struct ObjectNode
     bool countershaded = false;
     QUuid mirrorFromPartId;
     QUuid mirroredByPartId;
-    BoneMark boneMark;
+    BoneMark boneMark = BoneMark::None;
     QVector3D direction;
     ComponentLayer layer = ComponentLayer::Body;
     bool joined = true;
@@ -36,11 +36,7 @@ class Object
 {
 public:
     std::vector<ObjectNode> nodes;
-    //std::vector<ObjectNode> bodyNodes;
-    //std::vector<ObjectNode> clothNodes;
     std::vector<std::pair<std::pair<QUuid, QUuid>, std::pair<QUuid, QUuid>>> edges;
-    //std::vector<std::pair<std::pair<QUuid, QUuid>, std::pair<QUuid, QUuid>>> bodyEdges;
-    std::vector<std::pair<QVector3D, std::pair<QUuid, QUuid>>> nodeVertices;
     std::vector<QVector3D> vertices;
     std::vector<std::pair<QUuid, QUuid>> vertexSourceNodes;
     std::vector<std::vector<size_t>> triangleAndQuads;

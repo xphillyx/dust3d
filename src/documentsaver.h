@@ -7,19 +7,22 @@
 #include <set>
 #include <QUuid>
 #include "snapshot.h"
+#include "object.h"
 
 class DocumentSaver : public QObject
 {
     Q_OBJECT
 public:
     DocumentSaver(const QString *filename, 
-        Snapshot *snapshot, 
+        Snapshot *snapshot,
+        Object *object,
         QByteArray *turnaroundPngByteArray,
         QString *script,
         std::map<QString, std::map<QString, QString>> *variables);
     ~DocumentSaver();
     static bool save(const QString *filename, 
-        Snapshot *snapshot, 
+        Snapshot *snapshot,
+        const Object *object,
         const QByteArray *turnaroundPngByteArray,
         const QString *script,
         const std::map<QString, std::map<QString, QString>> *variables);
@@ -33,6 +36,7 @@ public slots:
 private:
     const QString *m_filename = nullptr;
     Snapshot *m_snapshot = nullptr;
+    Object *m_object = nullptr;
     QByteArray *m_turnaroundPngByteArray = nullptr;
     QString *m_script = nullptr;
     std::map<QString, std::map<QString, QString>> *m_variables = nullptr;

@@ -7,14 +7,17 @@
 #include "snapshotxml.h"
 #include "variablesxml.h"
 #include "fileforever.h"
+#include "objectXml.h"
 
 DocumentSaver::DocumentSaver(const QString *filename, 
-        Snapshot *snapshot, 
+        Snapshot *snapshot,
+        Object *object,
         QByteArray *turnaroundPngByteArray,
         QString *script,
         std::map<QString, std::map<QString, QString>> *variables) :
     m_filename(filename),
     m_snapshot(snapshot),
+    m_object(object),
     m_turnaroundPngByteArray(turnaroundPngByteArray),
     m_script(script),
     m_variables(variables)
@@ -24,6 +27,7 @@ DocumentSaver::DocumentSaver(const QString *filename,
 DocumentSaver::~DocumentSaver()
 {
     delete m_snapshot;
+    delete m_object;
     delete m_turnaroundPngByteArray;
     delete m_script;
     delete m_variables;
@@ -33,6 +37,7 @@ void DocumentSaver::process()
 {
     save(m_filename,
         m_snapshot,
+        m_object,
         m_turnaroundPngByteArray,
         m_script,
         m_variables);
@@ -82,18 +87,29 @@ void DocumentSaver::collectUsedResourceIds(const Snapshot *snapshot,
 }
 
 bool DocumentSaver::save(const QString *filename, 
-        Snapshot *snapshot, 
+        Snapshot *snapshot,
+        const Object *object,
         const QByteArray *turnaroundPngByteArray,
         const QString *script,
         const std::map<QString, std::map<QString, QString>> *variables)
 {
     Ds3FileWriter ds3Writer;
     
-    QByteArray modelXml;
-    QXmlStreamWriter stream(&modelXml);
-    saveSkeletonToXmlStream(snapshot, &stream);
-    if (modelXml.size() > 0)
-        ds3Writer.add("model.xml", "model", &modelXml);
+    {
+        QByteArray modelXml;
+        QXmlStreamWriter stream(&modelXml);
+        saveSkeletonToXmlStream(snapshot, &stream);
+        if (modelXml.size() > 0)
+            ds3Writer.add("model.xml", "model", &modelXml);
+    }
+    
+    {
+        QByteArray objectXml;
+        QXmlStreamWriter stream(&objectXml);
+        saveObjectToXmlStream(object, &stream);
+        if (objectXml.size() > 0)
+            ds3Writer.add("object.xml", "object", &objectXml);
+    }
     
     if (nullptr != turnaroundPngByteArray && turnaroundPngByteArray->size() > 0)
         ds3Writer.add("canvas.png", "asset", turnaroundPngByteArray);

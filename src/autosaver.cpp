@@ -85,6 +85,8 @@ void AutoSaver::check()
     Snapshot *snapshot = new Snapshot;
     m_document->toSnapshot(snapshot);
     
+    Object *object = new Object(m_document->currentPostProcessedObject());
+    
     QByteArray *turnaroundPngByteArray = nullptr;
     if (!m_document->turnaround.isNull() && m_document->turnaroundPngByteArray.size() > 0) {
         turnaroundPngByteArray = new QByteArray(m_document->turnaroundPngByteArray);
@@ -104,6 +106,7 @@ void AutoSaver::check()
     QThread *thread = new QThread;
     m_documentSaver = new DocumentSaver(&m_filename,
         snapshot,
+        object,
         turnaroundPngByteArray,
         script,
         scriptVariables);

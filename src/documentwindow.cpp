@@ -1579,6 +1579,7 @@ void DocumentWindow::saveTo(const QString &saveAsFilename)
     m_document->toSnapshot(&snapshot);
     if (DocumentSaver::save(&filename, 
             &snapshot, 
+            &m_document->currentPostProcessedObject(),
             (!m_document->turnaround.isNull() && m_document->turnaroundPngByteArray.size() > 0) ? 
                 &m_document->turnaroundPngByteArray : nullptr,
             (!m_document->script().isEmpty()) ? &m_document->script() : nullptr,
