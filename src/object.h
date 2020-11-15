@@ -8,6 +8,7 @@
 #include <QVector2D>
 #include <QRectF>
 #include "bonemark.h"
+#include "componentlayer.h"
 
 #define MAX_WEIGHT_NUM  4
 
@@ -27,6 +28,7 @@ struct ObjectNode
     QUuid mirroredByPartId;
     BoneMark boneMark;
     QVector3D direction;
+    ComponentLayer layer = ComponentLayer::Body;
     bool joined = true;
 };
 
@@ -34,10 +36,10 @@ class Object
 {
 public:
     std::vector<ObjectNode> nodes;
-    std::vector<ObjectNode> bodyNodes;
-    std::vector<ObjectNode> clothNodes;
+    //std::vector<ObjectNode> bodyNodes;
+    //std::vector<ObjectNode> clothNodes;
     std::vector<std::pair<std::pair<QUuid, QUuid>, std::pair<QUuid, QUuid>>> edges;
-    std::vector<std::pair<std::pair<QUuid, QUuid>, std::pair<QUuid, QUuid>>> bodyEdges;
+    //std::vector<std::pair<std::pair<QUuid, QUuid>, std::pair<QUuid, QUuid>>> bodyEdges;
     std::vector<std::pair<QVector3D, std::pair<QUuid, QUuid>>> nodeVertices;
     std::vector<QVector3D> vertices;
     std::vector<std::pair<QUuid, QUuid>> vertexSourceNodes;

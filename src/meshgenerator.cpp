@@ -1649,8 +1649,13 @@ void MeshGenerator::collectClothComponent(const QString &componentIdString)
         clothMesh.clothStiffness = componentClothStiffness(component);
         clothMesh.clothIteration = componentClothIteration(component);
         clothMesh.objectNodeVertices = &componentCache.objectNodeVertices;
-        m_object->clothNodes.insert(m_object->clothNodes.end(), componentCache.objectNodes.begin(), componentCache.objectNodes.end());
-        m_object->nodes.insert(m_object->nodes.end(), componentCache.objectNodes.begin(), componentCache.objectNodes.end());
+        //m_object->clothNodes.insert(m_object->clothNodes.end(), componentCache.objectNodes.begin(), componentCache.objectNodes.end());
+        //m_object->nodes.insert(m_object->nodes.end(), componentCache.objectNodes.begin(), componentCache.objectNodes.end());
+        for (const auto &objectNode: componentCache.objectNodes) {
+            auto newNode = objectNode;
+            newNode.layer = ComponentLayer::Cloth; 
+            m_object->nodes.push_back(newNode);
+        }
         m_object->edges.insert(m_object->edges.end(), componentCache.objectEdges.begin(), componentCache.objectEdges.end());
     }
     simulateClothMeshes(&clothMeshes,
@@ -1933,22 +1938,22 @@ void MeshGenerator::generate()
     collectIncombinableComponentMeshes(QUuid().toString());
     
     // Fetch nodes as body nodes before cloth nodes collecting
-    std::set<std::pair<QUuid, QUuid>> bodyNodeMap;
-    m_object->bodyNodes.reserve(m_object->nodes.size());
-    for (const auto &it: m_object->nodes) {
-        if (it.joined) {
-            bodyNodeMap.insert({it.partId, it.nodeId});
-            m_object->bodyNodes.push_back(it);
-        }
-    }
-    m_object->bodyEdges.reserve(m_object->edges.size());
-    for (const auto &it: m_object->edges) {
-        if (bodyNodeMap.find(it.first) == bodyNodeMap.end())
-            continue;
-        if (bodyNodeMap.find(it.second) == bodyNodeMap.end())
-            continue;
-        m_object->bodyEdges.push_back(it);
-    }
+    //std::set<std::pair<QUuid, QUuid>> bodyNodeMap;
+    //m_object->bodyNodes.reserve(m_object->nodes.size());
+    //for (const auto &it: m_object->nodes) {
+    //    if (it.joined) {
+    //        bodyNodeMap.insert({it.partId, it.nodeId});
+    //        m_object->bodyNodes.push_back(it);
+    //    }
+    //}
+    //m_object->bodyEdges.reserve(m_object->edges.size());
+    //for (const auto &it: m_object->edges) {
+    //    if (bodyNodeMap.find(it.first) == bodyNodeMap.end())
+    //        continue;
+    //    if (bodyNodeMap.find(it.second) == bodyNodeMap.end())
+    //        continue;
+    //    m_object->bodyEdges.push_back(it);
+    //}
     
     collectClothComponent(QUuid().toString());
     collectErroredParts();
