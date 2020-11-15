@@ -412,12 +412,12 @@ signals:
     void scriptConsoleLogChanged();
     void mouseTargetChanged();
     void mousePickRadiusChanged();
-    void meshLockStateChanged();
+    void objectLockStateChanged();
 public: // need initialize
-    QImage *textureGuideImage;
+    //QImage *textureGuideImage;
     QImage *textureImage;
-    QImage *textureBorderImage;
-    QImage *textureColorImage;
+    //QImage *textureBorderImage;
+    //QImage *textureColorImage;
     QImage *textureNormalImage;
     QImage *textureMetalnessRoughnessAmbientOcclusionImage;
     QImage *textureMetalnessImage;
@@ -428,7 +428,7 @@ public: // need initialize
     bool weldEnabled;
     PolyCount polyCount;
     QColor brushColor;
-    bool meshLocked;
+    bool objectLocked;
     float brushMetalness = Model::m_defaultMetalness;
     float brushRoughness = Model::m_defaultRoughness;
 public:
@@ -636,6 +636,7 @@ public slots:
     void startPaint();
     void stopPaint();
     void setMousePickMaskNodeIds(const std::set<QUuid> &nodeIds);
+    void updateObject(Object *object);
 private:
     void splitPartByNode(std::vector<std::vector<QUuid>> *groups, QUuid nodeId);
     void joinNodeAndNeiborsToGroup(std::vector<QUuid> *group, QUuid nodeId, std::set<QUuid> *visitMap, QUuid noUseEdgeId=QUuid());

@@ -230,9 +230,6 @@ HEADERS += src/logbrowserdialog.h
 SOURCES += src/floatnumberwidget.cpp
 HEADERS += src/floatnumberwidget.h
 
-SOURCES += src/exportpreviewwidget.cpp
-HEADERS += src/exportpreviewwidget.h
-
 SOURCES += src/ccdikresolver.cpp
 HEADERS += src/ccdikresolver.h
 

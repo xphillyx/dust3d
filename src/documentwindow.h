@@ -12,7 +12,6 @@
 #include <QLabel>
 #include "document.h"
 #include "modelwidget.h"
-#include "exportpreviewwidget.h"
 #include "rigwidget.h"
 #include "bonemark.h"
 #include "preferenceswidget.h"
@@ -61,7 +60,6 @@ public slots:
     void exportObjResult();
     void exportGlbResult();
     void exportFbxResult();
-    void showExportPreview();
     void newWindow();
     void newDocument();
     void saveAs();
@@ -112,7 +110,6 @@ private:
     Document *m_document;
     bool m_firstShow;
     bool m_documentSaved;
-    ExportPreviewWidget *m_exportPreviewWidget;
     PreferencesWidget *m_preferencesWidget;
     std::vector<QWidget *> m_dialogs;
     bool m_isLastMeshGenerationSucceed;
@@ -138,15 +135,14 @@ private:
     QAction *m_saveAsAction;
     QAction *m_saveAllAction;
     QAction *m_showPreferencesAction;
-    QMenu *m_exportMenu;
     QAction *m_changeTurnaroundAction;
     QAction *m_quitAction;
     
     QAction *m_importAction;
     
     QAction *m_exportAsObjAction;
-    QAction *m_exportAsObjPlusMaterialsAction;
-    QAction *m_exportAction;
+    QAction *m_exportAsGlbAction;
+    QAction *m_exportAsFbxAction;
     QAction *m_exportRenderedAsImageAction;
     
     QMenu *m_editMenu;

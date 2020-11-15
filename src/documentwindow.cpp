@@ -48,6 +48,7 @@
 #include "modeloffscreenrender.h"
 #include "fileforever.h"
 #include "documentsaver.h"
+#include "objectxml.h"
 
 int DocumentWindow::m_autoRecovered = false;
 
@@ -159,7 +160,6 @@ DocumentWindow::DocumentWindow() :
     m_document(nullptr),
     m_firstShow(true),
     m_documentSaved(true),
-    m_exportPreviewWidget(nullptr),
     m_preferencesWidget(nullptr),
     m_isLastMeshGenerationSucceed(true),
     m_currentUpdatedMeshId(0),
@@ -204,10 +204,10 @@ DocumentWindow::DocumentWindow() :
     
     QPushButton *paintButton = new QPushButton(QChar(fa::paintbrush));
     paintButton->setToolTip(tr("Paint brush"));
-    paintButton->setVisible(m_document->meshLocked);
+    paintButton->setVisible(m_document->objectLocked);
     Theme::initAwesomeButton(paintButton);
-    connect(m_document, &Document::meshLockStateChanged, this, [=]() {
-        paintButton->setVisible(m_document->meshLocked);
+    connect(m_document, &Document::objectLockStateChanged, this, [=]() {
+        paintButton->setVisible(m_document->objectLocked);
     });
 
     //QPushButton *dragButton = new QPushButton(QChar(fa::handrocko));
@@ -272,7 +272,7 @@ DocumentWindow::DocumentWindow() :
     connect(m_document, &Document::postProcessing, this, &DocumentWindow::updateRegenerateIcon);
     connect(m_document, &Document::textureGenerating, this, &DocumentWindow::updateRegenerateIcon);
     connect(m_document, &Document::resultTextureChanged, this, &DocumentWindow::updateRegenerateIcon);
-    connect(m_document, &Document::meshLockStateChanged, this, &DocumentWindow::updateRegenerateIcon);
+    connect(m_document, &Document::objectLockStateChanged, this, &DocumentWindow::updateRegenerateIcon);
 
     toolButtonLayout->addWidget(addButton);
     toolButtonLayout->addWidget(selectButton);
@@ -421,7 +421,7 @@ DocumentWindow::DocumentWindow() :
     
     QDockWidget *paintDocker = new QDockWidget(tr("Paint"), this);
     paintDocker->setAllowedAreas(Qt::RightDockWidgetArea);
-    QPushButton *lockMeshButton = new QPushButton(Theme::awesome()->icon(fa::lock), tr("Lock Mesh for Painting"));
+    QPushButton *lockMeshButton = new QPushButton(Theme::awesome()->icon(fa::lock), tr("Lock Object for Painting"));
     QPushButton *unlockMeshButton = new QPushButton(Theme::awesome()->icon(fa::unlock), tr("Remove Painting"));
     connect(lockMeshButton, &QPushButton::clicked, this, [=]() {
         m_document->setMeshLockState(true);
@@ -459,12 +459,12 @@ DocumentWindow::DocumentWindow() :
         }
     });
     auto updatePaintWidgets = [=]() {
-        m_colorWheelWidget->setVisible(m_document->meshLocked);
-        lockMeshButton->setVisible(!m_document->meshLocked);
-        unlockMeshButton->setVisible(m_document->meshLocked);
+        m_colorWheelWidget->setVisible(m_document->objectLocked);
+        lockMeshButton->setVisible(!m_document->objectLocked);
+        unlockMeshButton->setVisible(m_document->objectLocked);
     };
     updatePaintWidgets();
-    connect(m_document, &Document::meshLockStateChanged, this, [=]() {
+    connect(m_document, &Document::objectLockStateChanged, this, [=]() {
         updatePaintWidgets();
     });
     addDockWidget(Qt::RightDockWidgetArea, paintDocker);
@@ -563,23 +563,21 @@ DocumentWindow::DocumentWindow() :
     
     m_fileMenu->addSeparator();
 
-    //m_exportMenu = m_fileMenu->addMenu(tr("Export"));
-
-    m_exportAction = new QAction(tr("Export..."), this);
-    connect(m_exportAction, &QAction::triggered, this, &DocumentWindow::showExportPreview, Qt::QueuedConnection);
-    m_fileMenu->addAction(m_exportAction);
-    
     m_exportAsObjAction = new QAction(tr("Export as OBJ..."), this);
     connect(m_exportAsObjAction, &QAction::triggered, this, &DocumentWindow::exportObjResult, Qt::QueuedConnection);
     m_fileMenu->addAction(m_exportAsObjAction);
     
+    m_exportAsGlbAction = new QAction(tr("Export as GLB..."), this);
+    connect(m_exportAsGlbAction, &QAction::triggered, this, &DocumentWindow::exportGlbResult, Qt::QueuedConnection);
+    m_fileMenu->addAction(m_exportAsGlbAction);
+    
+    m_exportAsFbxAction = new QAction(tr("Export as FBX..."), this);
+    connect(m_exportAsFbxAction, &QAction::triggered, this, &DocumentWindow::exportFbxResult, Qt::QueuedConnection);
+    m_fileMenu->addAction(m_exportAsFbxAction);
+    
     m_exportRenderedAsImageAction = new QAction(tr("Export as Image..."), this);
     connect(m_exportRenderedAsImageAction, &QAction::triggered, this, &DocumentWindow::exportRenderedResult, Qt::QueuedConnection);
     m_fileMenu->addAction(m_exportRenderedAsImageAction);
-    
-    //m_exportAsObjPlusMaterialsAction = new QAction(tr("Wavefront (.obj + .mtl)..."), this);
-    //connect(m_exportAsObjPlusMaterialsAction, &QAction::triggered, this, &SkeletonDocumentWindow::exportObjPlusMaterialsResult, Qt::QueuedConnection);
-    //m_exportMenu->addAction(m_exportAsObjPlusMaterialsAction);
     
     m_fileMenu->addSeparator();
 
@@ -595,8 +593,8 @@ DocumentWindow::DocumentWindow() :
 
     connect(m_fileMenu, &QMenu::aboutToShow, [=]() {
         m_exportAsObjAction->setEnabled(m_graphicsWidget->hasItems());
-        //m_exportAsObjPlusMaterialsAction->setEnabled(m_graphicsWidget->hasItems());
-        m_exportAction->setEnabled(m_graphicsWidget->hasItems());
+        m_exportAsGlbAction->setEnabled(m_graphicsWidget->hasItems() && m_document->isExportReady());
+        m_exportAsFbxAction->setEnabled(m_graphicsWidget->hasItems() && m_document->isExportReady());
         m_exportRenderedAsImageAction->setEnabled(m_graphicsWidget->hasItems());
     });
 
@@ -1313,8 +1311,8 @@ void DocumentWindow::updateRegenerateIcon()
         m_regenerateButton->showSpinner(true);
     } else {
         m_regenerateButton->showSpinner(false);
-        if (m_document->meshLocked) {
-            m_regenerateButton->setToolTip(tr("Mesh locked for painting"));
+        if (m_document->objectLocked) {
+            m_regenerateButton->setToolTip(tr("Object locked for painting"));
             m_regenerateButton->setAwesomeIcon(QChar(fa::lock));
         } else {
             m_regenerateButton->setToolTip(m_isLastMeshGenerationSucceed ? tr("Regenerate") : tr("Mesh generation failed, please undo or adjust recent changed nodes\nTips:\n  - Don't let generated mesh self-intersect\n  - Make multiple parts instead of one single part for whole model"));
@@ -1764,6 +1762,13 @@ void DocumentWindow::openPathAs(const QString &path, const QString &asName)
                 loadSkeletonFromXmlStream(&snapshot, stream);
                 m_document->fromSnapshot(snapshot);
                 m_document->saveSnapshot();
+            } else if (item.type == "object") {
+                QByteArray data;
+                ds3Reader.loadItem(item.name, &data);
+                QXmlStreamReader stream(data);
+                Object *object = new Object;
+                loadObjectFromXmlStream(object, stream);
+                m_document->updateObject(object);
             } else if (item.type == "asset") {
                 if (item.name == "canvas.png") {
                     QByteArray data;
@@ -1873,24 +1878,6 @@ void DocumentWindow::exportObjToFilename(const QString &filename)
         delete resultMesh;
     }
     QApplication::restoreOverrideCursor();
-}
-
-void DocumentWindow::showExportPreview()
-{
-    if (nullptr == m_exportPreviewWidget) {
-        m_exportPreviewWidget = new ExportPreviewWidget(m_document, this);
-        connect(m_exportPreviewWidget, &ExportPreviewWidget::regenerate, m_document, &Document::regenerateMesh);
-        connect(m_exportPreviewWidget, &ExportPreviewWidget::saveAsGlb, this, &DocumentWindow::exportGlbResult);
-        connect(m_exportPreviewWidget, &ExportPreviewWidget::saveAsFbx, this, &DocumentWindow::exportFbxResult);
-        connect(m_document, &Document::resultMeshChanged, m_exportPreviewWidget, &ExportPreviewWidget::checkSpinner);
-        connect(m_document, &Document::exportReady, m_exportPreviewWidget, &ExportPreviewWidget::checkSpinner);
-        connect(m_document, &Document::resultTextureChanged, m_exportPreviewWidget, &ExportPreviewWidget::updateTexturePreview);
-        connect(m_document, &Document::resultColorTextureChanged, m_exportPreviewWidget, &ExportPreviewWidget::updateTexturePreview);
-        //connect(m_document, &Document::resultBakedTextureChanged, m_exportPreviewWidget, &ExportPreviewWidget::updateTexturePreview);
-        registerDialog(m_exportPreviewWidget);
-    }
-    m_exportPreviewWidget->show();
-    m_exportPreviewWidget->raise();
 }
 
 void DocumentWindow::exportFbxResult()

@@ -28,10 +28,10 @@ const size_t Component::defaultClothIteration = 350;
 Document::Document() :
     SkeletonDocument(),
     // public
-    textureGuideImage(nullptr),
+    //textureGuideImage(nullptr),
     textureImage(nullptr),
-    textureBorderImage(nullptr),
-    textureColorImage(nullptr),
+    //textureBorderImage(nullptr),
+    //textureColorImage(nullptr),
     textureNormalImage(nullptr),
     textureMetalnessRoughnessAmbientOcclusionImage(nullptr),
     textureMetalnessImage(nullptr),
@@ -42,7 +42,7 @@ Document::Document() :
     weldEnabled(true),
     polyCount(PolyCount::Original),
     brushColor(Qt::white),
-    meshLocked(false),
+    objectLocked(false),
     // private
     m_isResultMeshObsolete(false),
     m_meshGenerator(nullptr),
@@ -111,15 +111,15 @@ Document::~Document()
     //delete m_resultMeshCutFaceTransforms;
     delete m_resultMeshNodesCutFaces;
     delete m_postProcessedObject;
-    delete textureGuideImage;
+    //delete textureGuideImage;
     delete textureImage;
-    delete textureColorImage;
+    //delete textureColorImage;
     delete textureNormalImage;
     delete textureMetalnessRoughnessAmbientOcclusionImage;
     delete textureMetalnessImage;
     delete textureRoughnessImage;
     delete textureAmbientOcclusionImage;
-    delete textureBorderImage;
+    //delete textureBorderImage;
     delete m_resultTextureMesh;
     delete m_resultRigWeightMesh;
 }
@@ -931,7 +931,7 @@ void Document::setEditMode(SkeletonDocumentEditMode mode)
     if (editMode == mode)
         return;
     
-    if (SkeletonDocumentEditMode::Paint == mode && !meshLocked)
+    if (SkeletonDocumentEditMode::Paint == mode && !objectLocked)
         return;
     
     editMode = mode;
@@ -942,10 +942,10 @@ void Document::setEditMode(SkeletonDocumentEditMode mode)
 
 void Document::setMeshLockState(bool locked)
 {
-    if (meshLocked == locked)
+    if (objectLocked == locked)
         return;
     
-    meshLocked = locked;
+    objectLocked = locked;
     if (locked) {
         if (SkeletonDocumentEditMode::Paint != editMode) {
             editMode = SkeletonDocumentEditMode::Paint;
@@ -957,7 +957,7 @@ void Document::setMeshLockState(bool locked)
             emit editModeChanged();
         }
     }
-    emit meshLockStateChanged();
+    emit objectLockStateChanged();
     emit textureChanged();
 }
 
@@ -1285,6 +1285,8 @@ void Document::toSnapshot(Snapshot *snapshot, const std::set<QUuid> &limitNodeId
         canvas["rigType"] = RigTypeToString(rigType);
         if (this->polyCount != PolyCount::Original)
             canvas["polyCount"] = PolyCountToString(this->polyCount);
+        if (this->objectLocked)
+            canvas["objectLocked"] = "true";
         snapshot->canvas = canvas;
     }
 }
@@ -1374,10 +1376,19 @@ void Document::createSinglePartFromEdges(const std::vector<QVector3D> &nodes,
     emit skeletonChanged();
 }
 
+void Document::updateObject(Object *object)
+{
+    delete m_postProcessedObject;
+    m_postProcessedObject = object;
+    
+    emit postProcessedResultChanged();
+}
+
 void Document::addFromSnapshot(const Snapshot &snapshot, enum SnapshotSource source)
 {
     bool isOriginChanged = false;
     bool isRigTypeChanged = false;
+    bool isMeshLockedChanged = false;
     if (SnapshotSource::Paste != source &&
             SnapshotSource::Import != source) {
         this->polyCount = PolyCountFromString(valueOfKeyInMapOrEmpty(snapshot.canvas, "polyCount").toUtf8().constData());
@@ -1395,6 +1406,11 @@ void Document::addFromSnapshot(const Snapshot &snapshot, enum SnapshotSource sou
         const auto &rigTypeIt = snapshot.canvas.find("rigType");
         if (rigTypeIt != snapshot.canvas.end()) {
             rigType = RigTypeFromString(rigTypeIt->second.toUtf8().constData());
+        }
+        bool setMeshLocked = isTrueValueString(valueOfKeyInMapOrEmpty(snapshot.canvas, "objectLocked"));
+        if (this->objectLocked != setMeshLocked) {
+            this->objectLocked = setMeshLocked;
+            isMeshLockedChanged = true;
         }
         isRigTypeChanged = true;
     }
@@ -1730,6 +1746,9 @@ void Document::addFromSnapshot(const Snapshot &snapshot, enum SnapshotSource sou
         emit materialListChanged();
     if (!snapshot.motions.empty())
         emit motionListChanged();
+    
+    if (isMeshLockedChanged)
+        emit objectLockStateChanged();
 }
 
 void Document::silentReset()
@@ -1921,7 +1940,7 @@ void Document::batchChangeEnd()
 
 void Document::regenerateMesh()
 {
-    if (meshLocked)
+    if (objectLocked)
         return;
     
     markAllDirty();
@@ -2004,17 +2023,17 @@ void Document::generateTexture()
 
 void Document::textureReady()
 {
-    delete textureGuideImage;
-    textureGuideImage = m_textureGenerator->takeResultTextureGuideImage();
+    //delete textureGuideImage;
+    //textureGuideImage = m_textureGenerator->takeResultTextureGuideImage();
     
     delete textureImage;
     textureImage = m_textureGenerator->takeResultTextureImage();
     
-    delete textureBorderImage;
-    textureBorderImage = m_textureGenerator->takeResultTextureBorderImage();
+    //delete textureBorderImage;
+    //textureBorderImage = m_textureGenerator->takeResultTextureBorderImage();
     
-    delete textureColorImage;
-    textureColorImage = m_textureGenerator->takeResultTextureColorImage();
+    //delete textureColorImage;
+    //textureColorImage = m_textureGenerator->takeResultTextureColorImage();
     
     delete textureNormalImage;
     textureNormalImage = m_textureGenerator->takeResultTextureNormalImage();
@@ -2056,6 +2075,11 @@ void Document::textureReady()
 
 void Document::postProcess()
 {
+    if (objectLocked) {
+        m_isPostProcessResultObsolete = true;
+        return;
+    }
+    
     if (nullptr != m_postProcessor) {
         m_isPostProcessResultObsolete = true;
         return;
