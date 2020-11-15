@@ -1,5 +1,5 @@
-#ifndef DUST3D_OUTCOME_H
-#define DUST3D_OUTCOME_H
+#ifndef DUST3D_OBJECT_H
+#define DUST3D_OBJECT_H
 #include <vector>
 #include <set>
 #include <QVector3D>
@@ -11,7 +11,7 @@
 
 #define MAX_WEIGHT_NUM  4
 
-struct OutcomeNode
+struct ObjectNode
 {
     QUuid partId;
     QUuid nodeId;
@@ -30,12 +30,12 @@ struct OutcomeNode
     bool joined = true;
 };
 
-class Outcome
+class Object
 {
 public:
-    std::vector<OutcomeNode> nodes;
-    std::vector<OutcomeNode> bodyNodes;
-    std::vector<OutcomeNode> clothNodes;
+    std::vector<ObjectNode> nodes;
+    std::vector<ObjectNode> bodyNodes;
+    std::vector<ObjectNode> clothNodes;
     std::vector<std::pair<std::pair<QUuid, QUuid>, std::pair<QUuid, QUuid>>> edges;
     std::vector<std::pair<std::pair<QUuid, QUuid>, std::pair<QUuid, QUuid>>> bodyEdges;
     std::vector<std::pair<QVector3D, std::pair<QUuid, QUuid>>> nodeVertices;
@@ -123,7 +123,7 @@ public:
         m_hasTriangleLinks = true;
     }
     
-    static void buildInterpolatedNodes(const std::vector<OutcomeNode> &nodes,
+    static void buildInterpolatedNodes(const std::vector<ObjectNode> &nodes,
         const std::vector<std::pair<std::pair<QUuid, QUuid>, std::pair<QUuid, QUuid>>> &edges,
         std::vector<std::tuple<QVector3D, float, size_t>> *targetNodes);
 private:

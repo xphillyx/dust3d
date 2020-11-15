@@ -13,7 +13,7 @@
 
 QColor TextureGenerator::m_defaultTextureColor = Qt::transparent;
 
-TextureGenerator::TextureGenerator(const Outcome &outcome, Snapshot *snapshot) :
+TextureGenerator::TextureGenerator(const Object &object, Snapshot *snapshot) :
     m_resultTextureGuideImage(nullptr),
     m_resultTextureImage(nullptr),
     m_resultTextureBorderImage(nullptr),
@@ -28,15 +28,15 @@ TextureGenerator::TextureGenerator(const Outcome &outcome, Snapshot *snapshot) :
     m_hasTransparencySettings(false),
     m_textureSize(Preferences::instance().textureSize())
 {
-    m_outcome = new Outcome();
-    *m_outcome = outcome;
+    m_object = new Object();
+    *m_object = object;
     if (m_textureSize <= 0)
         m_textureSize = 1024;
 }
 
 TextureGenerator::~TextureGenerator()
 {
-    delete m_outcome;
+    delete m_object;
     delete m_resultTextureGuideImage;
     delete m_resultTextureImage;
     delete m_resultTextureBorderImage;
@@ -113,11 +113,11 @@ QImage *TextureGenerator::takeResultTextureAmbientOcclusionImage()
     return resultTextureAmbientOcclusionImage;
 }
 
-Outcome *TextureGenerator::takeOutcome()
+Object *TextureGenerator::takeObject()
 {
-    Outcome *outcome = m_outcome;
+    Object *object = m_object;
     m_resultTextureImage = nullptr;
-    return outcome;
+    return object;
 }
 
 Model *TextureGenerator::takeResultMesh()
@@ -179,7 +179,7 @@ void TextureGenerator::prepare()
         updatedCountershadedMap.insert({partId,
             isTrueValueString(valueOfKeyInMapOrEmpty(partIt.second, "countershaded"))});
     }
-    for (const auto &bmeshNode: m_outcome->nodes) {
+    for (const auto &bmeshNode: m_object->nodes) {
     
         bool countershaded = bmeshNode.countershaded;
         auto findUpdatedCountershadedMap = updatedCountershadedMap.find(bmeshNode.mirrorFromPartId.isNull() ? bmeshNode.partId : bmeshNode.mirrorFromPartId);
@@ -221,13 +221,13 @@ bool TextureGenerator::hasTransparencySettings()
 
 void TextureGenerator::generate()
 {
-    m_resultMesh = new Model(*m_outcome);
+    m_resultMesh = new Model(*m_object);
     
-    if (nullptr == m_outcome->triangleVertexUvs())
+    if (nullptr == m_object->triangleVertexUvs())
         return;
-    if (nullptr == m_outcome->triangleSourceNodes())
+    if (nullptr == m_object->triangleSourceNodes())
         return;
-    if (nullptr == m_outcome->partUvRects())
+    if (nullptr == m_object->partUvRects())
         return;
     
     QElapsedTimer countTimeConsumed;
@@ -240,17 +240,17 @@ void TextureGenerator::generate()
     bool hasRoughnessMap = false;
     bool hasAmbientOcclusionMap = false;
     
-    const auto &triangleVertexUvs = *m_outcome->triangleVertexUvs();
-    const auto &triangleSourceNodes = *m_outcome->triangleSourceNodes();
-    const auto &partUvRects = *m_outcome->partUvRects();
-    const auto &triangleNormals = m_outcome->triangleNormals;
+    const auto &triangleVertexUvs = *m_object->triangleVertexUvs();
+    const auto &triangleSourceNodes = *m_object->triangleSourceNodes();
+    const auto &partUvRects = *m_object->partUvRects();
+    const auto &triangleNormals = m_object->triangleNormals;
     
     std::map<QUuid, QColor> partColorMap;
-    std::map<std::pair<QUuid, QUuid>, const OutcomeNode *> nodeMap;
+    std::map<std::pair<QUuid, QUuid>, const ObjectNode *> nodeMap;
     std::map<QUuid, float> partColorSolubilityMap;
     std::map<QUuid, float> partMetalnessMap;
     std::map<QUuid, float> partRoughnessMap;
-    for (const auto &item: m_outcome->nodes) {
+    for (const auto &item: m_object->nodes) {
         if (!m_hasTransparencySettings) {
             if (!qFuzzyCompare(1.0, item.color.alphaF()))
                 m_hasTransparencySettings = true;
@@ -555,8 +555,8 @@ void TextureGenerator::generate()
     };
     
     std::map<std::pair<size_t, size_t>, std::tuple<size_t, size_t, size_t>> halfEdgeToTriangleMap;
-    for (size_t i = 0; i < m_outcome->triangles.size(); ++i) {
-        const auto &triangleIndices = m_outcome->triangles[i];
+    for (size_t i = 0; i < m_object->triangles.size(); ++i) {
+        const auto &triangleIndices = m_object->triangles[i];
         if (triangleIndices.size() != 3) {
             qDebug() << "Found invalid triangle indices";
             continue;
@@ -582,7 +582,7 @@ void TextureGenerator::generate()
     
     // Draw belly white
     texturePainter.setCompositionMode(QPainter::CompositionMode_SoftLight);
-    for (size_t triangleIndex = 0; triangleIndex < m_outcome->triangles.size(); ++triangleIndex) {
+    for (size_t triangleIndex = 0; triangleIndex < m_object->triangles.size(); ++triangleIndex) {
         const auto &normal = triangleNormals[triangleIndex];
         const std::pair<QUuid, QUuid> &source = triangleSourceNodes[triangleIndex];
         const auto &partId = source.first;
@@ -595,11 +595,11 @@ void TextureGenerator::generate()
             continue;
         }
         
-        const auto &findOutcomeNode = nodeMap.find(source);
-        if (findOutcomeNode == nodeMap.end())
+        const auto &findObjectNode = nodeMap.find(source);
+        if (findObjectNode == nodeMap.end())
             continue;
-        const OutcomeNode *outcomeNode = findOutcomeNode->second;
-        if (qAbs(QVector3D::dotProduct(outcomeNode->direction, QVector3D(0, 1, 0))) >= 0.707) {
+        const ObjectNode *objectNode = findObjectNode->second;
+        if (qAbs(QVector3D::dotProduct(objectNode->direction, QVector3D(0, 1, 0))) >= 0.707) {
             if (QVector3D::dotProduct(normal, QVector3D(0, 0, 1)) <= 0.0)
                 continue;
         } else {
@@ -607,7 +607,7 @@ void TextureGenerator::generate()
                 continue;
         }
         
-        const auto &triangleIndices = m_outcome->triangles[triangleIndex];
+        const auto &triangleIndices = m_object->triangles[triangleIndex];
         if (triangleIndices.size() != 3) {
             qDebug() << "Found invalid triangle indices";
             continue;

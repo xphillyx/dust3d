@@ -6,7 +6,6 @@
 #include <QPolygon>
 #include "texturepainter.h"
 #include "util.h"
-#include "texturetransfer.h"
 
 TexturePainter::TexturePainter(const QVector3D &mouseRayNear, const QVector3D &mouseRayFar) :
     m_mouseRayNear(mouseRayNear),
@@ -59,16 +58,16 @@ void TexturePainter::buildFaceAroundVertexMap()
     
     m_context->faceAroundVertexMap = new std::unordered_map<size_t, std::unordered_set<size_t>>;
     for (size_t triangleIndex = 0; 
-            triangleIndex < m_context->outcome->triangles.size(); 
+            triangleIndex < m_context->object->triangles.size(); 
             ++triangleIndex) {
-        for (const auto &it: m_context->outcome->triangles[triangleIndex])
+        for (const auto &it: m_context->object->triangles[triangleIndex])
             (*m_context->faceAroundVertexMap)[it].insert(triangleIndex);
     }
 }
 
 void TexturePainter::collectNearbyTriangles(size_t triangleIndex, std::unordered_set<size_t> *triangleIndices)
 {
-    for (const auto &vertex: m_context->outcome->triangles[triangleIndex])
+    for (const auto &vertex: m_context->object->triangles[triangleIndex])
         for (const auto &it: (*m_context->faceAroundVertexMap)[vertex])
             triangleIndices->insert(it);
 }
@@ -79,9 +78,9 @@ void TexturePainter::paintStroke(QPainter &painter, const TexturePainterStroke &
     size_t targetTriangleIndex = 0;
     if (!intersectRayAndPolyhedron(stroke.mouseRayNear,
             stroke.mouseRayFar,
-            m_context->outcome->vertices,
-            m_context->outcome->triangles,
-            m_context->outcome->triangleNormals,
+            m_context->object->vertices,
+            m_context->object->triangles,
+            m_context->object->triangleNormals,
             &m_targetPosition,
             &targetTriangleIndex)) {
         return; 
@@ -95,31 +94,31 @@ void TexturePainter::paintStroke(QPainter &painter, const TexturePainterStroke &
         return;
     }
 
-    const std::vector<std::vector<QVector2D>> *uvs = m_context->outcome->triangleVertexUvs();
+    const std::vector<std::vector<QVector2D>> *uvs = m_context->object->triangleVertexUvs();
     if (nullptr == uvs) {
         qDebug() << "TexturePainter paint uvs is null";
         return;
     }
     
-    const std::vector<std::pair<QUuid, QUuid>> *sourceNodes = m_context->outcome->triangleSourceNodes();
+    const std::vector<std::pair<QUuid, QUuid>> *sourceNodes = m_context->object->triangleSourceNodes();
     if (nullptr == sourceNodes) {
         qDebug() << "TexturePainter paint source nodes is null";
         return;
     }
     
-    const std::map<QUuid, std::vector<QRectF>> *uvRects = m_context->outcome->partUvRects();
+    const std::map<QUuid, std::vector<QRectF>> *uvRects = m_context->object->partUvRects();
     if (nullptr == uvRects)
         return;
     
-    const auto &triangle = m_context->outcome->triangles[targetTriangleIndex];
-    QVector3D coordinates = barycentricCoordinates(m_context->outcome->vertices[triangle[0]],
-        m_context->outcome->vertices[triangle[1]],
-        m_context->outcome->vertices[triangle[2]],
+    const auto &triangle = m_context->object->triangles[targetTriangleIndex];
+    QVector3D coordinates = barycentricCoordinates(m_context->object->vertices[triangle[0]],
+        m_context->object->vertices[triangle[1]],
+        m_context->object->vertices[triangle[2]],
         m_targetPosition);
         
-    double triangleArea = areaOfTriangle(m_context->outcome->vertices[triangle[0]],
-        m_context->outcome->vertices[triangle[1]],
-        m_context->outcome->vertices[triangle[2]]);
+    double triangleArea = areaOfTriangle(m_context->object->vertices[triangle[0]],
+        m_context->object->vertices[triangle[1]],
+        m_context->object->vertices[triangle[2]]);
     
     auto &uvCoords = (*uvs)[targetTriangleIndex];
     QVector2D target2d = uvCoords[0] * coordinates[0] +
@@ -183,33 +182,6 @@ void TexturePainter::paint()
     if (nullptr == m_context) {
         qDebug() << "TexturePainter paint context is null";
         return;
-    }
-    
-    if (nullptr != m_context->newOutcome) {
-        QImage *newImage = new QImage(*m_context->colorImage);
-        
-        qDebug() << "Texture transfer started...";
-        
-        TextureTransfer textureTransfer(&m_context->outcome->vertices,
-            &m_context->outcome->triangles,
-            &m_context->outcome->triangleNormals,
-            m_context->outcome->triangleVertexUvs(),
-            m_context->colorImage,
-            &m_context->newOutcome->vertices,
-            &m_context->newOutcome->triangles,
-            &m_context->newOutcome->triangleNormals,
-            m_context->newOutcome->triangleVertexUvs(),
-            newImage);
-        textureTransfer.transfer();
-        
-        qDebug() << "Texture transfer finished";
-        
-        delete m_context->colorImage;
-        m_context->colorImage = newImage;
-        
-        delete m_context->outcome;
-        m_context->outcome = m_context->newOutcome;
-        m_context->newOutcome = nullptr;
     }
     
     QPainter painter(m_context->colorImage);

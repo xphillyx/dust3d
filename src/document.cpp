@@ -52,12 +52,12 @@ Document::Document() :
     m_resultMeshNodesCutFaces(nullptr),
     m_isMeshGenerationSucceed(true),
     m_batchChangeRefCount(0),
-    m_currentOutcome(nullptr),
+    m_currentObject(nullptr),
     m_isTextureObsolete(false),
     m_textureGenerator(nullptr),
     m_isPostProcessResultObsolete(false),
     m_postProcessor(nullptr),
-    m_postProcessedOutcome(new Outcome),
+    m_postProcessedObject(new Object),
     m_resultTextureMesh(nullptr),
     m_textureImageUpdateVersion(0),
     m_allPositionRelatedLocksEnabled(true),
@@ -67,7 +67,7 @@ Document::Document() :
     m_resultRigBones(nullptr),
     m_resultRigWeights(nullptr),
     m_isRigObsolete(false),
-    m_riggedOutcome(new Outcome),
+    m_riggedObject(new Object),
     m_currentRigSucceed(false),
     m_materialPreviewsGenerator(nullptr),
     m_motionsGenerator(nullptr),
@@ -110,7 +110,7 @@ Document::~Document()
     delete m_paintedMesh;
     //delete m_resultMeshCutFaceTransforms;
     delete m_resultMeshNodesCutFaces;
-    delete m_postProcessedOutcome;
+    delete m_postProcessedObject;
     delete textureGuideImage;
     delete textureImage;
     delete textureColorImage;
@@ -1822,7 +1822,7 @@ Model *Document::takeResultRigWeightMesh()
 void Document::meshReady()
 {
     Model *resultMesh = m_meshGenerator->takeResultMesh();
-    Outcome *outcome = m_meshGenerator->takeOutcome();
+    Object *object = m_meshGenerator->takeObject();
     bool isSuccessful = m_meshGenerator->isSuccessful();
     
     for (auto &partId: m_meshGenerator->generatedPreviewPartIds()) {
@@ -1847,8 +1847,8 @@ void Document::meshReady()
     
     m_isMeshGenerationSucceed = isSuccessful;
     
-    delete m_currentOutcome;
-    m_currentOutcome = outcome;
+    delete m_currentObject;
+    m_currentObject = object;
     
     if (nullptr == m_resultMesh) {
         qDebug() << "Result mesh is null";
@@ -1993,7 +1993,7 @@ void Document::generateTexture()
     toSnapshot(snapshot);
     
     QThread *thread = new QThread;
-    m_textureGenerator = new TextureGenerator(*m_postProcessedOutcome, snapshot);
+    m_textureGenerator = new TextureGenerator(*m_postProcessedObject, snapshot);
     m_textureGenerator->moveToThread(thread);
     connect(thread, &QThread::started, m_textureGenerator, &TextureGenerator::process);
     connect(m_textureGenerator, &TextureGenerator::finished, this, &Document::textureReady);
@@ -2063,7 +2063,7 @@ void Document::postProcess()
 
     m_isPostProcessResultObsolete = false;
 
-    if (!m_currentOutcome) {
+    if (!m_currentObject) {
         qDebug() << "Model is null";
         return;
     }
@@ -2072,7 +2072,7 @@ void Document::postProcess()
     emit postProcessing();
 
     QThread *thread = new QThread;
-    m_postProcessor = new MeshResultPostProcessor(*m_currentOutcome);
+    m_postProcessor = new MeshResultPostProcessor(*m_currentObject);
     m_postProcessor->moveToThread(thread);
     connect(thread, &QThread::started, m_postProcessor, &MeshResultPostProcessor::process);
     connect(m_postProcessor, &MeshResultPostProcessor::finished, this, &Document::postProcessedMeshResultReady);
@@ -2083,8 +2083,8 @@ void Document::postProcess()
 
 void Document::postProcessedMeshResultReady()
 {
-    delete m_postProcessedOutcome;
-    m_postProcessedOutcome = m_postProcessor->takePostProcessedOutcome();
+    delete m_postProcessedObject;
+    m_postProcessedObject = m_postProcessor->takePostProcessedObject();
 
     delete m_postProcessor;
     m_postProcessor = nullptr;
@@ -2115,7 +2115,7 @@ void Document::paint()
     
     m_isMouseTargetResultObsolete = false;
     
-    if (!m_postProcessedOutcome) {
+    if (!m_postProcessedObject) {
         qDebug() << "Model is null";
         return;
     }
@@ -2129,13 +2129,8 @@ void Document::paint()
     m_texturePainter = new TexturePainter(m_mouseRayNear, m_mouseRayFar);
     if (nullptr == m_texturePainterContext) {
         m_texturePainterContext = new TexturePainterContext;
-        m_texturePainterContext->outcome = new Outcome(*m_postProcessedOutcome);
+        m_texturePainterContext->object = new Object(*m_postProcessedObject);
         m_texturePainterContext->colorImage = new QImage(*textureImage);
-    } else {
-        if (m_texturePainterContext->outcome->meshId != m_postProcessedOutcome->meshId) {
-            delete m_texturePainterContext->newOutcome;
-            m_texturePainterContext->newOutcome = new Outcome(*m_postProcessedOutcome);
-        }
     }
     m_texturePainter->setContext(m_texturePainterContext);
     m_texturePainter->setBrushColor(brushColor);
@@ -2194,9 +2189,9 @@ void Document::setMousePickRadius(float radius)
     emit mousePickRadiusChanged();
 }
 
-const Outcome &Document::currentPostProcessedOutcome() const
+const Object &Document::currentPostProcessedObject() const
 {
-    return *m_postProcessedOutcome;
+    return *m_postProcessedObject;
 }
 
 void Document::setPartLockState(QUuid partId, bool locked)
@@ -3451,7 +3446,7 @@ void Document::generateRig()
     
     m_isRigObsolete = false;
     
-    if (RigType::None == rigType || nullptr == m_currentOutcome) {
+    if (RigType::None == rigType || nullptr == m_currentObject) {
         removeRigResults();
         return;
     }
@@ -3459,7 +3454,7 @@ void Document::generateRig()
     qDebug() << "Rig generating..";
     
     QThread *thread = new QThread;
-    m_rigGenerator = new RigGenerator(rigType, *m_postProcessedOutcome);
+    m_rigGenerator = new RigGenerator(rigType, *m_postProcessedObject);
     m_rigGenerator->moveToThread(thread);
     connect(thread, &QThread::started, m_rigGenerator, &RigGenerator::process);
     connect(m_rigGenerator, &RigGenerator::finished, this, &Document::rigReady);
@@ -3483,10 +3478,10 @@ void Document::rigReady()
     
     m_resultRigMessages = m_rigGenerator->messages();
     
-    delete m_riggedOutcome;
-    m_riggedOutcome = m_rigGenerator->takeOutcome();
-    if (nullptr == m_riggedOutcome)
-        m_riggedOutcome = new Outcome;
+    delete m_riggedObject;
+    m_riggedObject = m_rigGenerator->takeObject();
+    if (nullptr == m_riggedObject)
+        m_riggedObject = new Object;
     
     delete m_rigGenerator;
     m_rigGenerator = nullptr;
@@ -3550,9 +3545,9 @@ const std::vector<std::pair<QtMsgType, QString>> &Document::resultRigMessages() 
     return m_resultRigMessages;
 }
 
-const Outcome &Document::currentRiggedOutcome() const
+const Object &Document::currentRiggedObject() const
 {
-    return *m_riggedOutcome;
+    return *m_riggedObject;
 }
 
 bool Document::currentRigSucceed() const
@@ -3573,7 +3568,7 @@ void Document::generateMotions()
         return;
     }
     
-    m_motionsGenerator = new MotionsGenerator(rigType, *rigBones, *rigWeights, currentRiggedOutcome());
+    m_motionsGenerator = new MotionsGenerator(rigType, *rigBones, *rigWeights, currentRiggedObject());
     m_motionsGenerator->enableSnapshotMeshes();
     bool hasDirtyMotion = false;
     for (auto &motion: motionMap) {

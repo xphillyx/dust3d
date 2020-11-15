@@ -10,7 +10,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <deque>
-#include "outcome.h"
+#include "object.h"
 #include "paintmode.h"
 #include "model.h"
 
@@ -23,14 +23,13 @@ struct TexturePainterStroke
 class TexturePainterContext
 {
 public:
-    Outcome *outcome = nullptr;
+    Object *object = nullptr;
     QImage *colorImage = nullptr;
-    Outcome *newOutcome = nullptr;
     //std::unordered_map<size_t, std::unordered_set<size_t>> *faceAroundVertexMap = nullptr;
     
     ~TexturePainterContext()
     {
-        delete outcome;
+        delete object;
         delete colorImage;
     }
 };

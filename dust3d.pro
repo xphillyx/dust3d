@@ -215,8 +215,8 @@ HEADERS += src/model.h
 SOURCES += src/texturegenerator.cpp
 HEADERS += src/texturegenerator.h
 
-SOURCES += src/outcome.cpp
-HEADERS += src/outcome.h
+SOURCES += src/object.cpp
+HEADERS += src/object.h
 
 SOURCES += src/meshresultpostprocessor.cpp
 HEADERS += src/meshresultpostprocessor.h
@@ -528,9 +528,6 @@ HEADERS += src/motioneditwidget.h
 
 SOURCES += src/vertebratamotionparameterswidget.cpp
 HEADERS += src/vertebratamotionparameterswidget.h
-
-SOURCES += src/texturetransfer.cpp
-HEADERS += src/texturetransfer.h
 
 SOURCES += src/main.cpp
 

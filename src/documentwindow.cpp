@@ -421,13 +421,21 @@ DocumentWindow::DocumentWindow() :
     
     QDockWidget *paintDocker = new QDockWidget(tr("Paint"), this);
     paintDocker->setAllowedAreas(Qt::RightDockWidgetArea);
-    QPushButton *lockMeshButton = new QPushButton(Theme::awesome()->icon(fa::lock), tr("Lock Mesh"));
-    QPushButton *unlockMeshButton = new QPushButton(Theme::awesome()->icon(fa::unlock), tr("Unlock Mesh"));
+    QPushButton *lockMeshButton = new QPushButton(Theme::awesome()->icon(fa::lock), tr("Lock Mesh for Painting"));
+    QPushButton *unlockMeshButton = new QPushButton(Theme::awesome()->icon(fa::unlock), tr("Remove Painting"));
     connect(lockMeshButton, &QPushButton::clicked, this, [=]() {
         m_document->setMeshLockState(true);
     });
-    connect(unlockMeshButton, &QPushButton::clicked, this, [=]() {
-        m_document->setMeshLockState(false);
+    connect(unlockMeshButton, &QPushButton::clicked, this, [this]() {
+        QMessageBox::StandardButton answer = QMessageBox::question(this,
+            APP_NAME,
+            tr("Do you really want to remove painting?"),
+            QMessageBox::Yes | QMessageBox::No,
+            QMessageBox::No);
+        if (answer == QMessageBox::No) {
+            return;
+        }
+        this->m_document->setMeshLockState(false);
     });
     m_colorWheelWidget = new color_widgets::ColorWheel(nullptr);
     m_colorWheelWidget->setContentsMargins(0, 5, 0, 5);
@@ -1902,7 +1910,7 @@ void DocumentWindow::exportFbxToFilename(const QString &filename)
         return;
     }
     QApplication::setOverrideCursor(Qt::WaitCursor);
-    Outcome skeletonResult = m_document->currentPostProcessedOutcome();
+    Object skeletonResult = m_document->currentPostProcessedObject();
     std::vector<std::pair<QString, std::vector<std::pair<float, JointNodeTree>>>> exportMotions;
     for (const auto &motionIt: m_document->motionMap) {
         exportMotions.push_back({motionIt.second.name, motionIt.second.jointNodeTrees});
@@ -1936,7 +1944,7 @@ void DocumentWindow::exportGlbToFilename(const QString &filename)
         return;
     }
     QApplication::setOverrideCursor(Qt::WaitCursor);
-    Outcome skeletonResult = m_document->currentPostProcessedOutcome();
+    Object skeletonResult = m_document->currentPostProcessedObject();
     std::vector<std::pair<QString, std::vector<std::pair<float, JointNodeTree>>>> exportMotions;
     for (const auto &motionIt: m_document->motionMap) {
         exportMotions.push_back({motionIt.second.name, motionIt.second.jointNodeTrees});
